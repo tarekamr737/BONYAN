@@ -1,36 +1,36 @@
 # BONYAN Workstream 01 — Core Platform Tasks
 
 ## A. Bootstrap
-- [ ] Create `apps/mobile` Expo + TypeScript project.
-- [ ] Create `apps/api` FastAPI project.
-- [ ] Add repo scripts for install/dev/test/lint/typecheck.
-- [ ] Add secret-free `.env.example` files.
-- [ ] Add local setup README.
+- [x] Create `apps/mobile` Expo + TypeScript project.
+- [x] Create `apps/api` FastAPI project.
+- [x] Add repo scripts for install/dev/test/lint/typecheck.
+- [x] Add secret-free `.env.example` files.
+- [x] Add local setup README.
 
 ## B. Mobile Core
-- [ ] Implement design tokens from prototype.
+- [x] Implement design tokens from prototype.
 - [ ] Add reusable button/input/card/loading/error primitives.
-- [ ] Configure Expo Router.
+- [x] Configure Expo Router.
 - [ ] Add unauthenticated route group.
 - [ ] Add authenticated app shell.
-- [ ] Add typed API client.
-- [ ] Add TanStack Query provider.
-- [ ] Add shared API error handling.
+- [x] Add typed API client.
+- [x] Add TanStack Query provider.
+- [x] Add shared API error handling.
 
 ## C. Backend Core
-- [ ] Add validated settings module.
-- [ ] Bootstrap FastAPI app.
-- [ ] Add `/health` endpoint.
-- [ ] Add standardized errors.
-- [ ] Add safe structured logging.
-- [ ] Add request correlation ID.
+- [x] Add validated settings module.
+- [x] Bootstrap FastAPI app.
+- [x] Add `/health` endpoint.
+- [x] Add standardized errors.
+- [x] Add safe structured logging.
+- [x] Add request correlation ID.
 
 ## D. Database
-- [ ] Configure PostgreSQL + SQLAlchemy 2.
-- [ ] Configure Alembic.
+- [x] Configure PostgreSQL + SQLAlchemy 2.
+- [x] Configure Alembic.
 - [ ] Create initial user/profile migration.
-- [ ] Add DB session/repository dependency.
-- [ ] Verify migration from clean DB.
+- [x] Add DB session/repository dependency.
+- [x] Verify migration from clean DB.
 
 ## E. Authentication
 - [ ] Implement auth integration.
@@ -47,10 +47,10 @@
 - [ ] Implement profile/settings screen.
 
 ## G. Shared Interfaces
-- [ ] Create `LLMProvider` + mock.
-- [ ] Create `AvatarProvider` + mock.
-- [ ] Add `CHAT_MODEL=TBD`.
-- [ ] Add `AVATAR_MODEL=TBD`.
+- [x] Create `LLMProvider` + mock.
+- [x] Create `AvatarProvider` + mock.
+- [x] Add `CHAT_MODEL=TBD`.
+- [x] Add `AVATAR_MODEL=TBD`.
 
 ## H. Storage / Security
 - [ ] Create private object-storage interface.
@@ -59,22 +59,22 @@
 - [ ] Verify logs exclude sensitive content.
 
 ## I. CI
-- [ ] Add backend lint/test CI.
-- [ ] Add mobile lint/typecheck/test CI.
-- [ ] Add migration validation.
+- [x] Add backend lint/test CI.
+- [x] Add mobile lint/typecheck/test CI.
+- [x] Add migration validation.
 - [ ] Confirm CI passes.
 
 ## J. Integration
-- [ ] Publish integration contract.
+- [x] Publish integration contract.
 - [ ] After WS2 merge, register InBody modules.
 - [ ] After WS3 merge, register Training modules.
 - [ ] After WS4 merge, register Avatar/Community modules.
 
 ## K. Final
-- [ ] Fresh clone setup works.
-- [ ] Mobile boots.
-- [ ] API boots.
+- [x] Fresh clone setup works.
+- [x] Mobile boots.
+- [x] API boots.
 - [ ] Auth/onboarding/profile work.
-- [ ] Lint passes.
-- [ ] Typecheck passes.
-- [ ] Tests pass.
+- [x] Lint passes.
+- [x] Typecheck passes.
+- [x] Tests pass.
