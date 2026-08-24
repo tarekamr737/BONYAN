@@ -39,5 +39,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "private": true
+  "private": true,
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "^1.2.5"
+  }
 }
