@@ -26,7 +26,13 @@ class MistralOcrClient:
         self.timeout_seconds = timeout_seconds
         self.max_attempts = max(1, max_attempts)
 
-    async def extract_document(self, *, content: bytes, content_type: str, filename: str) -> dict[str, Any]:
+    async def extract_document(
+        self,
+        *,
+        content: bytes,
+        content_type: str,
+        filename: str,
+    ) -> dict[str, Any]:
         if not self.api_key:
             raise MistralOcrError("MISTRAL_API_KEY is required for live OCR")
 

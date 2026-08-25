@@ -60,7 +60,10 @@ class InBodyRepository:
         )
         if confirmed_only:
             statement = statement.where(InBodyScan.status == InBodyScanStatus.CONFIRMED)
-        statement = statement.order_by(InBodyScan.confirmed_at.desc().nullslast(), InBodyScan.created_at.desc())
+        statement = statement.order_by(
+            InBodyScan.confirmed_at.desc().nullslast(),
+            InBodyScan.created_at.desc(),
+        )
         result = await self.session.execute(statement)
         return list(result.scalars().all())
 

@@ -9,7 +9,12 @@ from uuid import UUID
 import pytest
 
 from app.core.errors import AppError
-from app.domains.inbody.schemas import InBodyMeasurement, InBodyMetricKey, InBodyResult, InBodyScanStatus
+from app.domains.inbody.schemas import (
+    InBodyMeasurement,
+    InBodyMetricKey,
+    InBodyResult,
+    InBodyScanStatus,
+)
 from app.domains.inbody.service import InBodyService
 
 
@@ -63,7 +68,12 @@ class FakeRepository:
             return scan
         return None
 
-    async def list_owned(self, *, owner_id: str, confirmed_only: bool = False) -> list[SimpleNamespace]:
+    async def list_owned(
+        self,
+        *,
+        owner_id: str,
+        confirmed_only: bool = False,
+    ) -> list[SimpleNamespace]:
         scans = [
             scan
             for scan in self.scans.values()
@@ -85,7 +95,13 @@ class FakeRepository:
         scan.updated_at = datetime.now(UTC)
         return scan
 
-    async def mark_failed(self, scan: SimpleNamespace, *, code: str, message: str) -> SimpleNamespace:
+    async def mark_failed(
+        self,
+        scan: SimpleNamespace,
+        *,
+        code: str,
+        message: str,
+    ) -> SimpleNamespace:
         scan.status = InBodyScanStatus.FAILED
         scan.failure_code = code
         scan.failure_message = message

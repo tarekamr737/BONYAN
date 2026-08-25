@@ -10,7 +10,6 @@ from fastapi import status
 from app.core.errors import AppError
 from app.domains.inbody.schemas import (
     InBodyHistoryResponse,
-    InBodyMeasurement,
     InBodyResult,
     InBodyScanResponse,
     InBodyScanStatus,
@@ -27,7 +26,11 @@ if TYPE_CHECKING:
 
 
 class InBodyService:
-    def __init__(self, repository: "InBodyRepository", ocr_provider: OcrProvider | None = None) -> None:
+    def __init__(
+        self,
+        repository: InBodyRepository,
+        ocr_provider: OcrProvider | None = None,
+    ) -> None:
         self.repository = repository
         self.ocr_provider = ocr_provider or MistralOcrProvider()
 
@@ -40,10 +43,17 @@ class InBodyService:
         content: bytes,
     ) -> UploadResponse:
         if not is_supported_upload(content_type, len(content), content):
-            raise AppError("invalid_inbody_file", "Upload a readable InBody image or PDF.", status.HTTP_400_BAD_REQUEST)
+            raise AppError(
+                "invalid_inbody_file",
+                "Upload a readable InBody image or PDF.",
+                status.HTTP_400_BAD_REQUEST,
+            )
 
         content_hash = hashlib.sha256(content).hexdigest()
-        duplicate = await self.repository.find_duplicate(owner_id=user_id, content_hash=content_hash)
+        duplicate = await self.repository.find_duplicate(
+            owner_id=user_id,
+            content_hash=content_hash,
+        )
         if duplicate is not None:
             return UploadResponse(scan=self._to_response(duplicate), duplicate=True)
 
@@ -57,7 +67,11 @@ class InBodyService:
         )
 
         try:
-            result = await self.ocr_provider.extract(content=content, content_type=content_type, filename=filename)
+            result = await self.ocr_provider.extract(
+                content=content,
+                content_type=content_type,
+                filename=filename,
+            )
         except TimeoutError:
             scan = await self.repository.mark_failed(
                 scan,
@@ -90,10 +104,20 @@ class InBodyService:
         scan = await self.repository.latest_confirmed(owner_id=user_id)
         return LatestInBodyResponse(scan=self._to_response(scan) if scan else None)
 
-    async def update_review(self, *, user_id: str, scan_id: UUID, review: ReviewUpdate) -> InBodyScanResponse:
+    async def update_review(
+        self,
+        *,
+        user_id: str,
+        scan_id: UUID,
+        review: ReviewUpdate,
+    ) -> InBodyScanResponse:
         scan = await self._get_owned_or_404(user_id=user_id, scan_id=scan_id)
         if scan.status not in {InBodyScanStatus.REVIEW_REQUIRED, InBodyScanStatus.FAILED}:
-            raise AppError("scan_not_reviewable", "This scan cannot be edited.", status.HTTP_409_CONFLICT)
+            raise AppError(
+                "scan_not_reviewable",
+                "This scan cannot be edited.",
+                status.HTTP_409_CONFLICT,
+            )
 
         edited = InBodyResult(
             scan_date=review.scan_date,
@@ -108,13 +132,21 @@ class InBodyService:
             ],
             segmental_measurements=review.segmental_measurements,
         )
-        scan = await self.repository.save_result(scan, status=InBodyScanStatus.REVIEW_REQUIRED, result=edited)
+        scan = await self.repository.save_result(
+            scan,
+            status=InBodyScanStatus.REVIEW_REQUIRED,
+            result=edited,
+        )
         return self._to_response(scan)
 
     async def confirm_scan(self, *, user_id: str, scan_id: UUID) -> InBodyScanResponse:
         scan = await self._get_owned_or_404(user_id=user_id, scan_id=scan_id)
         if scan.status != InBodyScanStatus.REVIEW_REQUIRED or scan.result is None:
-            raise AppError("scan_not_confirmable", "Review this scan before confirming.", status.HTTP_409_CONFLICT)
+            raise AppError(
+                "scan_not_confirmable",
+                "Review this scan before confirming.",
+                status.HTTP_409_CONFLICT,
+            )
         scan = await self.repository.confirm(scan)
         return self._to_response(scan)
 
@@ -122,7 +154,7 @@ class InBodyService:
         scan = await self._get_owned_or_404(user_id=user_id, scan_id=scan_id)
         await self.repository.delete(scan)
 
-    async def _get_owned_or_404(self, *, user_id: str, scan_id: UUID) -> "InBodyScan":
+    async def _get_owned_or_404(self, *, user_id: str, scan_id: UUID) -> InBodyScan:
         scan = await self.repository.get_owned(owner_id=user_id, scan_id=scan_id)
         if scan is None or scan.status == InBodyScanStatus.DELETED:
             raise AppError("scan_not_found", "InBody scan not found.", status.HTTP_404_NOT_FOUND)

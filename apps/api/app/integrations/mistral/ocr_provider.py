@@ -3,13 +3,24 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
-from app.domains.inbody.schemas import InBodyMeasurement, InBodyMetricKey, InBodyResult, MeasurementMetadata
+from app.domains.inbody.schemas import (
+    InBodyMeasurement,
+    InBodyMetricKey,
+    InBodyResult,
+    MeasurementMetadata,
+)
 from app.domains.inbody.validation import normalize_unit
 from app.integrations.mistral.client import MistralOcrClient
 
 
 class OcrProvider(Protocol):
-    async def extract(self, *, content: bytes, content_type: str, filename: str) -> InBodyResult: ...
+    async def extract(
+        self,
+        *,
+        content: bytes,
+        content_type: str,
+        filename: str,
+    ) -> InBodyResult: ...
 
 
 class MistralOcrProvider:
@@ -17,13 +28,23 @@ class MistralOcrProvider:
         self.client = client or MistralOcrClient()
 
     async def extract(self, *, content: bytes, content_type: str, filename: str) -> InBodyResult:
-        raw = await self.client.extract_document(content=content, content_type=content_type, filename=filename)
+        raw = await self.client.extract_document(
+            content=content,
+            content_type=content_type,
+            filename=filename,
+        )
         return map_mistral_ocr_to_inbody(raw)
 
 
 _FIELD_PATTERNS = {
-    InBodyMetricKey.HEIGHT: re.compile(r"height\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>cm|in)", re.I),
-    InBodyMetricKey.WEIGHT: re.compile(r"weight\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs)", re.I),
+    InBodyMetricKey.HEIGHT: re.compile(
+        r"height\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>cm|in)",
+        re.I,
+    ),
+    InBodyMetricKey.WEIGHT: re.compile(
+        r"weight\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs)",
+        re.I,
+    ),
     InBodyMetricKey.SKELETAL_MUSCLE_MASS: re.compile(
         r"skeletal\s+muscle\s+mass\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs)",
         re.I,
@@ -76,7 +97,11 @@ def map_mistral_ocr_to_inbody(raw: dict[str, object]) -> InBodyResult:
 def _extract_text(raw: dict[str, object]) -> str:
     pages = raw.get("pages")
     if isinstance(pages, list):
-        return "\n".join(str(page.get("markdown") or page.get("text") or "") for page in pages if isinstance(page, dict))
+        return "\n".join(
+            str(page.get("markdown") or page.get("text") or "")
+            for page in pages
+            if isinstance(page, dict)
+        )
     return str(raw.get("text") or raw.get("markdown") or "")
 
 

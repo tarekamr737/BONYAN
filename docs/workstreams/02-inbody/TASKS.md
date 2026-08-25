@@ -79,6 +79,6 @@
 - [x] Test missing/low-confidence fields.
 - [x] Test corrupt/unsupported file.
 - [x] Test timeout/duplicate/unauthorized access.
-- [ ] API lint blocked by unavailable pinned ruff package in configured index.
+- [x] API lint passes.
 - [x] Typecheck passes.
 - [x] Tests pass.

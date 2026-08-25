@@ -18,11 +18,12 @@
 - `python -m pytest -q -c apps/api/pyproject.toml` passes.
 - `python -m pytest -q -c apps/api/pyproject.toml tests/inbody` passes.
 - `python -m compileall -q apps/api/app` passes.
+- `python -m ruff check --config apps/api/pyproject.toml apps/api/app tests/api tests/inbody` passes.
 - `npm run mobile:typecheck` passes.
 - `npm run mobile:lint` passes.
 - `npm run mobile:test` passes.
 - `impeccable detect apps/mobile/src/features/inbody apps/mobile/app/inbody` passes.
 
 ## Known Blockers
-- `python -m ruff ...` could not run because the configured package index did not provide the repo-pinned `ruff>=0.16.4,<0.17` dev dependency.
 - Live Mistral calls require `MISTRAL_API_KEY`; tests use mocks and structured mapping fixtures.
+- Private object deletion retention should be wired to the shared WS1 storage primitive when that lands.
