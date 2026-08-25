@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import base64
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 
 from app.core.errors import AppError
 from app.domains.avatar.contracts import (
@@ -12,13 +13,23 @@ from app.domains.avatar.contracts import (
     AvatarGenerationResult,
     AvatarProvider,
     AvatarState,
+    BodyMetricsSnapshot,
+    BodyMetricsSource,
 )
 from app.domains.avatar.models import AvatarRecord
 from app.domains.avatar.schemas import CreateAvatarRequest
 from app.domains.avatar.service import AvatarService
 from app.integrations.avatar.mock import MockAvatarProvider
 
-PNG_SOURCE = base64.b64encode(b"\x89PNG\r\n\x1a\nprivate-photo-content").decode()
+MEASURED_AT = datetime(2026, 8, 24, 9, 30, tzinfo=UTC)
+CONFIRMED_METRICS = BodyMetricsSnapshot(
+    height_cm=178,
+    weight_kg=82,
+    body_fat_percentage=18.5,
+    skeletal_muscle_mass_kg=36.2,
+    recorded_at=MEASURED_AT,
+    source=BodyMetricsSource.INBODY,
+)
 
 
 class FakeAvatarRepository:
@@ -63,57 +74,147 @@ class FakePrivateStorage:
 
     async def create_read_url(self, object_key: str, *, expires_in_seconds: int) -> str:
         assert object_key in self.items
-        return f"https://private-storage.test/read/{self._counter}?ttl={expires_in_seconds}"
+        return f"https://private-storage.test/read/{object_key}?ttl={expires_in_seconds}"
 
     async def delete_private(self, object_key: str) -> None:
         self.items.pop(object_key, None)
         self.deleted.append(object_key)
 
 
+class FakeBodyMetricsReader:
+    def __init__(self, snapshot: BodyMetricsSnapshot | None = CONFIRMED_METRICS) -> None:
+        self.snapshot = snapshot
+        self.requests: list[str] = []
+
+    async def latest_confirmed(self, owner_id: str) -> BodyMetricsSnapshot | None:
+        self.requests.append(owner_id)
+        return self.snapshot
+
+
 def make_service(
-    *, provider: AvatarProvider | None = None, timeout_seconds: float = 0.1
-) -> tuple[AvatarService, FakeAvatarRepository, FakePrivateStorage]:
+    *,
+    provider: AvatarProvider | None = None,
+    timeout_seconds: float = 0.1,
+    metrics_reader: FakeBodyMetricsReader | None = None,
+) -> tuple[AvatarService, FakeAvatarRepository, FakePrivateStorage, FakeBodyMetricsReader]:
     repository = FakeAvatarRepository()
     storage = FakePrivateStorage()
+    reader = metrics_reader or FakeBodyMetricsReader()
     service = AvatarService(
         repository,
         provider or MockAvatarProvider(),
         storage,
+        reader,
         provider_timeout_seconds=timeout_seconds,
     )
-    return service, repository, storage
+    return service, repository, storage, reader
 
 
 def create_request() -> CreateAvatarRequest:
-    return CreateAvatarRequest(
-        source_image_base64=PNG_SOURCE,
-        source_media_type="image/png",
-        style="athletic portrait",
-    )
+    return CreateAvatarRequest(style="respectful athletic body figure")
 
 
-def test_source_photo_and_unapproved_result_are_private() -> None:
+def test_confirmed_metrics_generate_private_result_without_storing_raw_values() -> None:
     async def scenario() -> None:
-        service, repository, storage = make_service()
+        service, repository, storage, reader = make_service()
         view = await service.create("user-1", create_request())
 
         assert view.state is AvatarState.READY_FOR_REVIEW
         assert view.public_in_community is False
+        assert view.measurement_source == "inbody"
+        assert view.measurements_recorded_at == MEASURED_AT
+        assert reader.requests == ["user-1"]
         assert await service.get_community_identity("user-1", view.id) is None
-        serialized = view.model_dump(mode="json")
-        assert "source" not in " ".join(serialized).lower()
+        serialized = str(view.model_dump(mode="json")).lower()
+        assert "weight" not in serialized
+        assert "body_fat" not in serialized
+        assert "muscle" not in serialized
         record = repository.items[view.id]
-        assert record.source_object_key in storage.items
         assert record.generated_object_key in storage.items
         assert record.generated_media_type == "image/png"
-        assert record.source_object_key not in str(serialized)
+        assert not hasattr(record, "source_object_key")
+
+    asyncio.run(scenario())
+
+
+def test_measurement_status_shares_availability_not_measurement_values() -> None:
+    async def scenario() -> None:
+        service, _, _, _ = make_service()
+
+        status = await service.measurement_status("user-1")
+        serialized = status.model_dump(mode="json")
+
+        assert serialized == {
+            "available": True,
+            "source": "inbody",
+            "recorded_at": "2026-08-24T09:30:00Z",
+            "body_fat_available": True,
+            "muscle_mass_available": True,
+        }
+        assert "82" not in str(serialized)
+        assert "178" not in str(serialized)
+
+    asyncio.run(scenario())
+
+
+def test_missing_confirmed_metrics_block_generation_before_storage() -> None:
+    async def scenario() -> None:
+        reader = FakeBodyMetricsReader(None)
+        service, repository, storage, _ = make_service(metrics_reader=reader)
+
+        with pytest.raises(AppError) as error:
+            await service.create("user-1", create_request())
+
+        assert error.value.code == "body_metrics_required"
+        assert error.value.status_code == 409
+        assert not repository.items
+        assert not storage.items
+
+    asyncio.run(scenario())
+
+
+def test_request_rejects_uploaded_photos_and_body_measurements() -> None:
+    with pytest.raises(ValidationError):
+        CreateAvatarRequest.model_validate(
+            {
+                "style": "respectful athletic body figure",
+                "source_image_base64": "private-photo",
+                "weight_kg": 82,
+                "body_fat_percentage": 18.5,
+            }
+        )
+
+
+def test_renderer_changes_the_figure_when_confirmed_metrics_change() -> None:
+    async def scenario() -> None:
+        provider = MockAvatarProvider()
+        first = await provider.generate(
+            AvatarGenerationRequest(metrics=CONFIRMED_METRICS, style="respectful athletic")
+        )
+        second = await provider.generate(
+            AvatarGenerationRequest(
+                metrics=BodyMetricsSnapshot(
+                    height_cm=165,
+                    weight_kg=98,
+                    body_fat_percentage=34,
+                    skeletal_muscle_mass_kg=31,
+                    recorded_at=MEASURED_AT,
+                    source=BodyMetricsSource.INBODY,
+                ),
+                style="respectful athletic",
+            )
+        )
+
+        assert first.content.startswith(b"\x89PNG\r\n\x1a\n")
+        assert second.content.startswith(b"\x89PNG\r\n\x1a\n")
+        assert first.content != second.content
 
     asyncio.run(scenario())
 
 
 def test_approval_does_not_publish_without_a_second_explicit_action() -> None:
     async def scenario() -> None:
-        service, _, _ = make_service()
+        service, _, _, _ = make_service()
         created = await service.create("user-1", create_request())
 
         approved = await service.approve("user-1", created.id)
@@ -132,7 +233,7 @@ def test_approval_does_not_publish_without_a_second_explicit_action() -> None:
 
 def test_provider_failure_is_safe_and_retryable() -> None:
     async def scenario() -> None:
-        service, repository, storage = make_service(
+        service, repository, storage, _ = make_service(
             provider=MockAvatarProvider(fail_with="provider_unavailable")
         )
         view = await service.create("user-1", create_request())
@@ -140,14 +241,13 @@ def test_provider_failure_is_safe_and_retryable() -> None:
         assert view.state is AvatarState.FAILED
         assert view.failure_code == "provider_unavailable"
         assert view.preview_url is None
-        record = repository.items[view.id]
-        assert record.source_object_key in storage.items
-        assert record.generated_object_key is None
+        assert repository.items[view.id].generated_object_key is None
+        assert not storage.items
 
     asyncio.run(scenario())
 
 
-def test_provider_timeout_leaves_private_source_available_for_retry() -> None:
+def test_provider_timeout_leaves_metrics_available_for_retry() -> None:
     class SlowProvider:
         async def generate(
             self, request: AvatarGenerationRequest
@@ -155,11 +255,11 @@ def test_provider_timeout_leaves_private_source_available_for_retry() -> None:
             del request
             await asyncio.sleep(0.02)
             return AvatarGenerationResult(
-                content=b"<svg></svg>", media_type="image/svg+xml", model="TBD"
+                content=b"\x89PNG\r\n\x1a\nlate", media_type="image/png", model="TBD"
             )
 
     async def scenario() -> None:
-        service, repository, storage = make_service(
+        service, repository, storage, reader = make_service(
             provider=SlowProvider(), timeout_seconds=0.001
         )
 
@@ -167,9 +267,9 @@ def test_provider_timeout_leaves_private_source_available_for_retry() -> None:
 
         assert view.state is AvatarState.FAILED
         assert view.failure_code == "provider_timeout"
-        record = repository.items[view.id]
-        assert record.source_object_key in storage.items
-        assert record.generated_object_key is None
+        assert repository.items[view.id].generated_object_key is None
+        assert reader.snapshot is CONFIRMED_METRICS
+        assert not storage.items
 
     asyncio.run(scenario())
 
@@ -183,47 +283,55 @@ def test_unexpected_provider_failure_becomes_retryable_state() -> None:
             raise RuntimeError("provider internals must not escape")
 
     async def scenario() -> None:
-        service, repository, storage = make_service(provider=ExplodingProvider())
+        service, repository, storage, _ = make_service(provider=ExplodingProvider())
 
         view = await service.create("user-1", create_request())
 
         assert view.state is AvatarState.FAILED
         assert view.failure_code == "generation_failed"
-        record = repository.items[view.id]
-        assert record.source_object_key in storage.items
-        assert record.generated_object_key is None
+        assert repository.items[view.id].generated_object_key is None
+        assert not storage.items
 
     asyncio.run(scenario())
 
 
-def test_regeneration_replaces_the_private_generated_asset() -> None:
+def test_regeneration_uses_latest_confirmed_metrics_and_replaces_asset() -> None:
     async def scenario() -> None:
-        service, repository, storage = make_service()
+        service, repository, storage, reader = make_service()
         created = await service.create("user-1", create_request())
-        old_generated_key = repository.items[created.id].generated_object_key
+        old_key = repository.items[created.id].generated_object_key
+        reader.snapshot = BodyMetricsSnapshot(
+            height_cm=178,
+            weight_kg=78,
+            body_fat_percentage=15,
+            skeletal_muscle_mass_kg=37,
+            recorded_at=datetime(2026, 8, 25, 10, tzinfo=UTC),
+            source=BodyMetricsSource.INBODY,
+        )
 
         regenerated = await service.regenerate("user-1", created.id)
-        new_generated_key = repository.items[created.id].generated_object_key
+        new_key = repository.items[created.id].generated_object_key
 
         assert regenerated.state is AvatarState.READY_FOR_REVIEW
-        assert new_generated_key != old_generated_key
-        assert old_generated_key in storage.deleted
-        assert new_generated_key in storage.items
+        assert reader.snapshot is not None
+        assert regenerated.measurements_recorded_at == reader.snapshot.recorded_at
+        assert new_key != old_key
+        assert old_key in storage.deleted
+        assert new_key in storage.items
 
     asyncio.run(scenario())
 
 
-def test_delete_removes_source_and_generated_assets() -> None:
+def test_delete_removes_only_generated_asset_and_record() -> None:
     async def scenario() -> None:
-        service, repository, storage = make_service()
+        service, repository, storage, _ = make_service()
         created = await service.create("user-1", create_request())
-        record = repository.items[created.id]
-        expected_keys = {record.source_object_key, record.generated_object_key}
+        generated_key = repository.items[created.id].generated_object_key
 
         await service.delete("user-1", created.id)
 
         assert created.id not in repository.items
-        assert expected_keys <= set(storage.deleted)
+        assert storage.deleted == [generated_key]
         assert not storage.items
 
     asyncio.run(scenario())
@@ -231,7 +339,7 @@ def test_delete_removes_source_and_generated_assets() -> None:
 
 def test_cross_user_access_returns_not_found() -> None:
     async def scenario() -> None:
-        service, _, _ = make_service()
+        service, _, _, _ = make_service()
         created = await service.create("owner", create_request())
 
         with pytest.raises(AppError) as error:
@@ -242,17 +350,18 @@ def test_cross_user_access_returns_not_found() -> None:
     asyncio.run(scenario())
 
 
-def test_avatar_list_is_owner_scoped_and_never_serializes_source_data() -> None:
+def test_avatar_list_is_owner_scoped_and_never_serializes_metrics() -> None:
     async def scenario() -> None:
-        service, repository, _ = make_service()
+        service, _, _, _ = make_service()
         own = await service.create("owner", create_request())
         await service.create("other", create_request())
 
         result = await service.list_owned("owner")
 
         assert [avatar.id for avatar in result.items] == [own.id]
-        serialized = result.model_dump(mode="json")
-        assert "source" not in str(serialized).lower()
-        assert repository.items[own.id].source_object_key not in str(serialized)
+        serialized = str(result.model_dump(mode="json")).lower()
+        assert "weight" not in serialized
+        assert "body_fat" not in serialized
+        assert "muscle" not in serialized
 
     asyncio.run(scenario())

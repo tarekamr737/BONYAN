@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Response, status
 
 from app.domains.avatar.schemas import (
     AvatarListView,
+    AvatarMeasurementStatusView,
     AvatarPublicationRequest,
     AvatarView,
     CreateAvatarRequest,
@@ -29,6 +30,10 @@ def create_avatar_router(
         payload: CreateAvatarRequest, user_id: CurrentUserId
     ) -> AvatarView:
         return await service.create(user_id, payload)
+
+    @router.get("/measurement-status", response_model=AvatarMeasurementStatusView)
+    async def get_measurement_status(user_id: CurrentUserId) -> AvatarMeasurementStatusView:
+        return await service.measurement_status(user_id)
 
     @router.get("/{avatar_id}", response_model=AvatarView)
     async def get_avatar(

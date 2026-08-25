@@ -11,14 +11,7 @@ from app.domains.avatar.contracts import AvatarState
 class CreateAvatarRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    source_image_base64: str = Field(min_length=4, repr=False)
-    source_media_type: str
-    style: str = Field(default="athletic editorial portrait", min_length=3, max_length=160)
-
-    @field_validator("source_media_type")
-    @classmethod
-    def normalize_media_type(cls, value: str) -> str:
-        return value.strip().lower()
+    style: str = Field(default="respectful athletic body figure", min_length=3, max_length=160)
 
     @field_validator("style")
     @classmethod
@@ -42,9 +35,19 @@ class AvatarView(BaseModel):
     approved: bool
     public_in_community: bool
     failure_code: str | None
+    measurement_source: str
+    measurements_recorded_at: datetime
     created_at: datetime
     updated_at: datetime
 
 
 class AvatarListView(BaseModel):
     items: list[AvatarView]
+
+
+class AvatarMeasurementStatusView(BaseModel):
+    available: bool
+    source: str | None
+    recorded_at: datetime | None
+    body_fat_available: bool = False
+    muscle_mass_available: bool = False

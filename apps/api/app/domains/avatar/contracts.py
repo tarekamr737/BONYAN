@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
@@ -15,10 +16,41 @@ class AvatarState(StrEnum):
     FAILED = "failed"
 
 
+class BodyMetricsSource(StrEnum):
+    INBODY = "inbody"
+    PROFILE = "profile"
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class BodyMetricsSnapshot:
+    height_cm: float
+    weight_kg: float
+    body_fat_percentage: float | None
+    skeletal_muscle_mass_kg: float | None
+    recorded_at: datetime
+    source: BodyMetricsSource
+
+    def __post_init__(self) -> None:
+        if not 100 <= self.height_cm <= 240:
+            raise ValueError("height_cm is outside the supported range")
+        if not 30 <= self.weight_kg <= 350:
+            raise ValueError("weight_kg is outside the supported range")
+        if self.body_fat_percentage is not None and not 2 <= self.body_fat_percentage <= 70:
+            raise ValueError("body_fat_percentage is outside the supported range")
+        if (
+            self.skeletal_muscle_mass_kg is not None
+            and not 5 <= self.skeletal_muscle_mass_kg <= 150
+        ):
+            raise ValueError("skeletal_muscle_mass_kg is outside the supported range")
+
+
+class BodyMetricsReader(Protocol):
+    async def latest_confirmed(self, owner_id: str) -> BodyMetricsSnapshot | None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class AvatarGenerationRequest:
-    source_image: bytes = field(repr=False)
-    source_media_type: str
+    metrics: BodyMetricsSnapshot = field(repr=False)
     style: str
 
 
