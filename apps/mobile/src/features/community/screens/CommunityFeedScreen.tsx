@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -131,11 +132,41 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
         }
         renderItem={({ item }) => (
           <PostCard
-            onDelete={(postId) => mutations.deleteMutation.mutate(postId)}
-            onReact={(postId, reaction, remove) =>
-              mutations.reactionMutation.mutate({ postId, reaction, remove })
+            onDelete={(postId) =>
+              mutations.deleteMutation.mutate(postId, {
+                onError: () =>
+                  Alert.alert("Post was not deleted", "Try again when your connection is stable."),
+              })
             }
-            onReport={(postId, reason) => mutations.reportMutation.mutate({ postId, reason })}
+            onReact={(postId, reaction, remove) =>
+              mutations.reactionMutation.mutate(
+                { postId, reaction, remove },
+                {
+                  onError: () =>
+                    Alert.alert(
+                      "Reaction was not saved",
+                      "Your feed has been restored. Try again when you are ready.",
+                    ),
+                },
+              )
+            }
+            onReport={(postId, reason) =>
+              mutations.reportMutation.mutate(
+                { postId, reason },
+                {
+                  onError: () =>
+                    Alert.alert(
+                      "Report was not sent",
+                      "Nothing was submitted. Check your connection and try again.",
+                    ),
+                  onSuccess: () =>
+                    Alert.alert(
+                      "Report received",
+                      "Thank you. The report is queued for review.",
+                    ),
+                },
+              )
+            }
             post={item}
           />
         )}
