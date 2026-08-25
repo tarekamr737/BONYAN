@@ -21,7 +21,7 @@ import {
   useAvatarMutations,
   useAvatars,
 } from "../hooks";
-import type { AvatarView } from "../types";
+import type { AvatarPresentation, AvatarView } from "../types";
 
 type AvatarScreenProps = {
   onBack: () => void;
@@ -32,6 +32,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const measurementQuery = useAvatarMeasurementStatus();
   const mutations = useAvatarMutations();
   const [activeAvatar, setActiveAvatar] = useState<AvatarView | null>(null);
+  const [presentation, setPresentation] = useState<AvatarPresentation>("men");
 
   const displayedAvatar = activeAvatar ?? avatarsQuery.data?.items[0] ?? null;
   const pending =
@@ -56,7 +57,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   function generate() {
     mutations.resetErrors();
     mutations.createMutation.mutate(
-      { style: "cinematic_3d" },
+      { style: "cinematic_3d", presentation },
       { onSuccess: setActiveAvatar },
     );
   }
@@ -147,7 +148,32 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           />
         ) : (
           <View style={styles.creationSection}>
-            <BodyFigurePreview />
+            <View style={styles.selectorSection}>
+              <Text style={styles.selectorEyebrow}>AVATAR FRAME</Text>
+              <Text style={styles.selectorTitle}>Choose the figure that represents you</Text>
+              <View accessibilityRole="radiogroup" style={styles.segmentedControl}>
+                {(["men", "women"] as const).map((option) => {
+                  const selected = presentation === option;
+                  return (
+                    <Pressable
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      key={option}
+                      onPress={() => setPresentation(option)}
+                      style={[styles.segment, selected && styles.segmentSelected]}
+                    >
+                      <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
+                        {option === "men" ? "Men" : "Women"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.selectorHelp}>
+                This changes the avatar model only. Your health data stays unchanged.
+              </Text>
+            </View>
+            <BodyFigurePreview presentation={presentation} />
             <MeasurementPanel query={measurementQuery} />
             <View style={styles.explainer}>
               <Text style={styles.explainerTitle}>A visual estimate—not a diagnosis</Text>
@@ -237,6 +263,10 @@ function MeasurementPanel({ query }: MeasurementPanelProps) {
         </Text>
       </View>
       <Text style={styles.measurementReadyTitle}>Enough data to shape your avatar</Text>
+      <View style={styles.shapeRow}>
+        <Text style={styles.shapeLabel}>SHAPE</Text>
+        <Text style={styles.shapeValue}>Calculated after you build</Text>
+      </View>
       <View style={styles.fieldRow}>
         {fields.map((field) => (
           <View key={field} style={styles.fieldChip}>
@@ -301,6 +331,11 @@ function AvatarReview({
           {avatar.measurement_source === "inbody" ? "INBODY" : "PROFILE"}
         </Text>
         <Text style={styles.sourceDate}>{formatDate(avatar.measurements_recorded_at)}</Text>
+      </View>
+      <View style={styles.shapeSummary}>
+        <Text style={styles.shapeSummaryLabel}>SHAPE</Text>
+        <Text style={styles.shapeSummaryValue}>{titleCase(avatar.shape_profile)}</Text>
+        <Text style={styles.shapeSummaryMeta}>{titleCase(avatar.presentation)} frame</Text>
       </View>
       <Text style={styles.previewTitle}>{avatarStateTitle(avatar)}</Text>
       <Text style={styles.previewCopy}>{avatarStateCopy(avatar)}</Text>
@@ -415,6 +450,10 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.canvas, flex: 1 },
   content: {
@@ -493,6 +532,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   creationSection: { gap: spacing.md },
+  selectorSection: { gap: spacing.sm },
+  selectorEyebrow: {
+    color: colors.bronze,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+  },
+  selectorTitle: { color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 20 },
+  segmentedControl: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    flexDirection: "row",
+    padding: 4,
+  },
+  segment: { alignItems: "center", borderRadius: radii.control, flex: 1, padding: spacing.sm },
+  segmentSelected: { backgroundColor: colors.bronzeSoft },
+  segmentText: { color: colors.mutedLight, fontFamily: fonts.bodySemiBold, fontSize: 14 },
+  segmentTextSelected: { color: colors.bronze },
+  selectorHelp: { color: colors.muted, fontFamily: fonts.body, fontSize: 11, lineHeight: 16 },
   measurementPanel: {
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -535,6 +595,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.displaySemiBold,
     fontSize: 18,
   },
+  shapeRow: { alignItems: "baseline", flexDirection: "row", gap: spacing.sm },
+  shapeLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 10, letterSpacing: 1.1 },
+  shapeValue: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 12 },
   fieldRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   fieldChip: {
     backgroundColor: colors.bronzeSoft,
@@ -603,6 +666,17 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   sourceDate: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
+  shapeSummary: {
+    alignItems: "baseline",
+    backgroundColor: colors.bronzeSoft,
+    borderRadius: radii.control,
+    flexDirection: "row",
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  shapeSummaryLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 10, letterSpacing: 1.1 },
+  shapeSummaryValue: { color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 18 },
+  shapeSummaryMeta: { color: colors.mutedLight, fontFamily: fonts.body, fontSize: 12 },
   previewTitle: {
     color: colors.text,
     fontFamily: fonts.displaySemiBold,

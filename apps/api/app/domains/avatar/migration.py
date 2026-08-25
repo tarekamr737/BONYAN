@@ -13,6 +13,8 @@ def upgrade(op: Operations) -> None:
         sa.Column("generated_media_type", sa.String(length=64), nullable=True),
         sa.Column("state", sa.String(length=32), nullable=False),
         sa.Column("style", sa.String(length=160), nullable=False),
+        sa.Column("presentation", sa.String(length=16), nullable=False),
+        sa.Column("shape_profile", sa.String(length=16), nullable=False),
         sa.Column("provider_model", sa.String(length=160), nullable=False),
         sa.Column("measurement_source", sa.String(length=32), nullable=False),
         sa.Column("measurements_recorded_at", sa.DateTime(timezone=True), nullable=False),

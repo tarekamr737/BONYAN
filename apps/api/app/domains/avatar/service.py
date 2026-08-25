@@ -11,6 +11,7 @@ from app.domains.avatar.contracts import (
     AvatarProvider,
     AvatarProviderError,
     AvatarState,
+    BodyAvatarPresentation,
     BodyAvatarStyle,
     BodyMetricsReader,
     BodyMetricsSnapshot,
@@ -24,6 +25,7 @@ from app.domains.avatar.schemas import (
     AvatarView,
     CreateAvatarRequest,
 )
+from app.domains.avatar.shape import classify_body_shape
 from app.domains.avatar.validation import validate_generated_image
 
 
@@ -53,6 +55,8 @@ class AvatarService:
             generated_media_type=None,
             state=AvatarState.REQUESTED,
             style=request.style.value,
+            presentation=request.presentation.value,
+            shape_profile=classify_body_shape(metrics, request.presentation).value,
             provider_model="TBD",
             measurement_source=metrics.source.value,
             measurements_recorded_at=metrics.recorded_at,
@@ -187,6 +191,7 @@ class AvatarService:
                     AvatarGenerationRequest(
                         metrics=metrics,
                         style=BodyAvatarStyle(avatar.style),
+                        presentation=BodyAvatarPresentation(avatar.presentation),
                     )
                 ),
                 timeout=self._provider_timeout_seconds,
@@ -225,6 +230,9 @@ class AvatarService:
         avatar.provider_model = result.model or "TBD"
         avatar.measurement_source = metrics.source.value
         avatar.measurements_recorded_at = metrics.recorded_at
+        avatar.shape_profile = classify_body_shape(
+            metrics, BodyAvatarPresentation(avatar.presentation)
+        ).value
         avatar.state = AvatarState.READY_FOR_REVIEW
         avatar.failure_code = None
         self._touch(avatar)
@@ -252,6 +260,8 @@ class AvatarService:
             id=avatar.id,
             state=avatar.state,
             style=avatar.style,
+            presentation=avatar.presentation,
+            shape_profile=avatar.shape_profile,
             preview_url=preview_url,
             approved=avatar.state is AvatarState.APPROVED,
             public_in_community=avatar.is_public,

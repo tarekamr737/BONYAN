@@ -10,6 +10,8 @@ export type AvatarView = {
   id: string;
   state: AvatarState;
   style: string;
+  presentation: AvatarPresentation;
+  shape_profile: BodyShapeProfile;
   preview_url: string | null;
   approved: boolean;
   public_in_community: boolean;
@@ -34,4 +36,8 @@ export type AvatarMeasurementStatus = {
 
 export type CreateAvatarPayload = {
   style: "cinematic_3d";
+  presentation: AvatarPresentation;
 };
+
+export type AvatarPresentation = "men" | "women";
+export type BodyShapeProfile = "lean" | "athletic" | "strong";

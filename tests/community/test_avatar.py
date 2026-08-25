@@ -13,6 +13,7 @@ from app.domains.avatar.contracts import (
     AvatarGenerationResult,
     AvatarProvider,
     AvatarState,
+    BodyAvatarPresentation,
     BodyAvatarStyle,
     BodyMetricsSnapshot,
     BodyMetricsSource,
@@ -44,7 +45,9 @@ class FakeAvatarRepository:
     async def add(self, avatar: AvatarRecord) -> None:
         self.items[avatar.id] = avatar
 
-    async def get_for_owner(self, avatar_id: UUID, owner_id: str) -> AvatarRecord | None:
+    async def get_for_owner(
+        self, avatar_id: UUID, owner_id: str
+    ) -> AvatarRecord | None:
         avatar = self.items.get(avatar_id)
         return avatar if avatar and avatar.owner_id == owner_id else None
 
@@ -79,7 +82,9 @@ class FakePrivateStorage:
 
     async def create_read_url(self, object_key: str, *, expires_in_seconds: int) -> str:
         assert object_key in self.items
-        return f"https://private-storage.test/read/{object_key}?ttl={expires_in_seconds}"
+        return (
+            f"https://private-storage.test/read/{object_key}?ttl={expires_in_seconds}"
+        )
 
     async def delete_private(self, object_key: str) -> None:
         self.items.pop(object_key, None)
@@ -87,7 +92,9 @@ class FakePrivateStorage:
 
 
 class FakeBodyMetricsReader:
-    def __init__(self, snapshot: BodyMetricsSnapshot | None = CONFIRMED_METRICS) -> None:
+    def __init__(
+        self, snapshot: BodyMetricsSnapshot | None = CONFIRMED_METRICS
+    ) -> None:
         self.snapshot = snapshot
         self.requests: list[str] = []
 
@@ -101,7 +108,9 @@ def make_service(
     provider: AvatarProvider | None = None,
     timeout_seconds: float = 0.1,
     metrics_reader: FakeBodyMetricsReader | None = None,
-) -> tuple[AvatarService, FakeAvatarRepository, FakePrivateStorage, FakeBodyMetricsReader]:
+) -> tuple[
+    AvatarService, FakeAvatarRepository, FakePrivateStorage, FakeBodyMetricsReader
+]:
     repository = FakeAvatarRepository()
     storage = FakePrivateStorage()
     reader = metrics_reader or FakeBodyMetricsReader()
@@ -127,6 +136,8 @@ def test_confirmed_metrics_generate_private_result_without_storing_raw_values() 
         assert view.state is AvatarState.READY_FOR_REVIEW
         assert view.public_in_community is False
         assert view.measurement_source == "inbody"
+        assert view.presentation == "men"
+        assert view.shape_profile == "athletic"
         assert view.measurements_recorded_at == MEASURED_AT
         assert reader.requests == ["user-1"]
         assert await service.get_community_identity("user-1", view.id) is None
@@ -240,6 +251,35 @@ def test_skeletal_muscle_mass_can_select_the_strong_profile() -> None:
 
     assert select_cinematic_body_profile(baseline) is CinematicBodyProfile.ATHLETIC
     assert select_cinematic_body_profile(higher_muscle) is CinematicBodyProfile.STRONG
+
+
+def test_women_shape_thresholds_and_assets_are_distinct() -> None:
+    metrics = BodyMetricsSnapshot(
+        height_cm=165,
+        weight_kg=65,
+        body_fat_percentage=27,
+        skeletal_muscle_mass_kg=25,
+        recorded_at=MEASURED_AT,
+        source=BodyMetricsSource.INBODY,
+    )
+    assert (
+        select_cinematic_body_profile(metrics, BodyAvatarPresentation.WOMEN)
+        is CinematicBodyProfile.ATHLETIC
+    )
+
+    async def scenario() -> None:
+        provider = MockAvatarProvider()
+        men = await provider.generate(
+            AvatarGenerationRequest(metrics, BodyAvatarStyle.CINEMATIC_3D)
+        )
+        women = await provider.generate(
+            AvatarGenerationRequest(
+                metrics, BodyAvatarStyle.CINEMATIC_3D, BodyAvatarPresentation.WOMEN
+            )
+        )
+        assert men.content != women.content
+
+    asyncio.run(scenario())
 
 
 def test_approval_does_not_publish_without_a_second_explicit_action() -> None:

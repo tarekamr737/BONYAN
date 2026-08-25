@@ -5,13 +5,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from app.domains.avatar.contracts import AvatarState, BodyAvatarStyle
+from app.domains.avatar.contracts import AvatarState, BodyAvatarPresentation, BodyAvatarStyle
 
 
 class CreateAvatarRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     style: BodyAvatarStyle = BodyAvatarStyle.CINEMATIC_3D
+    presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN
 
 
 class AvatarPublicationRequest(BaseModel):
@@ -26,6 +27,8 @@ class AvatarView(BaseModel):
     id: UUID
     state: AvatarState
     style: str
+    presentation: str
+    shape_profile: str
     preview_url: str | None
     approved: bool
     public_in_community: bool

@@ -25,6 +25,17 @@ class BodyAvatarStyle(StrEnum):
     CINEMATIC_3D = "cinematic_3d"
 
 
+class BodyAvatarPresentation(StrEnum):
+    MEN = "men"
+    WOMEN = "women"
+
+
+class BodyShapeProfile(StrEnum):
+    LEAN = "lean"
+    ATHLETIC = "athletic"
+    STRONG = "strong"
+
+
 @dataclass(frozen=True, slots=True, repr=False)
 class BodyMetricsSnapshot:
     height_cm: float
@@ -56,6 +67,7 @@ class BodyMetricsReader(Protocol):
 class AvatarGenerationRequest:
     metrics: BodyMetricsSnapshot = field(repr=False)
     style: BodyAvatarStyle
+    presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN
 
 
 @dataclass(frozen=True, slots=True)

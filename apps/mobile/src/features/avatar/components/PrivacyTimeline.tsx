@@ -3,8 +3,9 @@ import { StyleSheet, Text, View } from "react-native";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
 
 const privacySteps = [
-  ["Measurements", "Confirmed data, never posted"],
-  ["Body avatar", "Private until you approve"],
+  ["Data", "Confirmed measurements, never posted"],
+  ["Shape", "Lean, Athletic or Strong visual profile"],
+  ["Review", "Your avatar stays private until approval"],
   ["Community", "Off until you enable it"],
 ] as const;
 

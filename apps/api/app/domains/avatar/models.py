@@ -21,6 +21,8 @@ class AvatarRecord(Base):
         Enum(AvatarState, native_enum=False, length=32), index=True
     )
     style: Mapped[str] = mapped_column(String(160))
+    presentation: Mapped[str] = mapped_column(String(16))
+    shape_profile: Mapped[str] = mapped_column(String(16))
     provider_model: Mapped[str] = mapped_column(String(160), default="TBD")
     measurement_source: Mapped[str] = mapped_column(String(32))
     measurements_recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

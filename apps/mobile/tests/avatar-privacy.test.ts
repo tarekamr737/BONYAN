@@ -5,6 +5,8 @@ import type { AvatarView } from "../src/features/avatar/types";
 
 function avatar(overrides: Partial<AvatarView> = {}): AvatarView {
   return {
+    presentation: "men",
+    shape_profile: "athletic",
     approved: true,
     created_at: "2026-08-25T10:00:00Z",
     failure_code: null,

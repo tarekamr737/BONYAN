@@ -2,20 +2,27 @@ import { Image, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 
-const cinematicPreview = require("../../../../assets/avatar-styles/cinematic-athletic.png");
+import type { AvatarPresentation } from "../types";
 
-export function BodyFigurePreview() {
+const cinematicPreviews = {
+  men: require("../../../../assets/avatar-styles/cinematic-men-athletic.png"),
+  women: require("../../../../assets/avatar-styles/cinematic-women-athletic.png"),
+};
+
+export function BodyFigurePreview({ presentation }: { presentation: AvatarPresentation }) {
   return (
     <View
-      accessibilityLabel="Selected Cinematic 3D full-body avatar style"
+      accessibilityLabel={`Selected Cinematic 3D ${presentation} full-body avatar style`}
       accessibilityRole="image"
       style={styles.stage}
     >
-      <Image resizeMode="cover" source={cinematicPreview} style={styles.image} />
+      <Image resizeMode="cover" source={cinematicPreviews[presentation]} style={styles.image} />
       <View style={styles.stylePanel}>
         <View style={styles.styleCopy}>
           <Text style={styles.title}>Cinematic 3D</Text>
-          <Text style={styles.detail}>Game-quality lighting · measurement-shaped build</Text>
+          <Text style={styles.detail}>
+            {presentation === "women" ? "Women" : "Men"} · measurement-shaped build
+          </Text>
         </View>
         <View style={styles.selectedBadge}>
           <View style={styles.selectedDot} />
