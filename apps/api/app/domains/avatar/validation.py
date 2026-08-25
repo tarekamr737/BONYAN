@@ -8,7 +8,7 @@ from app.core.errors import AppError
 
 MAX_SOURCE_BYTES = 5 * 1024 * 1024
 ALLOWED_SOURCE_MEDIA_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
-ALLOWED_GENERATED_MEDIA_TYPES = ALLOWED_SOURCE_MEDIA_TYPES | {"image/svg+xml"}
+ALLOWED_GENERATED_MEDIA_TYPES = ALLOWED_SOURCE_MEDIA_TYPES
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,15 +57,7 @@ def validate_generated_image(content: bytes, media_type: str) -> ValidatedImage:
             message="Avatar generation returned an unsupported image.",
             status_code=502,
         )
-    if normalized_media_type != "image/svg+xml" and not _matches_signature(
-        content, normalized_media_type
-    ):
-        raise AppError(
-            code="invalid_generated_avatar",
-            message="Avatar generation returned an invalid image.",
-            status_code=502,
-        )
-    if normalized_media_type == "image/svg+xml" and b"<svg" not in content[:512].lower():
+    if not _matches_signature(content, normalized_media_type):
         raise AppError(
             code="invalid_generated_avatar",
             message="Avatar generation returned an invalid image.",

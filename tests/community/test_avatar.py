@@ -105,6 +105,7 @@ def test_source_photo_and_unapproved_result_are_private() -> None:
         record = repository.items[view.id]
         assert record.source_object_key in storage.items
         assert record.generated_object_key in storage.items
+        assert record.generated_media_type == "image/png"
         assert record.source_object_key not in str(serialized)
 
     asyncio.run(scenario())
@@ -166,6 +167,28 @@ def test_provider_timeout_leaves_private_source_available_for_retry() -> None:
 
         assert view.state is AvatarState.FAILED
         assert view.failure_code == "provider_timeout"
+        record = repository.items[view.id]
+        assert record.source_object_key in storage.items
+        assert record.generated_object_key is None
+
+    asyncio.run(scenario())
+
+
+def test_unexpected_provider_failure_becomes_retryable_state() -> None:
+    class ExplodingProvider:
+        async def generate(
+            self, request: AvatarGenerationRequest
+        ) -> AvatarGenerationResult:
+            del request
+            raise RuntimeError("provider internals must not escape")
+
+    async def scenario() -> None:
+        service, repository, storage = make_service(provider=ExplodingProvider())
+
+        view = await service.create("user-1", create_request())
+
+        assert view.state is AvatarState.FAILED
+        assert view.failure_code == "generation_failed"
         record = repository.items[view.id]
         assert record.source_object_key in storage.items
         assert record.generated_object_key is None

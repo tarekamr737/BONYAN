@@ -197,6 +197,12 @@ class AvatarService:
             self._touch(avatar)
             await self._repository.save(avatar)
             return
+        except Exception:
+            avatar.state = AvatarState.FAILED
+            avatar.failure_code = "generation_failed"
+            self._touch(avatar)
+            await self._repository.save(avatar)
+            return
 
         avatar.generated_object_key = generated_key
         avatar.generated_media_type = generated.media_type
