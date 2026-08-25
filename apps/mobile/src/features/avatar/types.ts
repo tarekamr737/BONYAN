@@ -33,5 +33,5 @@ export type AvatarMeasurementStatus = {
 };
 
 export type CreateAvatarPayload = {
-  style: string;
+  style: "cinematic_3d";
 };

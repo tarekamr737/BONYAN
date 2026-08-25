@@ -56,7 +56,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   function generate() {
     mutations.resetErrors();
     mutations.createMutation.mutate(
-      { style: "respectful athletic body figure" },
+      { style: "cinematic_3d" },
       { onSuccess: setActiveAvatar },
     );
   }
@@ -161,7 +161,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               loading={mutations.createMutation.isPending}
               onPress={generate}
             >
-              Build my body avatar
+              Build Cinematic 3D avatar
             </AvatarButton>
           </View>
         )}
@@ -295,6 +295,8 @@ function AvatarReview({
         </View>
       )}
       <View style={styles.sourceLine}>
+        <Text style={styles.sourceLabel}>CINEMATIC 3D</Text>
+        <View style={styles.sourceDot} />
         <Text style={styles.sourceLabel}>
           {avatar.measurement_source === "inbody" ? "INBODY" : "PROFILE"}
         </Text>
@@ -593,6 +595,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   sourceLine: { alignItems: "center", flexDirection: "row", gap: spacing.sm },
+  sourceDot: { backgroundColor: colors.line, borderRadius: 2, height: 4, width: 4 },
   sourceLabel: {
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,

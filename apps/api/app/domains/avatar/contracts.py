@@ -21,6 +21,10 @@ class BodyMetricsSource(StrEnum):
     PROFILE = "profile"
 
 
+class BodyAvatarStyle(StrEnum):
+    CINEMATIC_3D = "cinematic_3d"
+
+
 @dataclass(frozen=True, slots=True, repr=False)
 class BodyMetricsSnapshot:
     height_cm: float
@@ -51,7 +55,7 @@ class BodyMetricsReader(Protocol):
 @dataclass(frozen=True, slots=True)
 class AvatarGenerationRequest:
     metrics: BodyMetricsSnapshot = field(repr=False)
-    style: str
+    style: BodyAvatarStyle
 
 
 @dataclass(frozen=True, slots=True)

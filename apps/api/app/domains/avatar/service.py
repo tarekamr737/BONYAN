@@ -11,6 +11,7 @@ from app.domains.avatar.contracts import (
     AvatarProvider,
     AvatarProviderError,
     AvatarState,
+    BodyAvatarStyle,
     BodyMetricsReader,
     BodyMetricsSnapshot,
     PrivateAvatarStorage,
@@ -51,7 +52,7 @@ class AvatarService:
             generated_object_key=None,
             generated_media_type=None,
             state=AvatarState.REQUESTED,
-            style=request.style,
+            style=request.style.value,
             provider_model="TBD",
             measurement_source=metrics.source.value,
             measurements_recorded_at=metrics.recorded_at,
@@ -185,7 +186,7 @@ class AvatarService:
                 self._provider.generate(
                     AvatarGenerationRequest(
                         metrics=metrics,
-                        style=avatar.style,
+                        style=BodyAvatarStyle(avatar.style),
                     )
                 ),
                 timeout=self._provider_timeout_seconds,

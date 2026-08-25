@@ -30,6 +30,9 @@ dev = [
 where = ["."]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.integrations.avatar" = ["assets/*.png"]
+
 [tool.pytest.ini_options]
 addopts = "-ra"
 pythonpath = ["."]

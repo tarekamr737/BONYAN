@@ -3,20 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict
 
-from app.domains.avatar.contracts import AvatarState
+from app.domains.avatar.contracts import AvatarState, BodyAvatarStyle
 
 
 class CreateAvatarRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    style: str = Field(default="respectful athletic body figure", min_length=3, max_length=160)
-
-    @field_validator("style")
-    @classmethod
-    def normalize_style(cls, value: str) -> str:
-        return " ".join(value.split())
+    style: BodyAvatarStyle = BodyAvatarStyle.CINEMATIC_3D
 
 
 class AvatarPublicationRequest(BaseModel):

@@ -42,6 +42,13 @@ The provider-neutral `AvatarGenerationRequest` receives the metrics snapshot wit
 client cannot upload a body photo or inject private measurements. Provider SDK types
 must remain inside `app.integrations.avatar`.
 
+The development `MockAvatarProvider` implements `cinematic_3d` with three bundled
+original visual profiles: lean, athletic, and strong. It selects the closest broad
+profile from confirmed BMI and body-fat thresholds. This is deliberately a coarse,
+respectful preview rather than a medical reconstruction. A future production
+provider should preserve the same style enum and metrics-only request boundary while
+rendering continuous proportions.
+
 ## Database migration
 
 Create the central Alembic revision in Workstream 01's migration path. Its upgrade

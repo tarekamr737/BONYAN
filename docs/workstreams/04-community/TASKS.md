@@ -14,7 +14,8 @@
 - [x] Implement deterministic `MockAvatarProvider` and provider error abstraction.
 - [x] Read confirmed height/weight/InBody values through `BodyMetricsReader` only.
 - [x] Validate supported metric ranges and reject photos/client-supplied measurements.
-- [x] Render an anonymous, fully clothed body figure whose proportions respond to the metrics.
+- [x] Ship a Cinematic 3D mock set with lean, athletic, and strong measurement profiles.
+- [x] Select the closest respectful, fully clothed profile from BMI/body-fat thresholds.
 - [x] Store only generated objects through private storage; never persist raw metrics in avatar.
 - [x] Implement generate, detail/list, approve, reject, regenerate, community-use, and delete.
 - [x] Keep approval separate from explicit community enablement.
@@ -33,7 +34,7 @@
 ## Mobile UX
 
 - [x] Remove photo selection and show confirmed InBody/profile data availability.
-- [x] Explain approximation limits and show a respectful full-body placeholder.
+- [x] Explain approximation limits and show the real Cinematic 3D visual style.
 - [x] Build generation, preview, approval, rejection, regeneration, and deletion states.
 - [x] Build a separate, explicit community-use privacy control.
 - [x] Build feed, post card, create-post, reaction, delete, and report flows.

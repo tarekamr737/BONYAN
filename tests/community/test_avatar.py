@@ -13,13 +13,18 @@ from app.domains.avatar.contracts import (
     AvatarGenerationResult,
     AvatarProvider,
     AvatarState,
+    BodyAvatarStyle,
     BodyMetricsSnapshot,
     BodyMetricsSource,
 )
 from app.domains.avatar.models import AvatarRecord
 from app.domains.avatar.schemas import CreateAvatarRequest
 from app.domains.avatar.service import AvatarService
-from app.integrations.avatar.mock import MockAvatarProvider
+from app.integrations.avatar.mock import (
+    CinematicBodyProfile,
+    MockAvatarProvider,
+    select_cinematic_body_profile,
+)
 
 MEASURED_AT = datetime(2026, 8, 24, 9, 30, tzinfo=UTC)
 CONFIRMED_METRICS = BodyMetricsSnapshot(
@@ -111,7 +116,7 @@ def make_service(
 
 
 def create_request() -> CreateAvatarRequest:
-    return CreateAvatarRequest(style="respectful athletic body figure")
+    return CreateAvatarRequest(style=BodyAvatarStyle.CINEMATIC_3D)
 
 
 def test_confirmed_metrics_generate_private_result_without_storing_raw_values() -> None:
@@ -177,7 +182,7 @@ def test_request_rejects_uploaded_photos_and_body_measurements() -> None:
     with pytest.raises(ValidationError):
         CreateAvatarRequest.model_validate(
             {
-                "style": "respectful athletic body figure",
+                "style": "cinematic_3d",
                 "source_image_base64": "private-photo",
                 "weight_kg": 82,
                 "body_fat_percentage": 18.5,
@@ -185,11 +190,14 @@ def test_request_rejects_uploaded_photos_and_body_measurements() -> None:
         )
 
 
-def test_renderer_changes_the_figure_when_confirmed_metrics_change() -> None:
+def test_mock_selects_distinct_cinematic_profiles_from_confirmed_metrics() -> None:
     async def scenario() -> None:
         provider = MockAvatarProvider()
         first = await provider.generate(
-            AvatarGenerationRequest(metrics=CONFIRMED_METRICS, style="respectful athletic")
+            AvatarGenerationRequest(
+                metrics=CONFIRMED_METRICS,
+                style=BodyAvatarStyle.CINEMATIC_3D,
+            )
         )
         second = await provider.generate(
             AvatarGenerationRequest(
@@ -201,7 +209,7 @@ def test_renderer_changes_the_figure_when_confirmed_metrics_change() -> None:
                     recorded_at=MEASURED_AT,
                     source=BodyMetricsSource.INBODY,
                 ),
-                style="respectful athletic",
+                style=BodyAvatarStyle.CINEMATIC_3D,
             )
         )
 
@@ -210,6 +218,28 @@ def test_renderer_changes_the_figure_when_confirmed_metrics_change() -> None:
         assert first.content != second.content
 
     asyncio.run(scenario())
+
+
+def test_skeletal_muscle_mass_can_select_the_strong_profile() -> None:
+    baseline = BodyMetricsSnapshot(
+        height_cm=178,
+        weight_kg=86,
+        body_fat_percentage=20,
+        skeletal_muscle_mass_kg=35,
+        recorded_at=MEASURED_AT,
+        source=BodyMetricsSource.INBODY,
+    )
+    higher_muscle = BodyMetricsSnapshot(
+        height_cm=178,
+        weight_kg=86,
+        body_fat_percentage=20,
+        skeletal_muscle_mass_kg=39,
+        recorded_at=MEASURED_AT,
+        source=BodyMetricsSource.INBODY,
+    )
+
+    assert select_cinematic_body_profile(baseline) is CinematicBodyProfile.ATHLETIC
+    assert select_cinematic_body_profile(higher_muscle) is CinematicBodyProfile.STRONG
 
 
 def test_approval_does_not_publish_without_a_second_explicit_action() -> None:
