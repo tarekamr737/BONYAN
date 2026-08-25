@@ -9,7 +9,7 @@
 
 ## B. Mobile Core
 - [x] Implement design tokens from prototype.
-- [ ] Add reusable button/input/card/loading/error primitives.
+- [x] Add reusable button/input/card/loading/error primitives.
 - [x] Configure Expo Router.
 - [ ] Add unauthenticated route group.
 - [ ] Add authenticated app shell.
@@ -66,7 +66,7 @@
 
 ## J. Integration
 - [x] Publish integration contract.
-- [ ] After WS2 merge, register InBody modules.
+- [x] After WS2 merge, register InBody modules.
 - [ ] After WS3 merge, register Training modules.
 - [x] After WS4 merge, register Avatar/Community modules.
 
