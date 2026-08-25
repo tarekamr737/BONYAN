@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr, field_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API_DIRECTORY = Path(__file__).resolve().parents[2]
@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     chat_model: str = "TBD"
     avatar_model: str = "TBD"
+    mistral_api_key: SecretStr | None = None
+    auth_jwt_secret: SecretStr | None = None
+    auth_jwt_issuer: str = "bonyan"
+    auth_jwt_audience: str = "bonyan-api"
+    private_storage_root: Path = API_DIRECTORY / ".private-storage"
 
     @field_validator("database_url")
     @classmethod
@@ -39,6 +44,34 @@ class Settings(BaseSettings):
         if not value.strip():
             raise ValueError("provider model markers cannot be empty")
         return value
+
+    @field_validator("auth_jwt_issuer", "auth_jwt_audience")
+    @classmethod
+    def require_non_empty_auth_claim(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("auth JWT claims cannot be empty")
+        return value
+
+    @field_validator("auth_jwt_secret", mode="before")
+    @classmethod
+    def validate_auth_secret(cls, value: object) -> object:
+        if value is None or value == "":
+            return None
+        secret = value.get_secret_value() if isinstance(value, SecretStr) else str(value)
+        if len(secret.encode("utf-8")) < 32:
+            raise ValueError("AUTH_JWT_SECRET must contain at least 32 bytes")
+        return value
+
+    @field_validator("private_storage_root")
+    @classmethod
+    def resolve_private_storage_root(cls, value: Path) -> Path:
+        return value if value.is_absolute() else API_DIRECTORY / value
+
+    @model_validator(mode="after")
+    def require_production_auth(self) -> Settings:
+        if self.api_env == "production" and self.auth_jwt_secret is None:
+            raise ValueError("AUTH_JWT_SECRET is required in production")
+        return self
 
     @property
     def sqlalchemy_database_url(self) -> str:

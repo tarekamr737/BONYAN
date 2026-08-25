@@ -3,6 +3,8 @@ import type { PropsWithChildren } from "react";
 import { useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { AuthSessionProvider } from "../auth/session";
+
 const queryDefaults = {
   queries: {
     retry: 1,
@@ -17,7 +19,9 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <AuthSessionProvider>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </AuthSessionProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,0 +1,75 @@
+from __future__ import annotations
+
+import asyncio
+from datetime import UTC, datetime, timedelta
+
+import jwt
+import pytest
+from fastapi import status
+from httpx import ASGITransport, AsyncClient
+
+from app.core.auth import JwtAccessTokenVerifier
+from app.core.config import Settings
+from app.core.errors import AppError
+from app.main import create_app
+
+TEST_SECRET = "test-secret-that-is-at-least-32-bytes"
+
+
+def make_settings(secret: str | None = TEST_SECRET) -> Settings:
+    return Settings(
+        auth_jwt_secret=secret,
+        auth_jwt_issuer="bonyan-test",
+        auth_jwt_audience="bonyan-api-test",
+    )
+
+
+def make_token(*, subject: str = "user-1", expires_in: timedelta = timedelta(minutes=5)) -> str:
+    now = datetime.now(UTC)
+    return jwt.encode(
+        {
+            "sub": subject,
+            "iat": now,
+            "exp": now + expires_in,
+            "iss": "bonyan-test",
+            "aud": "bonyan-api-test",
+        },
+        TEST_SECRET,
+        algorithm="HS256",
+    )
+
+
+def test_verified_token_derives_trusted_user_id() -> None:
+    user = JwtAccessTokenVerifier(make_settings()).verify(make_token())
+
+    assert user.id == "user-1"
+
+
+def test_expired_or_tampered_token_is_rejected() -> None:
+    verifier = JwtAccessTokenVerifier(make_settings())
+
+    with pytest.raises(AppError) as expired:
+        verifier.verify(make_token(expires_in=timedelta(seconds=-1)))
+    with pytest.raises(AppError) as tampered:
+        verifier.verify(f"{make_token()}tampered")
+
+    assert expired.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert tampered.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_missing_auth_configuration_fails_closed() -> None:
+    with pytest.raises(AppError) as error:
+        JwtAccessTokenVerifier(make_settings(None)).verify("token")
+
+    assert error.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+
+
+async def get_inbody_history() -> int:
+    transport = ASGITransport(app=create_app())
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/inbody/scans")
+    return response.status_code
+
+
+def test_private_inbody_route_rejects_missing_authentication() -> None:
+    assert asyncio.run(get_inbody_history()) == status.HTTP_401_UNAUTHORIZED

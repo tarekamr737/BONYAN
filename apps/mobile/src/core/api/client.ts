@@ -1,4 +1,5 @@
 import { ApiError, parseApiErrorPayload } from "./errors";
+import { getAccessToken } from "../auth/session";
 
 const defaultBaseUrl = "http://127.0.0.1:8000";
 
@@ -33,9 +34,15 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
+  const accessToken = getAccessToken();
+  if (accessToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
 
   let body: BodyInit | undefined;
-  if (options.body !== undefined) {
+  if (options.body instanceof FormData) {
+    body = options.body;
+  } else if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(options.body);
   }
