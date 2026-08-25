@@ -7,7 +7,12 @@ from uuid import UUID
 import pytest
 
 from app.core.errors import AppError
-from app.domains.avatar.contracts import AvatarState
+from app.domains.avatar.contracts import (
+    AvatarGenerationRequest,
+    AvatarGenerationResult,
+    AvatarProvider,
+    AvatarState,
+)
 from app.domains.avatar.models import AvatarRecord
 from app.domains.avatar.schemas import CreateAvatarRequest
 from app.domains.avatar.service import AvatarService
@@ -66,7 +71,7 @@ class FakePrivateStorage:
 
 
 def make_service(
-    *, provider: MockAvatarProvider | None = None
+    *, provider: AvatarProvider | None = None, timeout_seconds: float = 0.1
 ) -> tuple[AvatarService, FakeAvatarRepository, FakePrivateStorage]:
     repository = FakeAvatarRepository()
     storage = FakePrivateStorage()
@@ -74,7 +79,7 @@ def make_service(
         repository,
         provider or MockAvatarProvider(),
         storage,
-        provider_timeout_seconds=0.1,
+        provider_timeout_seconds=timeout_seconds,
     )
     return service, repository, storage
 
@@ -134,6 +139,33 @@ def test_provider_failure_is_safe_and_retryable() -> None:
         assert view.state is AvatarState.FAILED
         assert view.failure_code == "provider_unavailable"
         assert view.preview_url is None
+        record = repository.items[view.id]
+        assert record.source_object_key in storage.items
+        assert record.generated_object_key is None
+
+    asyncio.run(scenario())
+
+
+def test_provider_timeout_leaves_private_source_available_for_retry() -> None:
+    class SlowProvider:
+        async def generate(
+            self, request: AvatarGenerationRequest
+        ) -> AvatarGenerationResult:
+            del request
+            await asyncio.sleep(0.02)
+            return AvatarGenerationResult(
+                content=b"<svg></svg>", media_type="image/svg+xml", model="TBD"
+            )
+
+    async def scenario() -> None:
+        service, repository, storage = make_service(
+            provider=SlowProvider(), timeout_seconds=0.001
+        )
+
+        view = await service.create("user-1", create_request())
+
+        assert view.state is AvatarState.FAILED
+        assert view.failure_code == "provider_timeout"
         record = repository.items[view.id]
         assert record.source_object_key in storage.items
         assert record.generated_object_key is None
