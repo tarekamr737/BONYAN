@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -135,29 +136,40 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           <PrivacyTimeline />
         </View>
 
-        {displayedAvatar?.preview_url ? (
+        {displayedAvatar ? (
           <View style={styles.previewSection}>
-            <View style={styles.previewFrame}>
-              <Image
-                accessibilityLabel="Generated avatar preview"
-                resizeMode="cover"
-                source={{ uri: displayedAvatar.preview_url }}
-                style={styles.previewImage}
-              />
-              <View style={styles.previewBadge}>
-                <Text style={styles.previewBadgeText}>
-                  {displayedAvatar.public_in_community ? "COMMUNITY ENABLED" : "PRIVATE PREVIEW"}
+            {displayedAvatar.preview_url ? (
+              <View style={styles.previewFrame}>
+                <Image
+                  accessibilityLabel="Generated avatar preview"
+                  resizeMode="cover"
+                  source={{ uri: displayedAvatar.preview_url }}
+                  style={styles.previewImage}
+                />
+                <View style={styles.previewBadge}>
+                  <Text style={styles.previewBadgeText}>
+                    {displayedAvatar.public_in_community
+                      ? "COMMUNITY ENABLED"
+                      : "PRIVATE PREVIEW"}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View accessibilityLabel="Avatar generation status" style={styles.statusPanel}>
+                {displayedAvatar.state === "processing" ? (
+                  <ActivityIndicator color={colors.bronze} size="large" />
+                ) : null}
+                <Text style={styles.statusLabel}>
+                  {displayedAvatar.state === "failed"
+                    ? "GENERATION PAUSED"
+                    : "PRIVATE GENERATION"}
                 </Text>
               </View>
-            </View>
+            )}
             <Text style={styles.previewTitle}>
-              {displayedAvatar.approved ? "Approved by you" : "Review before approving"}
+              {avatarStateTitle(displayedAvatar)}
             </Text>
-            <Text style={styles.previewCopy}>
-              {displayedAvatar.approved
-                ? "This avatar is saved. It remains private unless you enable community use below."
-                : "Check the likeness and tone. Regenerate or reject without publishing anything."}
-            </Text>
+            <Text style={styles.previewCopy}>{avatarStateCopy(displayedAvatar)}</Text>
 
             {displayedAvatar.state === "ready_for_review" ? (
               <View style={styles.actionStack}>
@@ -223,6 +235,15 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               </AvatarButton>
             ) : null}
 
+            {displayedAvatar.state === "rejected" ? (
+              <AvatarButton
+                loading={mutations.regenerateMutation.isPending}
+                onPress={() => updateAvatar(mutations.regenerateMutation)}
+              >
+                Generate another version
+              </AvatarButton>
+            ) : null}
+
             <AvatarButton disabled={pending} onPress={confirmDelete} tone="danger">
               Delete source and avatar
             </AvatarButton>
@@ -264,6 +285,32 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function avatarStateTitle(avatar: AvatarView): string {
+  if (avatar.state === "approved") return "Approved by you";
+  if (avatar.state === "rejected") return "This version is rejected";
+  if (avatar.state === "failed") return "Generation did not finish";
+  if (avatar.state === "processing" || avatar.state === "requested") {
+    return "Generating your private preview";
+  }
+  return "Review before approving";
+}
+
+function avatarStateCopy(avatar: AvatarView): string {
+  if (avatar.state === "approved") {
+    return "This avatar is saved. It remains private unless you enable community use below.";
+  }
+  if (avatar.state === "rejected") {
+    return "Nothing was published. Generate another version from the private source or delete it.";
+  }
+  if (avatar.state === "failed") {
+    return "Nothing was published. Retry from the stored private source when you are ready.";
+  }
+  if (avatar.state === "processing" || avatar.state === "requested") {
+    return "The source and generated result stay private while this finishes.";
+  }
+  return "Check the likeness and tone. Regenerate or reject without publishing anything.";
 }
 
 const styles = StyleSheet.create({
@@ -344,6 +391,23 @@ const styles = StyleSheet.create({
   previewSection: { gap: spacing.md },
   previewFrame: { position: "relative" },
   previewImage: { aspectRatio: 1, borderRadius: radii.card, width: "100%" },
+  statusPanel: {
+    alignItems: "center",
+    aspectRatio: 1,
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    gap: spacing.md,
+    justifyContent: "center",
+    width: "100%",
+  },
+  statusLabel: {
+    color: colors.bronze,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
   previewBadge: {
     backgroundColor: colors.canvas,
     borderRadius: radii.pill,
