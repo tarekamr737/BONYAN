@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { PostCard } from "../components/PostCard";
 import { useCommunityFeed, useCommunityMutations } from "../hooks";
+import type { ReactionKind } from "../types";
 
 type CommunityFeedScreenProps = {
   onBack: () => void;
@@ -23,6 +24,7 @@ type CommunityFeedScreenProps = {
 export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScreenProps) {
   const feedQuery = useCommunityFeed();
   const mutations = useCommunityMutations();
+  const pendingReactionPostIdsRef = useRef(new Set<string>());
   const [pendingReactionPostIds, setPendingReactionPostIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -30,6 +32,23 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
     () => feedQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [feedQuery.data],
   );
+
+  async function reactToPost(postId: string, reaction: ReactionKind, remove: boolean) {
+    if (pendingReactionPostIdsRef.current.has(postId)) return;
+    pendingReactionPostIdsRef.current.add(postId);
+    setPendingReactionPostIds(new Set(pendingReactionPostIdsRef.current));
+    try {
+      await mutations.reactionMutation.mutateAsync({ postId, reaction, remove });
+    } catch {
+      Alert.alert(
+        "Reaction was not saved",
+        "Your feed has been restored. Try again when you are ready.",
+      );
+    } finally {
+      pendingReactionPostIdsRef.current.delete(postId);
+      setPendingReactionPostIds(new Set(pendingReactionPostIdsRef.current));
+    }
+  }
 
   if (feedQuery.isPending) {
     return (
@@ -167,26 +186,9 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
                   Alert.alert("Post was not deleted", "Try again when your connection is stable."),
               })
             }
-            onReact={(postId, reaction, remove) => {
-              if (pendingReactionPostIds.has(postId)) return;
-              setPendingReactionPostIds((current) => new Set(current).add(postId));
-              mutations.reactionMutation.mutate(
-                { postId, reaction, remove },
-                {
-                  onError: () =>
-                    Alert.alert(
-                      "Reaction was not saved",
-                      "Your feed has been restored. Try again when you are ready.",
-                    ),
-                  onSettled: () =>
-                    setPendingReactionPostIds((current) => {
-                      const next = new Set(current);
-                      next.delete(postId);
-                      return next;
-                    }),
-                },
-              );
-            }}
+            onReact={(postId, reaction, remove) =>
+              void reactToPost(postId, reaction, remove)
+            }
             onReport={(postId, reason) =>
               mutations.reportMutation.mutate(
                 { postId, reason },

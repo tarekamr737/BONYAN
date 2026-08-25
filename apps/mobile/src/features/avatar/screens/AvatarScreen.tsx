@@ -196,6 +196,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
             {displayedAvatar.state === "ready_for_review" ? (
               <View style={styles.actionStack}>
                 <AvatarButton
+                  disabled={pending && !mutations.approveMutation.isPending}
                   loading={mutations.approveMutation.isPending}
                   onPress={() => updateAvatar(mutations.approveMutation)}
                 >
@@ -204,6 +205,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
                 <View style={styles.actionRow}>
                   <View style={styles.actionHalf}>
                     <AvatarButton
+                      disabled={pending && !mutations.regenerateMutation.isPending}
                       loading={mutations.regenerateMutation.isPending}
                       onPress={() => updateAvatar(mutations.regenerateMutation)}
                       tone="secondary"
@@ -213,6 +215,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
                   </View>
                   <View style={styles.actionHalf}>
                     <AvatarButton
+                      disabled={pending && !mutations.rejectMutation.isPending}
                       loading={mutations.rejectMutation.isPending}
                       onPress={() => updateAvatar(mutations.rejectMutation)}
                       tone="secondary"
@@ -234,7 +237,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
                 </View>
                 <Switch
                   accessibilityLabel="Use approved avatar in community"
-                  disabled={mutations.communityUseMutation.isPending}
+                  disabled={pending}
                   onValueChange={(enabled) => {
                     mutations.resetErrors();
                     mutations.communityUseMutation.mutate(
@@ -251,6 +254,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
 
             {displayedAvatar.state === "failed" ? (
               <AvatarButton
+                disabled={pending && !mutations.regenerateMutation.isPending}
                 loading={mutations.regenerateMutation.isPending}
                 onPress={() => updateAvatar(mutations.regenerateMutation)}
               >
@@ -260,6 +264,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
 
             {displayedAvatar.state === "rejected" ? (
               <AvatarButton
+                disabled={pending && !mutations.regenerateMutation.isPending}
                 loading={mutations.regenerateMutation.isPending}
                 onPress={() => updateAvatar(mutations.regenerateMutation)}
               >
