@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     chat_model: str = "TBD"
     avatar_model: str = "TBD"
+    mistral_api_key: SecretStr | None = None
 
     @field_validator("database_url")
     @classmethod
