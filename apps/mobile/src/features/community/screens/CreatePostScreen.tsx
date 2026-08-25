@@ -194,7 +194,9 @@ export function CreatePostScreen({
           {createMutation.isError ? (
             <View accessibilityRole="alert" style={styles.errorPanel}>
               <Text style={styles.errorTitle}>Post was not created</Text>
-              <Text style={styles.errorCopy}>Nothing was published. Review the text and try again.</Text>
+              <Text style={styles.errorCopy}>
+                Nothing was published. Check your connection and avatar setting, then try again.
+              </Text>
             </View>
           ) : null}
 

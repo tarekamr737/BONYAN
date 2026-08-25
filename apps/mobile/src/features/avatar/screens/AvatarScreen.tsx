@@ -51,6 +51,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   }, [mutations]);
 
   async function choosePhoto() {
+    mutations.resetErrors();
     setPhotoError(null);
     try {
       const photo = await pickAvatarSourcePhoto();
@@ -65,6 +66,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
 
   function generate() {
     if (!selectedPhoto) return;
+    mutations.resetErrors();
     mutations.createMutation.mutate(
       {
         source_image_base64: selectedPhoto.base64,
@@ -82,11 +84,13 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
 
   function updateAvatar(action: { mutate: typeof mutations.approveMutation.mutate }) {
     if (!displayedAvatar) return;
+    mutations.resetErrors();
     action.mutate(displayedAvatar.id, { onSuccess: setActiveAvatar });
   }
 
   function confirmDelete() {
     if (!displayedAvatar) return;
+    mutations.resetErrors();
     Alert.alert(
       "Delete avatar?",
       "This permanently removes the private source photo and generated avatar.",
@@ -231,12 +235,13 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
                 <Switch
                   accessibilityLabel="Use approved avatar in community"
                   disabled={mutations.communityUseMutation.isPending}
-                  onValueChange={(enabled) =>
+                  onValueChange={(enabled) => {
+                    mutations.resetErrors();
                     mutations.communityUseMutation.mutate(
                       { avatarId: displayedAvatar.id, enabled },
                       { onSuccess: setActiveAvatar },
-                    )
-                  }
+                    );
+                  }}
                   thumbColor={colors.text}
                   trackColor={{ false: colors.line, true: colors.bronzeBorder }}
                   value={displayedAvatar.public_in_community}

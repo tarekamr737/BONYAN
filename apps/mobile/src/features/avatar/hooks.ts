@@ -59,6 +59,15 @@ export function useAvatarMutations() {
     },
   });
 
+  function resetErrors() {
+    approveMutation.reset();
+    communityUseMutation.reset();
+    createMutation.reset();
+    deleteMutation.reset();
+    regenerateMutation.reset();
+    rejectMutation.reset();
+  }
+
   return {
     approveMutation,
     communityUseMutation,
@@ -66,5 +75,6 @@ export function useAvatarMutations() {
     deleteMutation,
     regenerateMutation,
     rejectMutation,
+    resetErrors,
   };
 }

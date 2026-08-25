@@ -70,7 +70,10 @@ export function useCommunityMutations() {
     }) => (remove ? removePostReaction(postId) : setPostReaction(postId, reaction)),
     onMutate: async ({ postId, reaction, remove }) => {
       await queryClient.cancelQueries({ queryKey: communityFeedQueryKey });
-      const previous = queryClient.getQueryData<FeedData>(communityFeedQueryKey);
+      const current = queryClient.getQueryData<FeedData>(communityFeedQueryKey);
+      const previousReactions = current?.pages
+        .flatMap((page) => page.items)
+        .find((post) => post.id === postId)?.reactions;
       queryClient.setQueryData<FeedData>(communityFeedQueryKey, (current) =>
         mapFeed(current, (post) =>
           post.id === postId
@@ -78,10 +81,16 @@ export function useCommunityMutations() {
             : post,
         ),
       );
-      return { previous };
+      return { previousReactions };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previous) queryClient.setQueryData(communityFeedQueryKey, context.previous);
+    onError: (_error, { postId }, context) => {
+      const previousReactions = context?.previousReactions;
+      if (!previousReactions) return;
+      queryClient.setQueryData<FeedData>(communityFeedQueryKey, (current) =>
+        mapFeed(current, (post) =>
+          post.id === postId ? { ...post, reactions: previousReactions } : post,
+        ),
+      );
     },
     onSuccess: (summary, { postId }) => {
       queryClient.setQueryData<FeedData>(communityFeedQueryKey, (current) =>

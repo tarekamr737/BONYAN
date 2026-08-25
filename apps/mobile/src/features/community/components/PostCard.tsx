@@ -24,12 +24,13 @@ const reportLabels: Record<ReportReason, string> = {
 
 type PostCardProps = {
   post: CommunityPostView;
+  reactionBusy: boolean;
   onDelete: (postId: string) => void;
   onReact: (postId: string, reaction: ReactionKind, remove: boolean) => void;
   onReport: (postId: string, reason: ReportReason) => void;
 };
 
-export function PostCard({ post, onDelete, onReact, onReport }: PostCardProps) {
+export function PostCard({ post, reactionBusy, onDelete, onReact, onReport }: PostCardProps) {
   const [reportOpen, setReportOpen] = useState(false);
   const initials = initialsFor(post.author.display_name);
 
@@ -84,12 +85,14 @@ export function PostCard({ post, onDelete, onReact, onReport }: PostCardProps) {
           return (
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected }}
+              accessibilityState={{ disabled: reactionBusy, selected }}
+              disabled={reactionBusy}
               key={reaction}
               onPress={() => onReact(post.id, reaction, selected)}
               style={({ pressed }) => [
                 styles.reaction,
                 selected && styles.reactionSelected,
+                reactionBusy && styles.reactionDisabled,
                 pressed && styles.pressed,
               ]}
             >
@@ -195,6 +198,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   reactionSelected: { backgroundColor: colors.bronzeSoft, borderColor: colors.bronzeBorder },
+  reactionDisabled: { opacity: 0.55 },
   reactionLabel: {
     color: colors.mutedLight,
     fontFamily: fonts.bodyMedium,

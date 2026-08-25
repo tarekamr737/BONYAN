@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +23,9 @@ type CommunityFeedScreenProps = {
 export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScreenProps) {
   const feedQuery = useCommunityFeed();
   const mutations = useCommunityMutations();
+  const [pendingReactionPostIds, setPendingReactionPostIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const posts = useMemo(
     () => feedQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [feedQuery.data],
@@ -164,7 +167,9 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
                   Alert.alert("Post was not deleted", "Try again when your connection is stable."),
               })
             }
-            onReact={(postId, reaction, remove) =>
+            onReact={(postId, reaction, remove) => {
+              if (pendingReactionPostIds.has(postId)) return;
+              setPendingReactionPostIds((current) => new Set(current).add(postId));
               mutations.reactionMutation.mutate(
                 { postId, reaction, remove },
                 {
@@ -173,9 +178,15 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
                       "Reaction was not saved",
                       "Your feed has been restored. Try again when you are ready.",
                     ),
+                  onSettled: () =>
+                    setPendingReactionPostIds((current) => {
+                      const next = new Set(current);
+                      next.delete(postId);
+                      return next;
+                    }),
                 },
-              )
-            }
+              );
+            }}
             onReport={(postId, reason) =>
               mutations.reportMutation.mutate(
                 { postId, reason },
@@ -194,6 +205,7 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
               )
             }
             post={item}
+            reactionBusy={pendingReactionPostIds.has(item.id)}
           />
         )}
       />
