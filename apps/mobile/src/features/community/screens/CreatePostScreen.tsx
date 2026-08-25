@@ -65,7 +65,11 @@ export function CreatePostScreen({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Pressable onPress={onBack} style={styles.headerAction}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onBack}
+              style={styles.headerAction}
+            >
               <Text style={styles.headerActionLabel}>Cancel</Text>
             </Pressable>
             <Text accessibilityRole="header" style={styles.heading}>
@@ -139,7 +143,11 @@ export function CreatePostScreen({
                   You can post without one, or approve an avatar and explicitly enable it.
                 </Text>
               </View>
-              <Pressable onPress={onManageAvatar} style={styles.manageButton}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onManageAvatar}
+                style={styles.manageButton}
+              >
                 <Text style={styles.manageLabel}>Manage avatar</Text>
               </Pressable>
             </View>

@@ -45,7 +45,11 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
         <View accessibilityRole="alert" style={styles.centerState}>
           <Text style={styles.stateTitle}>Community could not load</Text>
           <Text style={styles.stateCopy}>Check your connection, then try again.</Text>
-          <Pressable onPress={() => feedQuery.refetch()} style={styles.retryButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => feedQuery.refetch()}
+            style={styles.retryButton}
+          >
             <Text style={styles.retryLabel}>Try again</Text>
           </Pressable>
         </View>
@@ -65,7 +69,11 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
             <Text style={styles.stateCopy}>
               Share a milestone when it feels useful. Measurements are never added automatically.
             </Text>
-            <Pressable onPress={onCreatePost} style={styles.primaryButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onCreatePost}
+              style={styles.primaryButton}
+            >
               <Text style={styles.primaryLabel}>Create the first post</Text>
             </Pressable>
           </View>
@@ -86,7 +94,11 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
               >
                 <Text style={styles.backLabel}>Back</Text>
               </Pressable>
-              <Pressable onPress={onCreatePost} style={styles.createButton}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onCreatePost}
+                style={styles.createButton}
+              >
                 <Text style={styles.createLabel}>Create post</Text>
               </Pressable>
             </View>
