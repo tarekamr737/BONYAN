@@ -9,9 +9,14 @@ import { confirmInBodyScan, getInBodyScan, updateInBodyReview } from "../api/inb
 import { MeasurementRow } from "../components/MeasurementRow";
 import type { InBodyMeasurement } from "../types";
 
-export function InBodyReviewScreen({ scanId }: { scanId: string }) {
+type Props = {
+  scanId: string;
+  onConfirmed?: () => void;
+};
+
+export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
-  const { data, isLoading } = useQuery({
+  const { data, isError, isLoading, refetch } = useQuery({
     queryFn: () => getInBodyScan(scanId),
     queryKey: ["inbody", "scan", scanId],
   });
@@ -21,7 +26,17 @@ export function InBodyReviewScreen({ scanId }: { scanId: string }) {
     mutationFn: () => updateInBodyReview(scanId, buildEditedMeasurements(measurements, draftValues), data?.result?.scan_date ?? null),
   });
   const confirmMutation = useMutation({
-    mutationFn: () => confirmInBodyScan(scanId),
+    mutationFn: async () => {
+      if (Object.keys(draftValues).length > 0 && data?.result) {
+        await updateInBodyReview(
+          scanId,
+          buildEditedMeasurements(measurements, draftValues),
+          data.result.scan_date,
+        );
+      }
+      return confirmInBodyScan(scanId);
+    },
+    onSuccess: onConfirmed,
   });
 
   function updateValue(key: string, value: string) {
@@ -38,6 +53,15 @@ export function InBodyReviewScreen({ scanId }: { scanId: string }) {
 
         <SurfaceCard>
           {isLoading ? <Text style={styles.stateText}>Reading scan...</Text> : null}
+          {isError ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void refetch()}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>Retry Loading Scan</Text>
+            </Pressable>
+          ) : null}
           {data?.failure_message ? <Text style={styles.errorText}>{data.failure_message}</Text> : null}
           {measurements.map((measurement) => (
             <View key={measurement.key} style={styles.editRow}>
@@ -63,16 +87,29 @@ export function InBodyReviewScreen({ scanId }: { scanId: string }) {
               {saveMutation.isPending ? "Saving..." : "Save Corrections"}
             </Text>
           </Pressable>
+          {saveMutation.isError ? (
+            <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+              Corrections could not be saved. Please retry.
+            </Text>
+          ) : null}
           <Pressable
             accessibilityRole="button"
-            disabled={!data?.result || confirmMutation.isPending}
+            disabled={!data?.result || confirmMutation.isPending || saveMutation.isPending}
             onPress={() => confirmMutation.mutate()}
-            style={[styles.button, !data?.result ? styles.disabledButton : undefined]}
+            style={[
+              styles.button,
+              !data?.result || saveMutation.isPending ? styles.disabledButton : undefined,
+            ]}
           >
             <Text style={styles.buttonText}>
               {confirmMutation.isPending ? "Confirming..." : "Confirm Scan"}
             </Text>
           </Pressable>
+          {confirmMutation.isError ? (
+            <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+              The scan could not be confirmed. Please retry.
+            </Text>
+          ) : null}
         </SurfaceCard>
       </ScrollView>
     </SafeAreaView>

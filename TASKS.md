@@ -34,9 +34,9 @@
 
 ## E. Authentication
 - [ ] Implement auth integration.
-- [ ] Add current-user dependency.
-- [ ] Add unauthorized/forbidden tests.
-- [ ] Derive user ID from trusted auth context.
+- [x] Add current-user dependency.
+- [x] Add unauthorized/forbidden tests.
+- [x] Derive user ID from trusted auth context.
 
 ## F. User / Onboarding
 - [ ] Create profile schemas/repository/service.
@@ -53,10 +53,10 @@
 - [x] Add `AVATAR_MODEL=TBD`.
 
 ## H. Storage / Security
-- [ ] Create private object-storage interface.
-- [ ] Add private upload/delete primitives.
-- [ ] Add authorization helper tests.
-- [ ] Verify logs exclude sensitive content.
+- [x] Create private object-storage interface.
+- [x] Add private upload/delete primitives.
+- [x] Add authorization helper tests.
+- [x] Verify logs exclude sensitive content.
 
 ## I. CI
 - [x] Add backend lint/test CI.

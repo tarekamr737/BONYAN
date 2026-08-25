@@ -8,11 +8,11 @@
 - PostgreSQL migration for `inbody_scans`, including owner/hash dedupe and owner/status history index.
 - Mobile InBody upload, review/correction, confirmation, and progress dashboard screens under feature-owned paths.
 
-## Central Integration Needed
-- Include `app.domains.inbody.router` in `apps/api/app/core/routing.py` when WS1 performs central API registration.
-- Add authenticated navigation entries to `apps/mobile/app/inbody/*` or compose the exported screens from `apps/mobile/src/features/inbody`.
-- Replace the temporary `X-Bonyan-User-Id` header dependency in `domains/inbody/router.py` with the shared authenticated current-user dependency once WS1 auth lands.
-- Wire shared private object storage into `InBodyService.upload_scan`; this branch stores an opaque private key shape but does not invent a second storage subsystem before WS1 storage primitives exist.
+## Central Integration
+- `app.domains.inbody.router` is registered under the shared `/api/v1` router.
+- Mobile routes are composed under an authenticated InBody layout with native file selection and progress/review navigation.
+- Ownership is derived from the shared verified Bearer-token current-user dependency; clients cannot supply the authoritative owner ID.
+- Raw reports use the shared private-storage interface and the private development adapter implements upload, metadata, and delete operations.
 
 ## Verification
 - `python -m pytest -q -c apps/api/pyproject.toml` passes.
@@ -24,6 +24,5 @@
 - `npm run mobile:test` passes.
 - `impeccable detect apps/mobile/src/features/inbody apps/mobile/app/inbody` passes.
 
-## Known Blockers
+## Live-provider requirement
 - Live Mistral calls require `MISTRAL_API_KEY`; tests use mocks and structured mapping fixtures.
-- Private object deletion retention should be wired to the shared WS1 storage primitive when that lands.

@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import status
 
 from app.core.errors import AppError
+from app.core.storage import PrivateObjectStorage
 from app.domains.inbody.schemas import (
     InBodyHistoryResponse,
     InBodyResult,
@@ -29,9 +30,11 @@ class InBodyService:
     def __init__(
         self,
         repository: InBodyRepository,
+        storage: PrivateObjectStorage,
         ocr_provider: OcrProvider | None = None,
     ) -> None:
         self.repository = repository
+        self.storage = storage
         self.ocr_provider = ocr_provider or MistralOcrProvider()
 
     async def upload_scan(
@@ -48,6 +51,12 @@ class InBodyService:
                 "Upload a readable InBody image or PDF.",
                 status.HTTP_400_BAD_REQUEST,
             )
+        if len(filename) > 255 or len(content_type) > 120:
+            raise AppError(
+                "invalid_inbody_file",
+                "Upload a readable InBody image or PDF.",
+                status.HTTP_400_BAD_REQUEST,
+            )
 
         content_hash = hashlib.sha256(content).hexdigest()
         duplicate = await self.repository.find_duplicate(
@@ -57,13 +66,20 @@ class InBodyService:
         if duplicate is not None:
             return UploadResponse(scan=self._to_response(duplicate), duplicate=True)
 
+        owner_key = hashlib.sha256(user_id.encode("utf-8")).hexdigest()[:32]
+        storage_key = f"inbody/{owner_key}/{content_hash}"
         scan = await self.repository.create_upload(
             owner_id=user_id,
             filename=filename,
             content_type=content_type,
             byte_size=len(content),
             content_hash=content_hash,
-            storage_key=f"inbody/{user_id}/{content_hash}",
+            storage_key=storage_key,
+        )
+        await self.storage.put(
+            key=storage_key,
+            content=content,
+            content_type=content_type,
         )
 
         try:
@@ -152,6 +168,7 @@ class InBodyService:
 
     async def delete_scan(self, *, user_id: str, scan_id: UUID) -> None:
         scan = await self._get_owned_or_404(user_id=user_id, scan_id=scan_id)
+        await self.storage.delete(key=scan.storage_key)
         await self.repository.delete(scan)
 
     async def _get_owned_or_404(self, *, user_id: str, scan_id: UUID) -> InBodyScan:

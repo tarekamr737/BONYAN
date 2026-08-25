@@ -28,6 +28,23 @@ class FakeOcrProvider:
         return self.result
 
 
+class FakeStorage:
+    def __init__(self) -> None:
+        self.objects: dict[str, tuple[bytes, str]] = {}
+
+    async def put(self, *, key: str, content: bytes, content_type: str) -> None:
+        self.objects[key] = (content, content_type)
+
+    async def delete(self, *, key: str) -> None:
+        self.objects.pop(key, None)
+
+    async def get_metadata(self, *, key: str) -> object | None:
+        return self.objects.get(key)
+
+    async def read(self, *, key: str) -> bytes:
+        return self.objects[key][0]
+
+
 class FakeRepository:
     def __init__(self) -> None:
         self.scans: dict[UUID, SimpleNamespace] = {}
@@ -121,13 +138,16 @@ def run(coro):
     return asyncio.run(coro)
 
 
-def service_with(result: InBodyResult | Exception) -> tuple[InBodyService, FakeRepository]:
+def service_with(
+    result: InBodyResult | Exception,
+) -> tuple[InBodyService, FakeRepository, FakeStorage]:
     repo = FakeRepository()
-    return InBodyService(repo, FakeOcrProvider(result)), repo
+    storage = FakeStorage()
+    return InBodyService(repo, storage, FakeOcrProvider(result)), repo, storage
 
 
 def test_valid_upload_enters_review_with_mocked_ocr() -> None:
-    service, _ = service_with(
+    service, _, storage = service_with(
         InBodyResult(
             measurements=[
                 InBodyMeasurement(key=InBodyMetricKey.WEIGHT, value=82, unit="kg"),
@@ -146,10 +166,11 @@ def test_valid_upload_enters_review_with_mocked_ocr() -> None:
 
     assert response.scan.status == InBodyScanStatus.REVIEW_REQUIRED
     assert response.scan.result is not None
+    assert len(storage.objects) == 1
 
 
 def test_duplicate_upload_returns_existing_scan() -> None:
-    service, _ = service_with(InBodyResult(measurements=[]))
+    service, _, _ = service_with(InBodyResult(measurements=[]))
     payload = {
         "user_id": "user-1",
         "filename": "scan.pdf",
@@ -165,7 +186,7 @@ def test_duplicate_upload_returns_existing_scan() -> None:
 
 
 def test_provider_timeout_and_failure_are_safe_states() -> None:
-    timeout_service, _ = service_with(TimeoutError())
+    timeout_service, _, _ = service_with(TimeoutError())
     timeout_response = run(
         timeout_service.upload_scan(
             user_id="user-1",
@@ -175,7 +196,7 @@ def test_provider_timeout_and_failure_are_safe_states() -> None:
         )
     )
 
-    failure_service, _ = service_with(RuntimeError("provider exploded"))
+    failure_service, _, _ = service_with(RuntimeError("provider exploded"))
     failure_response = run(
         failure_service.upload_scan(
             user_id="user-1",
@@ -190,7 +211,7 @@ def test_provider_timeout_and_failure_are_safe_states() -> None:
 
 
 def test_cross_user_access_fails_and_delete_hides_scan() -> None:
-    service, _ = service_with(InBodyResult(measurements=[]))
+    service, _, storage = service_with(InBodyResult(measurements=[]))
     created = run(
         service.upload_scan(
             user_id="user-1",
@@ -203,13 +224,32 @@ def test_cross_user_access_fails_and_delete_hides_scan() -> None:
     with pytest.raises(AppError):
         run(service.get_scan(user_id="user-2", scan_id=created.scan.id))
 
+    with pytest.raises(AppError):
+        run(
+            service.update_review(
+                user_id="user-2",
+                scan_id=created.scan.id,
+                review=SimpleNamespace(
+                    scan_date=None,
+                    measurements=[],
+                    segmental_measurements=[],
+                ),
+            )
+        )
+
+    with pytest.raises(AppError):
+        run(service.delete_scan(user_id="user-2", scan_id=created.scan.id))
+
+    assert len(storage.objects) == 1
+
     run(service.delete_scan(user_id="user-1", scan_id=created.scan.id))
+    assert storage.objects == {}
     with pytest.raises(AppError):
         run(service.get_scan(user_id="user-1", scan_id=created.scan.id))
 
 
 def test_unconfirmed_scan_is_not_latest_until_confirmed() -> None:
-    service, _ = service_with(InBodyResult(measurements=[]))
+    service, _, _ = service_with(InBodyResult(measurements=[]))
     created = run(
         service.upload_scan(
             user_id="user-1",

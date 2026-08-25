@@ -16,3 +16,10 @@ def test_database_url_is_redacted_from_settings_repr() -> None:
 
     assert settings.sqlalchemy_database_url.startswith("postgresql+")
     assert "bonyan:bonyan" not in repr(settings)
+
+
+def test_production_requires_a_strong_auth_secret() -> None:
+    with pytest.raises(ValidationError):
+        Settings(api_env="production", auth_jwt_secret=None)
+    with pytest.raises(ValidationError):
+        Settings(auth_jwt_secret="too-short")

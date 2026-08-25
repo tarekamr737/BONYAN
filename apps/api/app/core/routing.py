@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-api_v1_router = APIRouter(prefix="/api/v1")
+from app.domains.inbody.router import router as inbody_router
 
-# Feature workstreams export an APIRouter from their domain package. Workstream 01
-# adds one include_router(...) call here only after the feature branch is merged.
+api_v1_router = APIRouter(prefix="/api/v1")
+api_v1_router.include_router(inbody_router)

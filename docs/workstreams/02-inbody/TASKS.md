@@ -50,7 +50,7 @@
 - [x] Add latest/history services.
 
 ## H. Mobile Upload
-- [x] Build upload/file picker shell for WS1-native picker wiring.
+- [x] Build upload/file picker and native route wiring.
 - [x] Add upload + processing states.
 - [x] Add provider failure/retry UX.
 
@@ -70,7 +70,7 @@
 
 ## K. Delete / Privacy
 - [x] Add scan delete flow.
-- [ ] Delete source per retention policy after WS1 private storage is registered.
+- [x] Delete the private source when its owned scan is deleted.
 - [x] Verify cross-user access fails.
 - [x] Verify logs exclude sensitive data by avoiding document/measurement logging in this domain.
 

@@ -1,12 +1,16 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Link } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../components/SurfaceCard";
+import { useAuthSession } from "../auth/session";
 import { colors, fonts, radii, spacing } from "../theme/tokens";
 
 const foundations = ["EXPO ROUTER", "TANSTACK QUERY", "TYPED API"] as const;
 
 export function HomeScreen() {
+  const { isAuthenticated } = useAuthSession();
+
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView
@@ -42,6 +46,21 @@ export function HomeScreen() {
             ))}
           </View>
         </SurfaceCard>
+
+        {isAuthenticated ? (
+          <View accessibilityLabel="InBody navigation" style={styles.featureActions}>
+            <Link asChild href="./inbody">
+              <Pressable accessibilityRole="button" style={styles.primaryAction}>
+                <Text style={styles.primaryActionText}>Upload InBody Report</Text>
+              </Pressable>
+            </Link>
+            <Link asChild href="./inbody/progress">
+              <Pressable accessibilityRole="button" style={styles.secondaryAction}>
+                <Text style={styles.secondaryActionText}>View InBody Progress</Text>
+              </Pressable>
+            </Link>
+          </View>
+        ) : null}
 
         <Text style={styles.footer}>BONYAN · DEVELOPMENT BASELINE</Text>
       </ScrollView>
@@ -162,5 +181,34 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     paddingTop: spacing.xl,
     textAlign: "center",
+  },
+  featureActions: {
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  primaryAction: {
+    alignItems: "center",
+    backgroundColor: colors.bronze,
+    borderRadius: radii.control,
+    justifyContent: "center",
+    minHeight: 50,
+  },
+  primaryActionText: {
+    color: colors.canvas,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+  },
+  secondaryAction: {
+    alignItems: "center",
+    borderColor: colors.bronzeBorder,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 50,
+  },
+  secondaryActionText: {
+    color: colors.bronze,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
   },
 });

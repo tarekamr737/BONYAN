@@ -17,6 +17,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+.private-storage/
 
 # Editors / operating systems
 .DS_Store

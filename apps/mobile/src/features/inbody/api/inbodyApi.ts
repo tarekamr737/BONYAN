@@ -1,3 +1,5 @@
+import { ApiError, parseApiErrorPayload } from "../../../core/api/errors";
+import { getAccessToken } from "../../../core/auth/session";
 import { apiRequest } from "../../../core/api/client";
 import type { InBodyHistoryResponse, InBodyMeasurement, InBodyScan, UploadResponse } from "../types";
 
@@ -16,17 +18,25 @@ export type LocalReportFile = {
 export async function uploadInBodyReport(file: LocalReportFile): Promise<UploadResponse> {
   const form = new FormData();
   form.append("report", file as unknown as Blob);
+  const headers = new Headers({ Accept: "application/json" });
+  const accessToken = getAccessToken();
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
 
   const response = await fetch(`${getBaseUrl()}/api/v1/inbody/scans`, {
     body: form,
-    headers: {
-      Accept: "application/json",
-    },
+    headers,
     method: "POST",
   });
 
   if (!response.ok) {
-    throw new Error("Upload failed");
+    const contentType = response.headers.get("content-type") ?? "";
+    const payload = contentType.includes("application/json")
+      ? await response.json().catch(() => undefined)
+      : undefined;
+    const details = parseApiErrorPayload(payload);
+    throw new ApiError(response.status, details.code, details.message);
   }
   return (await response.json()) as UploadResponse;
 }
