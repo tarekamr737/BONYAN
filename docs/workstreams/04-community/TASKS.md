@@ -2,7 +2,7 @@
 
 ## Contracts and persistence
 
-- [x] Define source-capable avatar request/result and avatar states.
+- [x] Define measurement-driven avatar request/result, body-metrics reader, and avatar states.
 - [x] Define strict post, reaction, report, feed, and cursor schemas.
 - [x] Add avatar, post, reaction, and report SQLAlchemy models.
 - [x] Add domain-owned migration helpers and user-scoped repositories.
@@ -12,11 +12,13 @@
 
 - [x] Keep provider selection isolated and `AVATAR_MODEL=TBD`.
 - [x] Implement deterministic `MockAvatarProvider` and provider error abstraction.
-- [x] Validate JPEG, PNG, and WebP source images with a 5 MB decoded limit.
-- [x] Store source and generated objects through private storage only.
+- [x] Read confirmed height/weight/InBody values through `BodyMetricsReader` only.
+- [x] Validate supported metric ranges and reject photos/client-supplied measurements.
+- [x] Render an anonymous, fully clothed body figure whose proportions respond to the metrics.
+- [x] Store only generated objects through private storage; never persist raw metrics in avatar.
 - [x] Implement generate, detail/list, approve, reject, regenerate, community-use, and delete.
 - [x] Keep approval separate from explicit community enablement.
-- [x] Return only short-lived preview URLs; never serialize source bytes or object keys.
+- [x] Return only short-lived preview URLs; never serialize raw metric values or object keys.
 - [x] Handle provider errors/timeouts without exposing partial assets.
 
 ## Community
@@ -30,7 +32,8 @@
 
 ## Mobile UX
 
-- [x] Build private source-photo selection and validation feedback.
+- [x] Remove photo selection and show confirmed InBody/profile data availability.
+- [x] Explain approximation limits and show a respectful full-body placeholder.
 - [x] Build generation, preview, approval, rejection, regeneration, and deletion states.
 - [x] Build a separate, explicit community-use privacy control.
 - [x] Build feed, post card, create-post, reaction, delete, and report flows.
@@ -39,7 +42,7 @@
 
 ## Verification
 
-- [x] Cover source/unapproved/approved avatar privacy and cross-user access.
+- [x] Cover metric privacy, unavailable data, unapproved/approved avatar, and cross-user access.
 - [x] Cover provider failure, timeout, regeneration, and deletion.
 - [x] Cover post creation/deletion, forbidden delete, reactions, pagination, and reports.
 - [x] Cover mobile privacy filtering, optimistic reactions, and relative time.
@@ -47,5 +50,6 @@
 - [x] Mobile typecheck passes in the current verified install.
 - [x] API and mobile tests pass.
 - [ ] Person 01: create/register the central migration, auth dependencies, storage, routers, and app-shell entries.
+- [ ] Person 01/02: compose `BodyMetricsReader` from confirmed InBody and profile contracts.
 - [ ] Person 01: resolve the clean-install root React typings/workspace layout noted in `INTEGRATION.md`.
 - [ ] Integration environment: smoke-test authenticated API and native Android/iOS routes.

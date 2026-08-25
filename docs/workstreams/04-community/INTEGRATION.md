@@ -9,6 +9,7 @@ Build one `AvatarService` with:
 
 - `SqlAlchemyAvatarRepository(session)`
 - a production implementation of `PrivateAvatarStorage`
+- an adapter implementing `BodyMetricsReader` from confirmed InBody/profile data
 - `MockAvatarProvider(model=settings.avatar_model)` until a provider is selected
 
 Build one `CommunityService` with:
@@ -28,12 +29,18 @@ create_community_router(community_service, get_current_actor)
 the trusted auth/profile context. Do not accept either value from request JSON or
 query parameters.
 
-The baseline `app.core.providers.AvatarProvider` accepts a text prompt only, while
-the private source-photo workflow requires image bytes and media type. This
-workstream therefore exposes the required provider-neutral contract from
-`app.domains.avatar.contracts` and re-exports it from
-`app.integrations.avatar.provider`. Reconcile the shared contract during central
-composition; provider SDK types must remain inside `app.integrations.avatar`.
+`BodyMetricsReader.latest_confirmed(owner_id)` is the only InBody/User dependency.
+It returns a transient `BodyMetricsSnapshot` containing confirmed height, weight,
+optional body-fat and skeletal-muscle values, timestamp, and source. Implement this
+adapter against Workstream 02/User public contracts; do not read their repositories
+or OCR internals. When no confirmed snapshot exists, avatar creation returns
+`body_metrics_required` without creating an asset. `StaticBodyMetricsReader` is only
+for local development and tests.
+
+The provider-neutral `AvatarGenerationRequest` receives the metrics snapshot with
+`repr=False`. The request schema itself accepts only a visual style marker, so a
+client cannot upload a body photo or inject private measurements. Provider SDK types
+must remain inside `app.integrations.avatar`.
 
 ## Database migration
 
@@ -61,7 +68,7 @@ the feed.
 
 Implement `PrivateAvatarStorage` with authenticated private object storage:
 
-- source and generated objects are private at rest
+- generated avatar objects are private at rest
 - read URLs are short-lived signed URLs; the service requests 300 seconds
 - delete is idempotent so a partially completed deletion can be retried safely
 - image bytes and object keys are excluded from logs
@@ -82,10 +89,8 @@ profile are available. The existing API client must attach the authenticated ses
 to these requests. Configure `EXPO_PUBLIC_API_URL` for a physical device or emulator;
 `127.0.0.1` addresses the device itself outside a local web runtime.
 
-Add Expo Image Picker's config plugin to the centrally owned `app.json` before a
-native build so the photo-library permission copy can be set explicitly. Expo Doctor
-currently also reports the baseline `newArchEnabled` field as unsupported by its
-current schema; resolve that config centrally rather than from this workstream.
+No camera or photo-library permission is required. The avatar route reads only
+measurement availability and generated preview data from authenticated APIs.
 
 The root npm workspace currently keeps `@types/react` below
 `apps/mobile/node_modules` while `react-native` is hoisted at the root. A clean local
@@ -100,7 +105,9 @@ owned and stable.
 ## Public behavior
 
 - Avatar approval and community enablement are separate explicit mutations.
-- Source-photo fields and object keys never occur in response schemas.
+- Body photos and client-submitted measurements are rejected by the avatar request schema.
+- Raw metric values and generated object keys never occur in response schemas.
+- Only source type, data timestamp, and metric-field availability are returned privately.
 - Posts contain only explicit caption/type/avatar input; no InBody data is accepted.
 - Feed order is `(created_at, id)` descending with an opaque cursor.
 - One reaction and one report are stored per user/post; repeats are idempotent.
