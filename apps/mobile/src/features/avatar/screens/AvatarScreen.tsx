@@ -136,7 +136,25 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           <PrivacyTimeline />
         </View>
 
-        {displayedAvatar ? (
+        {!activeAvatar && avatarsQuery.isPending ? (
+          <View accessibilityLabel="Loading saved avatars" style={styles.queryStatePanel}>
+            <ActivityIndicator color={colors.bronze} size="large" />
+            <Text style={styles.queryStateTitle}>Checking your private avatars</Text>
+            <Text style={styles.queryStateCopy}>
+              Your existing approval and community settings are loading.
+            </Text>
+          </View>
+        ) : !activeAvatar && avatarsQuery.isError && !avatarsQuery.data ? (
+          <View accessibilityRole="alert" style={styles.queryStatePanel}>
+            <Text style={styles.queryStateTitle}>Your avatars could not load</Text>
+            <Text style={styles.queryStateCopy}>
+              No privacy state has been changed. Reconnect before creating another avatar.
+            </Text>
+            <AvatarButton onPress={() => void avatarsQuery.refetch()} tone="secondary">
+              Try again
+            </AvatarButton>
+          </View>
+        ) : displayedAvatar ? (
           <View style={styles.previewSection}>
             {displayedAvatar.preview_url ? (
               <View style={styles.previewFrame}>
@@ -315,7 +333,14 @@ function avatarStateCopy(avatar: AvatarView): string {
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.canvas, flex: 1 },
-  content: { gap: spacing.lg, padding: spacing.lg, paddingBottom: spacing.xxl },
+  content: {
+    alignSelf: "center",
+    gap: spacing.lg,
+    maxWidth: 620,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    width: "100%",
+  },
   header: { alignItems: "center", flexDirection: "row", minHeight: 48 },
   backButton: { justifyContent: "center", minHeight: 48, minWidth: 64 },
   backLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 14 },
@@ -345,7 +370,7 @@ const styles = StyleSheet.create({
   privateBadgeText: {
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.2,
   },
   privacyTitle: {
@@ -388,6 +413,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   sourceImage: { aspectRatio: 1, borderRadius: radii.card, width: "100%" },
+  queryStatePanel: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    gap: spacing.sm,
+    padding: spacing.xl,
+  },
+  queryStateTitle: {
+    color: colors.text,
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 20,
+    textAlign: "center",
+  },
+  queryStateCopy: {
+    color: colors.mutedLight,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
   previewSection: { gap: spacing.md },
   previewFrame: { position: "relative" },
   previewImage: { aspectRatio: 1, borderRadius: radii.card, width: "100%" },
@@ -405,7 +452,7 @@ const styles = StyleSheet.create({
   statusLabel: {
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.2,
   },
   previewBadge: {
@@ -420,7 +467,7 @@ const styles = StyleSheet.create({
   previewBadgeText: {
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.1,
   },
   previewTitle: {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -39,7 +40,10 @@ export function CreatePostScreen({
     () => communityEnabledAvatars(avatarsQuery.data?.items ?? [])[0] ?? null,
     [avatarsQuery.data],
   );
-  const canSubmit = caption.trim().length > 0 && !createMutation.isPending;
+  const canSubmit =
+    caption.trim().length > 0 &&
+    !avatarsQuery.isPending &&
+    !createMutation.isPending;
 
   function submit() {
     if (!canSubmit) return;
@@ -116,7 +120,34 @@ export function CreatePostScreen({
             <Text style={styles.count}>{caption.length}/500</Text>
           </View>
 
-          {approvedAvatar ? (
+          {avatarsQuery.isPending ? (
+            <View accessibilityLabel="Checking approved avatars" style={styles.avatarEmpty}>
+              <ActivityIndicator color={colors.bronze} />
+              <View style={styles.avatarCopy}>
+                <Text style={styles.avatarTitle}>Checking your avatar privacy</Text>
+                <Text style={styles.avatarDetail}>
+                  Publishing waits until your approved community setting is known.
+                </Text>
+              </View>
+            </View>
+          ) : avatarsQuery.isError && !avatarsQuery.data ? (
+            <View accessibilityRole="alert" style={styles.avatarEmpty}>
+              <View style={styles.avatarCopy}>
+                <Text style={styles.avatarTitle}>Avatar status could not load</Text>
+                <Text style={styles.avatarDetail}>
+                  Retry to attach an avatar, or publish without one. No avatar will be added
+                  automatically.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void avatarsQuery.refetch()}
+                style={styles.manageButton}
+              >
+                <Text style={styles.manageLabel}>Try again</Text>
+              </Pressable>
+            </View>
+          ) : approvedAvatar ? (
             <View style={styles.avatarControl}>
               {approvedAvatar.preview_url ? (
                 <Image source={{ uri: approvedAvatar.preview_url }} style={styles.avatarImage} />
@@ -191,7 +222,14 @@ export function CreatePostScreen({
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.canvas, flex: 1 },
   keyboardView: { flex: 1 },
-  content: { gap: spacing.lg, padding: spacing.lg, paddingBottom: spacing.xxl },
+  content: {
+    alignSelf: "center",
+    gap: spacing.lg,
+    maxWidth: 640,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    width: "100%",
+  },
   header: { alignItems: "center", flexDirection: "row", minHeight: 48 },
   headerAction: { justifyContent: "center", minHeight: 48, minWidth: 64 },
   headerActionLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 14 },
@@ -216,7 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flex: 1,
     justifyContent: "center",
-    minHeight: 44,
+    minHeight: 48,
   },
   segmentSelected: { backgroundColor: colors.surfaceRaised },
   segmentLabel: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 13 },
@@ -264,13 +302,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.md,
   },
-  manageButton: { justifyContent: "center", minHeight: 44 },
+  manageButton: { justifyContent: "center", minHeight: 48 },
   manageLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 13 },
   privacyNote: { borderTopColor: colors.line, borderTopWidth: 1, paddingTop: spacing.md },
   privacyTitle: {
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.2,
   },
   privacyCopy: {

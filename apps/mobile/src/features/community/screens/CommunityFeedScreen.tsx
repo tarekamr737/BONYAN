@@ -40,7 +40,7 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
     );
   }
 
-  if (feedQuery.isError) {
+  if (feedQuery.isError && !feedQuery.data) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View accessibilityRole="alert" style={styles.centerState}>
@@ -82,6 +82,17 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
         ListFooterComponent={
           feedQuery.isFetchingNextPage ? (
             <ActivityIndicator color={colors.bronze} style={styles.footerLoader} />
+          ) : feedQuery.isFetchNextPageError ? (
+            <View accessibilityRole="alert" style={styles.pageError}>
+              <Text style={styles.pageErrorCopy}>More posts could not load.</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void feedQuery.fetchNextPage()}
+                style={styles.pageRetry}
+              >
+                <Text style={styles.retryLabel}>Try again</Text>
+              </Pressable>
+            </View>
           ) : null
         }
         ListHeaderComponent={
@@ -103,7 +114,6 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
                 <Text style={styles.createLabel}>Create post</Text>
               </Pressable>
             </View>
-            <Text style={styles.eyebrow}>PROGRESS, SHARED</Text>
             <Text accessibilityRole="header" style={styles.heading}>
               Community
             </Text>
@@ -115,10 +125,26 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
               <Text style={styles.feedRuleTitle}>RECENT FIRST</Text>
               <Text style={styles.feedRuleCopy}>A simple chronological feed</Text>
             </View>
+            {feedQuery.isRefetchError && !feedQuery.isFetchNextPageError ? (
+              <View accessibilityRole="alert" style={styles.refreshError}>
+                <Text style={styles.pageErrorCopy}>The latest refresh did not finish.</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void feedQuery.refetch()}
+                  style={styles.pageRetry}
+                >
+                  <Text style={styles.retryLabel}>Retry refresh</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         }
         onEndReached={() => {
-          if (feedQuery.hasNextPage && !feedQuery.isFetchingNextPage) {
+          if (
+            feedQuery.hasNextPage &&
+            !feedQuery.isFetchingNextPage &&
+            !feedQuery.isFetchNextPageError
+          ) {
             void feedQuery.fetchNextPage();
           }
         }}
@@ -177,7 +203,14 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.canvas, flex: 1 },
-  listContent: { gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxl },
+  listContent: {
+    alignSelf: "center",
+    gap: spacing.md,
+    maxWidth: 720,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    width: "100%",
+  },
   headerBlock: { marginBottom: spacing.xs },
   topBar: {
     alignItems: "center",
@@ -197,12 +230,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   createLabel: { color: colors.canvas, fontFamily: fonts.bodySemiBold, fontSize: 13 },
-  eyebrow: {
-    color: colors.bronze,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
-    letterSpacing: 1.4,
-  },
   heading: {
     color: colors.text,
     fontFamily: fonts.displayBold,
@@ -230,7 +257,7 @@ const styles = StyleSheet.create({
   feedRuleTitle: {
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.2,
   },
   feedRuleCopy: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
@@ -284,4 +311,23 @@ const styles = StyleSheet.create({
   },
   retryLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 14 },
   footerLoader: { marginVertical: spacing.lg },
+  pageError: {
+    alignItems: "center",
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    gap: spacing.xs,
+    marginVertical: spacing.md,
+    padding: spacing.md,
+  },
+  refreshError: {
+    alignItems: "center",
+    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: spacing.sm,
+  },
+  pageErrorCopy: { color: colors.mutedLight, fontFamily: fonts.body, fontSize: 12 },
+  pageRetry: { justifyContent: "center", minHeight: 48, paddingHorizontal: spacing.sm },
 });

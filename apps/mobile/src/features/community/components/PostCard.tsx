@@ -1,4 +1,5 @@
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { relativeTime } from "../logic";
@@ -14,6 +15,13 @@ const reactionLabels: Record<ReactionKind, string> = {
   inspired: "Inspired",
 };
 
+const reportLabels: Record<ReportReason, string> = {
+  spam: "Spam or unwanted content",
+  harassment: "Harassment or unsafe behavior",
+  privacy: "Privacy concern",
+  other: "Something else",
+};
+
 type PostCardProps = {
   post: CommunityPostView;
   onDelete: (postId: string) => void;
@@ -22,6 +30,7 @@ type PostCardProps = {
 };
 
 export function PostCard({ post, onDelete, onReact, onReport }: PostCardProps) {
+  const [reportOpen, setReportOpen] = useState(false);
   const initials = initialsFor(post.author.display_name);
 
   function confirmDelete() {
@@ -32,11 +41,7 @@ export function PostCard({ post, onDelete, onReact, onReport }: PostCardProps) {
   }
 
   function chooseReportReason() {
-    Alert.alert("Report post", "Choose the reason that best protects the community.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Spam", onPress: () => onReport(post.id, "spam") },
-      { text: "Privacy concern", onPress: () => onReport(post.id, "privacy") },
-    ]);
+    setReportOpen(true);
   }
 
   return (
@@ -96,6 +101,44 @@ export function PostCard({ post, onDelete, onReact, onReport }: PostCardProps) {
           );
         })}
       </View>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setReportOpen(false)}
+        transparent
+        visible={reportOpen}
+      >
+        <View style={styles.modalBackdrop}>
+          <View accessibilityViewIsModal style={styles.reportSheet}>
+            <Text accessibilityRole="header" style={styles.reportTitle}>
+              Report post
+            </Text>
+            <Text style={styles.reportCopy}>
+              Choose the reason that best protects the community.
+            </Text>
+            {(Object.keys(reportLabels) as ReportReason[]).map((reason) => (
+              <Pressable
+                accessibilityRole="button"
+                key={reason}
+                onPress={() => {
+                  setReportOpen(false);
+                  onReport(post.id, reason);
+                }}
+                style={({ pressed }) => [styles.reportReason, pressed && styles.pressed]}
+              >
+                <Text style={styles.reportReasonLabel}>{reportLabels[reason]}</Text>
+              </Pressable>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setReportOpen(false)}
+              style={({ pressed }) => [styles.reportCancel, pressed && styles.pressed]}
+            >
+              <Text style={styles.reportCancelLabel}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -148,7 +191,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flex: 1,
     justifyContent: "center",
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: spacing.xs,
   },
   reactionSelected: { backgroundColor: colors.bronzeSoft, borderColor: colors.bronzeBorder },
@@ -158,5 +201,43 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   reactionLabelSelected: { color: colors.bronze },
+  modalBackdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    flex: 1,
+    justifyContent: "flex-end",
+    padding: spacing.md,
+  },
+  reportSheet: {
+    alignSelf: "center",
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.line,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    maxWidth: 560,
+    padding: spacing.lg,
+    width: "100%",
+  },
+  reportTitle: {
+    color: colors.text,
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 22,
+  },
+  reportCopy: {
+    color: colors.mutedLight,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  reportReason: {
+    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    justifyContent: "center",
+    minHeight: 52,
+  },
+  reportReasonLabel: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 14 },
+  reportCancel: { alignItems: "center", justifyContent: "center", marginTop: spacing.sm, minHeight: 48 },
+  reportCancelLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 14 },
   pressed: { opacity: 0.72 },
 });
