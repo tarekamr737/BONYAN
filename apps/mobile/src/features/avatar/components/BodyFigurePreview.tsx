@@ -5,8 +5,8 @@ import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import type { AvatarPresentation } from "../types";
 
 const cinematicPreviews = {
-  men: require("../../../../assets/avatar-styles/cinematic-men-athletic.png"),
-  women: require("../../../../assets/avatar-styles/cinematic-women-athletic.png"),
+  men: require("../../../../assets/avatar-styles/cinematic-men-normal.png"),
+  women: require("../../../../assets/avatar-styles/cinematic-women-normal.png"),
 };
 
 export function BodyFigurePreview({ presentation }: { presentation: AvatarPresentation }) {
@@ -21,7 +21,7 @@ export function BodyFigurePreview({ presentation }: { presentation: AvatarPresen
         <View style={styles.styleCopy}>
           <Text style={styles.title}>Cinematic 3D</Text>
           <Text style={styles.detail}>
-            {presentation === "women" ? "Women" : "Men"} · measurement-shaped build
+            {presentation === "women" ? "Women" : "Men"} · 5 measurement-shaped profiles
           </Text>
         </View>
         <View style={styles.selectedBadge}>

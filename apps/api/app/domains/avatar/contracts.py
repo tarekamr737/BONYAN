@@ -31,8 +31,10 @@ class BodyAvatarPresentation(StrEnum):
 
 
 class BodyShapeProfile(StrEnum):
-    LEAN = "lean"
-    ATHLETIC = "athletic"
+    SKINNY = "skinny"
+    SLIM = "slim"
+    NORMAL = "normal"
+    FIT = "fit"
     STRONG = "strong"
 
 

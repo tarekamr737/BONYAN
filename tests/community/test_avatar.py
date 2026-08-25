@@ -137,7 +137,7 @@ def test_confirmed_metrics_generate_private_result_without_storing_raw_values() 
         assert view.public_in_community is False
         assert view.measurement_source == "inbody"
         assert view.presentation == "men"
-        assert view.shape_profile == "athletic"
+        assert view.shape_profile == "fit"
         assert view.measurements_recorded_at == MEASURED_AT
         assert reader.requests == ["user-1"]
         assert await service.get_community_identity("user-1", view.id) is None
@@ -249,7 +249,7 @@ def test_skeletal_muscle_mass_can_select_the_strong_profile() -> None:
         source=BodyMetricsSource.INBODY,
     )
 
-    assert select_cinematic_body_profile(baseline) is CinematicBodyProfile.ATHLETIC
+    assert select_cinematic_body_profile(baseline) is CinematicBodyProfile.FIT
     assert select_cinematic_body_profile(higher_muscle) is CinematicBodyProfile.STRONG
 
 
@@ -264,7 +264,7 @@ def test_women_shape_thresholds_and_assets_are_distinct() -> None:
     )
     assert (
         select_cinematic_body_profile(metrics, BodyAvatarPresentation.WOMEN)
-        is CinematicBodyProfile.ATHLETIC
+        is CinematicBodyProfile.FIT
     )
 
     async def scenario() -> None:
@@ -280,6 +280,39 @@ def test_women_shape_thresholds_and_assets_are_distinct() -> None:
         assert men.content != women.content
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    ("presentation", "weight", "body_fat", "muscle", "expected"),
+    [
+        (BodyAvatarPresentation.MEN, 55, 9, 26, CinematicBodyProfile.SKINNY),
+        (BodyAvatarPresentation.MEN, 68, 14, 31, CinematicBodyProfile.SLIM),
+        (BodyAvatarPresentation.MEN, 82, 23, 33, CinematicBodyProfile.NORMAL),
+        (BodyAvatarPresentation.MEN, 82, 18, 36, CinematicBodyProfile.FIT),
+        (BodyAvatarPresentation.MEN, 100, 29, 40, CinematicBodyProfile.STRONG),
+        (BodyAvatarPresentation.WOMEN, 45, 18, 18, CinematicBodyProfile.SKINNY),
+        (BodyAvatarPresentation.WOMEN, 55, 23, 21, CinematicBodyProfile.SLIM),
+        (BodyAvatarPresentation.WOMEN, 68, 31, 23, CinematicBodyProfile.NORMAL),
+        (BodyAvatarPresentation.WOMEN, 65, 27, 25, CinematicBodyProfile.FIT),
+        (BodyAvatarPresentation.WOMEN, 82, 37, 28, CinematicBodyProfile.STRONG),
+    ],
+)
+def test_five_shape_profiles_cover_men_and_women(
+    presentation: BodyAvatarPresentation,
+    weight: float,
+    body_fat: float,
+    muscle: float,
+    expected: CinematicBodyProfile,
+) -> None:
+    metrics = BodyMetricsSnapshot(
+        height_cm=178 if presentation is BodyAvatarPresentation.MEN else 165,
+        weight_kg=weight,
+        body_fat_percentage=body_fat,
+        skeletal_muscle_mass_kg=muscle,
+        recorded_at=MEASURED_AT,
+        source=BodyMetricsSource.INBODY,
+    )
+    assert select_cinematic_body_profile(metrics, presentation) is expected
 
 
 def test_approval_does_not_publish_without_a_second_explicit_action() -> None:

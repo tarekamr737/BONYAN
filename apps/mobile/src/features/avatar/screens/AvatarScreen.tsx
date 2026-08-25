@@ -27,6 +27,8 @@ type AvatarScreenProps = {
   onBack: () => void;
 };
 
+const shapeProfiles = ["Skinny", "Slim", "Normal", "Fit", "Strong"] as const;
+
 export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const avatarsQuery = useAvatars();
   const measurementQuery = useAvatarMeasurementStatus();
@@ -174,6 +176,19 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               </Text>
             </View>
             <BodyFigurePreview presentation={presentation} />
+            <View style={styles.shapeScale}>
+              <View style={styles.shapeScaleHeader}>
+                <Text style={styles.selectorEyebrow}>5 SHAPE PROFILES</Text>
+                <Text style={styles.shapeScaleHint}>Selected from your measurements</Text>
+              </View>
+              <View style={styles.shapeScaleOptions}>
+                {shapeProfiles.map((shape) => (
+                  <View key={shape} style={styles.shapeScaleChip}>
+                    <Text style={styles.shapeScaleChipText}>{shape}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
             <MeasurementPanel query={measurementQuery} />
             <View style={styles.explainer}>
               <Text style={styles.explainerTitle}>A visual estimate—not a diagnosis</Text>
@@ -553,6 +568,29 @@ const styles = StyleSheet.create({
   segmentText: { color: colors.mutedLight, fontFamily: fonts.bodySemiBold, fontSize: 14 },
   segmentTextSelected: { color: colors.bronze },
   selectorHelp: { color: colors.muted, fontFamily: fonts.body, fontSize: 11, lineHeight: 16 },
+  shapeScale: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  shapeScaleHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  shapeScaleHint: { color: colors.muted, fontFamily: fonts.body, fontSize: 10 },
+  shapeScaleOptions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  shapeScaleChip: {
+    borderColor: colors.bronzeBorder,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  shapeScaleChipText: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 11 },
   measurementPanel: {
     alignItems: "center",
     backgroundColor: colors.surface,

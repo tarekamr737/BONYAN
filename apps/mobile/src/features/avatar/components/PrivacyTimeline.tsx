@@ -4,7 +4,7 @@ import { colors, fonts, spacing } from "../../../core/theme/tokens";
 
 const privacySteps = [
   ["Data", "Confirmed measurements, never posted"],
-  ["Shape", "Lean, Athletic or Strong visual profile"],
+  ["Shape", "Skinny, Slim, Normal, Fit or Strong"],
   ["Review", "Your avatar stays private until approval"],
   ["Community", "Off until you enable it"],
 ] as const;
