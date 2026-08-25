@@ -27,6 +27,13 @@ class FakeAvatarRepository:
         avatar = self.items.get(avatar_id)
         return avatar if avatar and avatar.owner_id == owner_id else None
 
+    async def list_for_owner(self, owner_id: str) -> list[AvatarRecord]:
+        return sorted(
+            (avatar for avatar in self.items.values() if avatar.owner_id == owner_id),
+            key=lambda avatar: (avatar.created_at, avatar.id),
+            reverse=True,
+        )
+
     async def save(self, avatar: AvatarRecord) -> None:
         self.items[avatar.id] = avatar
 
@@ -176,5 +183,21 @@ def test_cross_user_access_returns_not_found() -> None:
             await service.get("someone-else", created.id)
         assert error.value.code == "avatar_not_found"
         assert error.value.status_code == 404
+
+    asyncio.run(scenario())
+
+
+def test_avatar_list_is_owner_scoped_and_never_serializes_source_data() -> None:
+    async def scenario() -> None:
+        service, repository, _ = make_service()
+        own = await service.create("owner", create_request())
+        await service.create("other", create_request())
+
+        result = await service.list_owned("owner")
+
+        assert [avatar.id for avatar in result.items] == [own.id]
+        serialized = result.model_dump(mode="json")
+        assert "source" not in str(serialized).lower()
+        assert repository.items[own.id].source_object_key not in str(serialized)
 
     asyncio.run(scenario())

@@ -15,7 +15,7 @@ from app.domains.avatar.contracts import (
 )
 from app.domains.avatar.models import AvatarRecord
 from app.domains.avatar.repository import AvatarRepository
-from app.domains.avatar.schemas import AvatarView, CreateAvatarRequest
+from app.domains.avatar.schemas import AvatarListView, AvatarView, CreateAvatarRequest
 from app.domains.avatar.validation import decode_source_image, validate_generated_image
 
 
@@ -64,6 +64,10 @@ class AvatarService:
     async def get(self, owner_id: str, avatar_id: UUID) -> AvatarView:
         avatar = await self._require_owned(owner_id, avatar_id)
         return await self._to_view(avatar)
+
+    async def list_owned(self, owner_id: str) -> AvatarListView:
+        avatars = await self._repository.list_for_owner(owner_id)
+        return AvatarListView(items=[await self._to_view(avatar) for avatar in avatars])
 
     async def approve(self, owner_id: str, avatar_id: UUID) -> AvatarView:
         avatar = await self._require_owned(owner_id, avatar_id)

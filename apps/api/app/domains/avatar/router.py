@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Response, status
 
 from app.domains.avatar.schemas import (
+    AvatarListView,
     AvatarPublicationRequest,
     AvatarView,
     CreateAvatarRequest,
@@ -18,6 +19,10 @@ def create_avatar_router(
 ) -> APIRouter:
     router = APIRouter(prefix="/avatars", tags=["avatars"])
     CurrentUserId = Annotated[str, Depends(get_current_user_id)]
+
+    @router.get("", response_model=AvatarListView)
+    async def list_avatars(user_id: CurrentUserId) -> AvatarListView:
+        return await service.list_owned(user_id)
 
     @router.post("", response_model=AvatarView, status_code=status.HTTP_201_CREATED)
     async def create_avatar(

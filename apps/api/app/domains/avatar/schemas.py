@@ -44,3 +44,7 @@ class AvatarView(BaseModel):
     failure_code: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class AvatarListView(BaseModel):
+    items: list[AvatarView]

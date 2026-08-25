@@ -14,6 +14,8 @@ class AvatarRepository(Protocol):
 
     async def get_for_owner(self, avatar_id: UUID, owner_id: str) -> AvatarRecord | None: ...
 
+    async def list_for_owner(self, owner_id: str) -> list[AvatarRecord]: ...
+
     async def save(self, avatar: AvatarRecord) -> None: ...
 
     async def delete(self, avatar: AvatarRecord) -> None: ...
@@ -33,6 +35,14 @@ class SqlAlchemyAvatarRepository:
             AvatarRecord.owner_id == owner_id,
         )
         return await self._session.scalar(statement)
+
+    async def list_for_owner(self, owner_id: str) -> list[AvatarRecord]:
+        statement = (
+            select(AvatarRecord)
+            .where(AvatarRecord.owner_id == owner_id)
+            .order_by(AvatarRecord.created_at.desc(), AvatarRecord.id.desc())
+        )
+        return list((await self._session.scalars(statement)).all())
 
     async def save(self, avatar: AvatarRecord) -> None:
         self._session.add(avatar)
