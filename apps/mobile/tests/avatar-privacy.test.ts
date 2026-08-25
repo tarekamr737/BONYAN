@@ -9,6 +9,8 @@ function avatar(overrides: Partial<AvatarView> = {}): AvatarView {
     created_at: "2026-08-25T10:00:00Z",
     failure_code: null,
     id: "avatar-1",
+    measurement_source: "inbody",
+    measurements_recorded_at: "2026-08-24T10:00:00Z",
     preview_url: "https://private.example/preview",
     public_in_community: true,
     state: "approved",

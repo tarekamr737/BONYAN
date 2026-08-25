@@ -14,10 +14,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { AvatarButton } from "../components/AvatarButton";
+import { BodyFigurePreview } from "../components/BodyFigurePreview";
 import { PrivacyTimeline } from "../components/PrivacyTimeline";
-import { useAvatarMutations, useAvatars } from "../hooks";
-import { pickAvatarSourcePhoto } from "../photo-picker";
-import type { AvatarView, SelectedAvatarPhoto } from "../types";
+import {
+  useAvatarMeasurementStatus,
+  useAvatarMutations,
+  useAvatars,
+} from "../hooks";
+import type { AvatarView } from "../types";
 
 type AvatarScreenProps = {
   onBack: () => void;
@@ -25,10 +29,9 @@ type AvatarScreenProps = {
 
 export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const avatarsQuery = useAvatars();
+  const measurementQuery = useAvatarMeasurementStatus();
   const mutations = useAvatarMutations();
-  const [selectedPhoto, setSelectedPhoto] = useState<SelectedAvatarPhoto | null>(null);
   const [activeAvatar, setActiveAvatar] = useState<AvatarView | null>(null);
-  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const displayedAvatar = activeAvatar ?? avatarsQuery.data?.items[0] ?? null;
   const pending =
@@ -50,35 +53,11 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
     return error instanceof Error ? error.message : null;
   }, [mutations]);
 
-  async function choosePhoto() {
-    mutations.resetErrors();
-    setPhotoError(null);
-    try {
-      const photo = await pickAvatarSourcePhoto();
-      if (photo) {
-        setSelectedPhoto(photo);
-        setActiveAvatar(null);
-      }
-    } catch (error) {
-      setPhotoError(error instanceof Error ? error.message : "The photo could not be selected.");
-    }
-  }
-
   function generate() {
-    if (!selectedPhoto) return;
     mutations.resetErrors();
     mutations.createMutation.mutate(
-      {
-        source_image_base64: selectedPhoto.base64,
-        source_media_type: selectedPhoto.mediaType,
-        style: "athletic editorial portrait",
-      },
-      {
-        onSuccess: (avatar) => {
-          setActiveAvatar(avatar);
-          setSelectedPhoto(null);
-        },
-      },
+      { style: "respectful athletic body figure" },
+      { onSuccess: setActiveAvatar },
     );
   }
 
@@ -92,8 +71,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
     if (!displayedAvatar) return;
     mutations.resetErrors();
     Alert.alert(
-      "Delete avatar?",
-      "This permanently removes the private source photo and generated avatar.",
+      "Delete body avatar?",
+      "This removes the generated figure. Your InBody report and profile measurements stay unchanged.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -108,7 +87,6 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
     );
   }
 
-  const errorMessage = photoError ?? mutationError;
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -123,191 +101,75 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
             <Text style={styles.backLabel}>Back</Text>
           </Pressable>
           <Text accessibilityRole="header" style={styles.heading}>
-            Your avatar
+            Body avatar
           </Text>
           <View style={styles.headerBalance} />
         </View>
 
         <View style={styles.privacyPanel}>
           <View style={styles.privateBadge}>
-            <Text style={styles.privateBadgeText}>PRIVATE BY DEFAULT</Text>
+            <Text style={styles.privateBadgeText}>NO BODY PHOTO NEEDED</Text>
           </View>
-          <Text style={styles.privacyTitle}>You control every transition.</Text>
+          <Text style={styles.privacyTitle}>Built from your confirmed data.</Text>
           <Text style={styles.privacyCopy}>
-            Your source photo is never shown in the community. Approval saves a private avatar;
-            sharing remains a separate choice.
+            BONYAN uses height, weight, body-fat and muscle data when available to estimate a
+            respectful full-body figure. Raw measurements never appear in the community.
           </Text>
           <PrivacyTimeline />
         </View>
 
         {!activeAvatar && avatarsQuery.isPending ? (
-          <View accessibilityLabel="Loading saved avatars" style={styles.queryStatePanel}>
+          <View accessibilityLabel="Loading saved body avatars" style={styles.queryStatePanel}>
             <ActivityIndicator color={colors.bronze} size="large" />
             <Text style={styles.queryStateTitle}>Checking your private avatars</Text>
             <Text style={styles.queryStateCopy}>
-              Your existing approval and community settings are loading.
+              Your saved review and community settings are loading.
             </Text>
           </View>
         ) : !activeAvatar && avatarsQuery.isError && !avatarsQuery.data ? (
           <View accessibilityRole="alert" style={styles.queryStatePanel}>
-            <Text style={styles.queryStateTitle}>Your avatars could not load</Text>
+            <Text style={styles.queryStateTitle}>Your body avatars could not load</Text>
             <Text style={styles.queryStateCopy}>
-              No privacy state has been changed. Reconnect before creating another avatar.
+              No privacy state changed. Reconnect before generating another version.
             </Text>
             <AvatarButton onPress={() => void avatarsQuery.refetch()} tone="secondary">
               Try again
             </AvatarButton>
           </View>
         ) : displayedAvatar ? (
-          <View style={styles.previewSection}>
-            {displayedAvatar.preview_url ? (
-              <View style={styles.previewFrame}>
-                <Image
-                  accessibilityLabel="Generated avatar preview"
-                  resizeMode="cover"
-                  source={{ uri: displayedAvatar.preview_url }}
-                  style={styles.previewImage}
-                />
-                <View style={styles.previewBadge}>
-                  <Text style={styles.previewBadgeText}>
-                    {displayedAvatar.public_in_community
-                      ? "COMMUNITY ENABLED"
-                      : "PRIVATE PREVIEW"}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View accessibilityLabel="Avatar generation status" style={styles.statusPanel}>
-                {displayedAvatar.state === "processing" ? (
-                  <ActivityIndicator color={colors.bronze} size="large" />
-                ) : null}
-                <Text style={styles.statusLabel}>
-                  {displayedAvatar.state === "failed"
-                    ? "GENERATION PAUSED"
-                    : "PRIVATE GENERATION"}
-                </Text>
-              </View>
-            )}
-            <Text style={styles.previewTitle}>
-              {avatarStateTitle(displayedAvatar)}
-            </Text>
-            <Text style={styles.previewCopy}>{avatarStateCopy(displayedAvatar)}</Text>
-
-            {displayedAvatar.state === "ready_for_review" ? (
-              <View style={styles.actionStack}>
-                <AvatarButton
-                  disabled={pending && !mutations.approveMutation.isPending}
-                  loading={mutations.approveMutation.isPending}
-                  onPress={() => updateAvatar(mutations.approveMutation)}
-                >
-                  Approve avatar
-                </AvatarButton>
-                <View style={styles.actionRow}>
-                  <View style={styles.actionHalf}>
-                    <AvatarButton
-                      disabled={pending && !mutations.regenerateMutation.isPending}
-                      loading={mutations.regenerateMutation.isPending}
-                      onPress={() => updateAvatar(mutations.regenerateMutation)}
-                      tone="secondary"
-                    >
-                      Regenerate
-                    </AvatarButton>
-                  </View>
-                  <View style={styles.actionHalf}>
-                    <AvatarButton
-                      disabled={pending && !mutations.rejectMutation.isPending}
-                      loading={mutations.rejectMutation.isPending}
-                      onPress={() => updateAvatar(mutations.rejectMutation)}
-                      tone="secondary"
-                    >
-                      Reject
-                    </AvatarButton>
-                  </View>
-                </View>
-              </View>
-            ) : null}
-
-            {displayedAvatar.approved ? (
-              <View style={styles.communityControl}>
-                <View style={styles.communityCopy}>
-                  <Text style={styles.communityTitle}>Use in community</Text>
-                  <Text style={styles.communityDetail}>
-                    Show this approved avatar beside posts you explicitly create.
-                  </Text>
-                </View>
-                <Switch
-                  accessibilityLabel="Use approved avatar in community"
-                  disabled={pending}
-                  onValueChange={(enabled) => {
-                    mutations.resetErrors();
-                    mutations.communityUseMutation.mutate(
-                      { avatarId: displayedAvatar.id, enabled },
-                      { onSuccess: setActiveAvatar },
-                    );
-                  }}
-                  thumbColor={colors.text}
-                  trackColor={{ false: colors.line, true: colors.bronzeBorder }}
-                  value={displayedAvatar.public_in_community}
-                />
-              </View>
-            ) : null}
-
-            {displayedAvatar.state === "failed" ? (
-              <AvatarButton
-                disabled={pending && !mutations.regenerateMutation.isPending}
-                loading={mutations.regenerateMutation.isPending}
-                onPress={() => updateAvatar(mutations.regenerateMutation)}
-              >
-                Try generation again
-              </AvatarButton>
-            ) : null}
-
-            {displayedAvatar.state === "rejected" ? (
-              <AvatarButton
-                disabled={pending && !mutations.regenerateMutation.isPending}
-                loading={mutations.regenerateMutation.isPending}
-                onPress={() => updateAvatar(mutations.regenerateMutation)}
-              >
-                Generate another version
-              </AvatarButton>
-            ) : null}
-
-            <AvatarButton disabled={pending} onPress={confirmDelete} tone="danger">
-              Delete source and avatar
-            </AvatarButton>
-          </View>
+          <AvatarReview
+            avatar={displayedAvatar}
+            confirmDelete={confirmDelete}
+            pending={pending}
+            setActiveAvatar={setActiveAvatar}
+            updateAvatar={updateAvatar}
+            mutations={mutations}
+          />
         ) : (
-          <View style={styles.sourceSection}>
-            {selectedPhoto ? (
-              <Image
-                accessibilityLabel="Selected private source photo"
-                resizeMode="cover"
-                source={{ uri: selectedPhoto.uri }}
-                style={styles.sourceImage}
-              />
-            ) : (
-              <View style={styles.sourcePlaceholder}>
-                <Text style={styles.placeholderTitle}>Choose one clear photo</Text>
-                <Text style={styles.placeholderCopy}>
-                  Face the camera in even light. The original stays private.
-                </Text>
-              </View>
-            )}
-            <AvatarButton disabled={pending} onPress={choosePhoto} tone="secondary">
-              {selectedPhoto ? "Choose a different photo" : "Choose source photo"}
+          <View style={styles.creationSection}>
+            <BodyFigurePreview />
+            <MeasurementPanel query={measurementQuery} />
+            <View style={styles.explainer}>
+              <Text style={styles.explainerTitle}>A visual estimate—not a diagnosis</Text>
+              <Text style={styles.explainerCopy}>
+                Body shape varies beyond what measurements can capture. The avatar shows broad
+                proportions only and never invents medical results.
+              </Text>
+            </View>
+            <AvatarButton
+              disabled={!measurementQuery.data?.available || pending}
+              loading={mutations.createMutation.isPending}
+              onPress={generate}
+            >
+              Build my body avatar
             </AvatarButton>
-            {selectedPhoto ? (
-              <AvatarButton loading={mutations.createMutation.isPending} onPress={generate}>
-                Generate private preview
-              </AvatarButton>
-            ) : null}
           </View>
         )}
 
-        {errorMessage ? (
+        {mutationError ? (
           <View accessibilityRole="alert" style={styles.errorPanel}>
             <Text style={styles.errorTitle}>Something needs attention</Text>
-            <Text style={styles.errorCopy}>{errorMessage}</Text>
+            <Text style={styles.errorCopy}>{mutationError}</Text>
           </View>
         ) : null}
       </ScrollView>
@@ -315,30 +177,240 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   );
 }
 
+type MeasurementPanelProps = {
+  query: ReturnType<typeof useAvatarMeasurementStatus>;
+};
+
+function MeasurementPanel({ query }: MeasurementPanelProps) {
+  if (query.isPending) {
+    return (
+      <View accessibilityLabel="Checking body data" style={styles.measurementPanel}>
+        <ActivityIndicator color={colors.bronze} />
+        <View style={styles.measurementCopy}>
+          <Text style={styles.measurementTitle}>Checking confirmed body data</Text>
+          <Text style={styles.measurementDetail}>Looking for your latest InBody result.</Text>
+        </View>
+      </View>
+    );
+  }
+  if (query.isError) {
+    return (
+      <View accessibilityRole="alert" style={styles.measurementPanel}>
+        <View style={styles.measurementCopy}>
+          <Text style={styles.measurementTitle}>Body data could not load</Text>
+          <Text style={styles.measurementDetail}>Nothing was generated. Reconnect and retry.</Text>
+        </View>
+        <Pressable accessibilityRole="button" onPress={() => void query.refetch()}>
+          <Text style={styles.retryLabel}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+  if (!query.data?.available) {
+    return (
+      <View style={styles.measurementPanel}>
+        <View style={styles.measurementCopy}>
+          <Text style={styles.measurementTitle}>Confirmed measurements needed</Text>
+          <Text style={styles.measurementDetail}>
+            Add height and weight in your profile or complete an InBody scan first.
+          </Text>
+        </View>
+        <Pressable accessibilityRole="button" onPress={() => void query.refetch()}>
+          <Text style={styles.retryLabel}>Check again</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const fields = [
+    "Height",
+    "Weight",
+    query.data.body_fat_available ? "Body fat" : null,
+    query.data.muscle_mass_available ? "Muscle mass" : null,
+  ].filter((field): field is string => field !== null);
+  return (
+    <View style={styles.measurementReadyPanel}>
+      <View style={styles.measurementReadyHeader}>
+        <View style={styles.readyDot} />
+        <Text style={styles.readyLabel}>
+          {query.data.source === "inbody" ? "LATEST INBODY READY" : "PROFILE DATA READY"}
+        </Text>
+      </View>
+      <Text style={styles.measurementReadyTitle}>Enough data to shape your avatar</Text>
+      <View style={styles.fieldRow}>
+        {fields.map((field) => (
+          <View key={field} style={styles.fieldChip}>
+            <Text style={styles.fieldChipText}>{field}</Text>
+          </View>
+        ))}
+      </View>
+      {query.data.recorded_at ? (
+        <Text style={styles.recordedAt}>Recorded {formatDate(query.data.recorded_at)}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+type AvatarReviewProps = {
+  avatar: AvatarView;
+  confirmDelete: () => void;
+  pending: boolean;
+  setActiveAvatar: (avatar: AvatarView) => void;
+  updateAvatar: (action: { mutate: ReturnType<typeof useAvatarMutations>["approveMutation"]["mutate"] }) => void;
+  mutations: ReturnType<typeof useAvatarMutations>;
+};
+
+function AvatarReview({
+  avatar,
+  confirmDelete,
+  pending,
+  setActiveAvatar,
+  updateAvatar,
+  mutations,
+}: AvatarReviewProps) {
+  return (
+    <View style={styles.previewSection}>
+      {avatar.preview_url ? (
+        <View style={styles.previewFrame}>
+          <Image
+            accessibilityLabel="Generated full-body avatar preview"
+            resizeMode="contain"
+            source={{ uri: avatar.preview_url }}
+            style={styles.previewImage}
+          />
+          <View style={styles.previewBadge}>
+            <Text style={styles.previewBadgeText}>
+              {avatar.public_in_community ? "COMMUNITY ENABLED" : "PRIVATE PREVIEW"}
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View accessibilityLabel="Body avatar generation status" style={styles.statusPanel}>
+          {avatar.state === "processing" ? (
+            <ActivityIndicator color={colors.bronze} size="large" />
+          ) : null}
+          <Text style={styles.statusLabel}>
+            {avatar.state === "failed" ? "GENERATION PAUSED" : "BUILDING BODY SHAPE"}
+          </Text>
+        </View>
+      )}
+      <View style={styles.sourceLine}>
+        <Text style={styles.sourceLabel}>
+          {avatar.measurement_source === "inbody" ? "INBODY" : "PROFILE"}
+        </Text>
+        <Text style={styles.sourceDate}>{formatDate(avatar.measurements_recorded_at)}</Text>
+      </View>
+      <Text style={styles.previewTitle}>{avatarStateTitle(avatar)}</Text>
+      <Text style={styles.previewCopy}>{avatarStateCopy(avatar)}</Text>
+
+      {avatar.state === "ready_for_review" ? (
+        <View style={styles.actionStack}>
+          <AvatarButton
+            disabled={pending && !mutations.approveMutation.isPending}
+            loading={mutations.approveMutation.isPending}
+            onPress={() => updateAvatar(mutations.approveMutation)}
+          >
+            Approve body avatar
+          </AvatarButton>
+          <View style={styles.actionRow}>
+            <View style={styles.actionHalf}>
+              <AvatarButton
+                disabled={pending && !mutations.regenerateMutation.isPending}
+                loading={mutations.regenerateMutation.isPending}
+                onPress={() => updateAvatar(mutations.regenerateMutation)}
+                tone="secondary"
+              >
+                Refresh from data
+              </AvatarButton>
+            </View>
+            <View style={styles.actionHalf}>
+              <AvatarButton
+                disabled={pending && !mutations.rejectMutation.isPending}
+                loading={mutations.rejectMutation.isPending}
+                onPress={() => updateAvatar(mutations.rejectMutation)}
+                tone="secondary"
+              >
+                Reject
+              </AvatarButton>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {avatar.approved ? (
+        <View style={styles.communityControl}>
+          <View style={styles.communityCopy}>
+            <Text style={styles.communityTitle}>Use in community</Text>
+            <Text style={styles.communityDetail}>
+              Share this figure beside chosen posts. The measurements behind it stay private.
+            </Text>
+          </View>
+          <Switch
+            accessibilityLabel="Use approved body avatar in community"
+            disabled={pending}
+            onValueChange={(enabled) => {
+              mutations.resetErrors();
+              mutations.communityUseMutation.mutate(
+                { avatarId: avatar.id, enabled },
+                { onSuccess: setActiveAvatar },
+              );
+            }}
+            thumbColor={colors.text}
+            trackColor={{ false: colors.line, true: colors.bronzeBorder }}
+            value={avatar.public_in_community}
+          />
+        </View>
+      ) : null}
+
+      {avatar.state === "failed" || avatar.state === "rejected" ? (
+        <AvatarButton
+          disabled={pending && !mutations.regenerateMutation.isPending}
+          loading={mutations.regenerateMutation.isPending}
+          onPress={() => updateAvatar(mutations.regenerateMutation)}
+        >
+          Build from latest data
+        </AvatarButton>
+      ) : null}
+
+      <AvatarButton disabled={pending} onPress={confirmDelete} tone="danger">
+        Delete body avatar
+      </AvatarButton>
+    </View>
+  );
+}
+
 function avatarStateTitle(avatar: AvatarView): string {
   if (avatar.state === "approved") return "Approved by you";
   if (avatar.state === "rejected") return "This version is rejected";
-  if (avatar.state === "failed") return "Generation did not finish";
+  if (avatar.state === "failed") return "The body figure did not finish";
   if (avatar.state === "processing" || avatar.state === "requested") {
-    return "Generating your private preview";
+    return "Shaping your private avatar";
   }
-  return "Review before approving";
+  return "Review the broad proportions";
 }
 
 function avatarStateCopy(avatar: AvatarView): string {
   if (avatar.state === "approved") {
-    return "This avatar is saved. It remains private unless you enable community use below.";
+    return "Saved privately. It appears in the community only if you enable the control below.";
   }
   if (avatar.state === "rejected") {
-    return "Nothing was published. Generate another version from the private source or delete it.";
+    return "Nothing was published. Build another version from your latest confirmed data.";
   }
   if (avatar.state === "failed") {
-    return "Nothing was published. Retry from the stored private source when you are ready.";
+    return "Nothing was published. Your measurements remain available for a safe retry.";
   }
   if (avatar.state === "processing" || avatar.state === "requested") {
-    return "The source and generated result stay private while this finishes.";
+    return "Your raw measurements stay private while the full-body figure is created.";
   }
-  return "Check the likeness and tone. Regenerate or reject without publishing anything.";
+  return "This is an estimate from measurements, not an exact scan. Approve only if it feels right.";
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 const styles = StyleSheet.create({
@@ -396,33 +468,6 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: spacing.sm,
   },
-  sourceSection: { gap: spacing.sm },
-  sourcePlaceholder: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderRadius: radii.card,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 250,
-    padding: spacing.xl,
-  },
-  placeholderTitle: {
-    color: colors.text,
-    fontFamily: fonts.displaySemiBold,
-    fontSize: 20,
-    textAlign: "center",
-  },
-  placeholderCopy: {
-    color: colors.mutedLight,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: spacing.xs,
-    textAlign: "center",
-  },
-  sourceImage: { aspectRatio: 1, borderRadius: radii.card, width: "100%" },
   queryStatePanel: {
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -445,12 +490,79 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     textAlign: "center",
   },
+  creationSection: { gap: spacing.md },
+  measurementPanel: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.md,
+    minHeight: 94,
+    padding: spacing.md,
+  },
+  measurementCopy: { flex: 1 },
+  measurementTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 15 },
+  measurementDetail: {
+    color: colors.mutedLight,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  retryLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 13 },
+  measurementReadyPanel: {
+    backgroundColor: colors.surface,
+    borderColor: colors.bronzeBorder,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  measurementReadyHeader: { alignItems: "center", flexDirection: "row", gap: spacing.xs },
+  readyDot: { backgroundColor: colors.bronze, borderRadius: 5, height: 9, width: 9 },
+  readyLabel: {
+    color: colors.bronze,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+  },
+  measurementReadyTitle: {
+    color: colors.text,
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 18,
+  },
+  fieldRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  fieldChip: {
+    backgroundColor: colors.bronzeSoft,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  fieldChipText: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 11 },
+  recordedAt: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
+  explainer: { borderLeftColor: colors.bronzeBorder, borderLeftWidth: 2, paddingLeft: spacing.md },
+  explainerTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 13 },
+  explainerCopy: {
+    color: colors.mutedLight,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 3,
+  },
   previewSection: { gap: spacing.md },
-  previewFrame: { position: "relative" },
-  previewImage: { aspectRatio: 1, borderRadius: radii.card, width: "100%" },
+  previewFrame: {
+    aspectRatio: 2 / 3,
+    backgroundColor: colors.surface,
+    borderRadius: radii.card,
+    overflow: "hidden",
+    position: "relative",
+  },
+  previewImage: { height: "100%", width: "100%" },
   statusPanel: {
     alignItems: "center",
-    aspectRatio: 1,
+    aspectRatio: 2 / 3,
     backgroundColor: colors.surface,
     borderColor: colors.line,
     borderRadius: radii.card,
@@ -480,6 +592,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.1,
   },
+  sourceLine: { alignItems: "center", flexDirection: "row", gap: spacing.sm },
+  sourceLabel: {
+    color: colors.bronze,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+  },
+  sourceDate: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
   previewTitle: {
     color: colors.text,
     fontFamily: fonts.displaySemiBold,

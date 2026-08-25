@@ -153,9 +153,9 @@ export function CreatePostScreen({
                 <Image source={{ uri: approvedAvatar.preview_url }} style={styles.avatarImage} />
               ) : null}
               <View style={styles.avatarCopy}>
-                <Text style={styles.avatarTitle}>Use approved avatar</Text>
+                <Text style={styles.avatarTitle}>Use approved body avatar</Text>
                 <Text style={styles.avatarDetail}>
-                  Only the generated avatar appears. Your source photo stays private.
+                  Only the generated figure appears. Its underlying measurements stay private.
                 </Text>
               </View>
               <Switch
@@ -169,9 +169,9 @@ export function CreatePostScreen({
           ) : (
             <View style={styles.avatarEmpty}>
               <View style={styles.avatarCopy}>
-                <Text style={styles.avatarTitle}>No community avatar enabled</Text>
+                <Text style={styles.avatarTitle}>No body avatar enabled</Text>
                 <Text style={styles.avatarDetail}>
-                  You can post without one, or approve an avatar and explicitly enable it.
+                  Post without one, or approve a body avatar and explicitly enable it.
                 </Text>
               </View>
               <Pressable
@@ -187,7 +187,8 @@ export function CreatePostScreen({
           <View style={styles.privacyNote}>
             <Text style={styles.privacyTitle}>WHAT WILL BE SHARED</Text>
             <Text style={styles.privacyCopy}>
-              Your display name, this caption, and the approved avatar only if the switch is on.
+              Your display name, this caption, and the body avatar only if the switch is on. No
+              measurements are included.
             </Text>
           </View>
 

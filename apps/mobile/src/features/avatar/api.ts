@@ -1,6 +1,7 @@
 import { apiRequest } from "../../core/api/client";
 import type {
   AvatarListView,
+  AvatarMeasurementStatus,
   AvatarView,
   CreateAvatarPayload,
 } from "./types";
@@ -9,6 +10,10 @@ const avatarPath = "/api/v1/avatars";
 
 export function listAvatars(): Promise<AvatarListView> {
   return apiRequest<AvatarListView>(avatarPath);
+}
+
+export function getAvatarMeasurementStatus(): Promise<AvatarMeasurementStatus> {
+  return apiRequest<AvatarMeasurementStatus>(`${avatarPath}/measurement-status`);
 }
 
 export function createAvatar(payload: CreateAvatarPayload): Promise<AvatarView> {

@@ -14,6 +14,8 @@ export type AvatarView = {
   approved: boolean;
   public_in_community: boolean;
   failure_code: string | null;
+  measurement_source: string;
+  measurements_recorded_at: string;
   created_at: string;
   updated_at: string;
 };
@@ -22,14 +24,14 @@ export type AvatarListView = {
   items: AvatarView[];
 };
 
-export type SelectedAvatarPhoto = {
-  uri: string;
-  base64: string;
-  mediaType: "image/jpeg" | "image/png" | "image/webp";
+export type AvatarMeasurementStatus = {
+  available: boolean;
+  source: string | null;
+  recorded_at: string | null;
+  body_fat_available: boolean;
+  muscle_mass_available: boolean;
 };
 
 export type CreateAvatarPayload = {
-  source_image_base64: string;
-  source_media_type: SelectedAvatarPhoto["mediaType"];
   style: string;
 };

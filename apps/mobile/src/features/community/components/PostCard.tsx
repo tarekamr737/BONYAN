@@ -50,7 +50,7 @@ export function PostCard({ post, reactionBusy, onDelete, onReact, onReport }: Po
       <View style={styles.authorRow}>
         {post.author.avatar_url ? (
           <Image
-            accessibilityLabel={`${post.author.display_name}'s approved avatar`}
+            accessibilityLabel={`${post.author.display_name}'s approved body avatar`}
             source={{ uri: post.author.avatar_url }}
             style={styles.avatar}
           />

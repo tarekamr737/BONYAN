@@ -4,6 +4,7 @@ import {
   approveAvatar,
   createAvatar,
   deleteAvatar,
+  getAvatarMeasurementStatus,
   listAvatars,
   regenerateAvatar,
   rejectAvatar,
@@ -12,9 +13,17 @@ import {
 import type { AvatarListView, AvatarView, CreateAvatarPayload } from "./types";
 
 export const avatarQueryKey = ["avatars"] as const;
+export const avatarMeasurementStatusQueryKey = ["avatar-measurement-status"] as const;
 
 export function useAvatars() {
   return useQuery({ queryKey: avatarQueryKey, queryFn: listAvatars });
+}
+
+export function useAvatarMeasurementStatus() {
+  return useQuery({
+    queryKey: avatarMeasurementStatusQueryKey,
+    queryFn: getAvatarMeasurementStatus,
+  });
 }
 
 export function useAvatarMutations() {

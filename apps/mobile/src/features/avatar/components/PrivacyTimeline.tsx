@@ -3,14 +3,14 @@ import { StyleSheet, Text, View } from "react-native";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
 
 const privacySteps = [
-  ["Source", "Private and owner-only"],
-  ["Preview", "Private until you approve"],
+  ["Measurements", "Confirmed data, never posted"],
+  ["Body avatar", "Private until you approve"],
   ["Community", "Off until you enable it"],
 ] as const;
 
 export function PrivacyTimeline() {
   return (
-    <View accessibilityLabel="Avatar privacy stages" style={styles.container}>
+    <View accessibilityLabel="Body avatar privacy stages" style={styles.container}>
       {privacySteps.map(([title, detail], index) => (
         <View key={title} style={styles.step}>
           <View style={styles.markerColumn}>
