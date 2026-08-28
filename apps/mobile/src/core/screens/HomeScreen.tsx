@@ -48,7 +48,7 @@ export function HomeScreen() {
         </SurfaceCard>
 
         {isAuthenticated ? (
-          <View accessibilityLabel="InBody navigation" style={styles.featureActions}>
+          <View accessibilityLabel="Feature navigation" style={styles.featureActions}>
             <Link asChild href="./inbody">
               <Pressable accessibilityRole="button" style={styles.primaryAction}>
                 <Text style={styles.primaryActionText}>Upload InBody Report</Text>
@@ -57,6 +57,16 @@ export function HomeScreen() {
             <Link asChild href="./inbody/progress">
               <Pressable accessibilityRole="button" style={styles.secondaryAction}>
                 <Text style={styles.secondaryActionText}>View InBody Progress</Text>
+              </Pressable>
+            </Link>
+            <Link asChild href="./avatar">
+              <Pressable accessibilityRole="button" style={styles.secondaryAction}>
+                <Text style={styles.secondaryActionText}>Create Body Avatar</Text>
+              </Pressable>
+            </Link>
+            <Link asChild href="./community">
+              <Pressable accessibilityRole="button" style={styles.secondaryAction}>
+                <Text style={styles.secondaryActionText}>Open Community</Text>
               </Pressable>
             </Link>
           </View>

@@ -489,15 +489,31 @@ def test_delete_removes_only_generated_asset_and_record() -> None:
     asyncio.run(scenario())
 
 
-def test_cross_user_access_returns_not_found() -> None:
+def test_cross_user_access_and_mutations_return_not_found() -> None:
     async def scenario() -> None:
-        service, _, _, _ = make_service()
+        service, repository, storage, _ = make_service()
         created = await service.create("owner", create_request())
+        original_key = repository.items[created.id].generated_object_key
 
         with pytest.raises(AppError) as error:
             await service.get("someone-else", created.id)
         assert error.value.code == "avatar_not_found"
         assert error.value.status_code == 404
+
+        mutations = [
+            lambda: service.approve("someone-else", created.id),
+            lambda: service.regenerate("someone-else", created.id),
+            lambda: service.set_public_use("someone-else", created.id, enabled=True),
+            lambda: service.delete("someone-else", created.id),
+        ]
+        for mutate in mutations:
+            with pytest.raises(AppError) as mutation_error:
+                await mutate()
+            assert mutation_error.value.code == "avatar_not_found"
+
+        assert repository.items[created.id].generated_object_key == original_key
+        assert original_key in storage.items
+        assert not storage.deleted
 
     asyncio.run(scenario())
 

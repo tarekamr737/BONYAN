@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     auth_jwt_issuer: str = "bonyan"
     auth_jwt_audience: str = "bonyan-api"
     private_storage_root: Path = API_DIRECTORY / ".private-storage"
+    api_public_url: str = "http://127.0.0.1:8000"
 
     @field_validator("database_url")
     @classmethod
@@ -52,6 +53,14 @@ class Settings(BaseSettings):
             raise ValueError("auth JWT claims cannot be empty")
         return value
 
+    @field_validator("api_public_url")
+    @classmethod
+    def normalize_api_public_url(cls, value: str) -> str:
+        normalized = value.strip().rstrip("/")
+        if not normalized.startswith(("http://", "https://")):
+            raise ValueError("API_PUBLIC_URL must be an HTTP(S) URL")
+        return normalized
+
     @field_validator("auth_jwt_secret", mode="before")
     @classmethod
     def validate_auth_secret(cls, value: object) -> object:
@@ -71,6 +80,8 @@ class Settings(BaseSettings):
     def require_production_auth(self) -> Settings:
         if self.api_env == "production" and self.auth_jwt_secret is None:
             raise ValueError("AUTH_JWT_SECRET is required in production")
+        if self.api_env == "production" and not self.api_public_url.startswith("https://"):
+            raise ValueError("API_PUBLIC_URL must use HTTPS in production")
         return self
 
     @property

@@ -50,7 +50,7 @@
 - [x] API and mobile lint pass.
 - [x] Mobile typecheck passes in the current verified install.
 - [x] API and mobile tests pass.
-- [ ] Person 01: create/register the central migration, auth dependencies, storage, routers, and app-shell entries.
-- [ ] Person 01/02: compose `BodyMetricsReader` from confirmed InBody and profile contracts.
-- [ ] Person 01: resolve the clean-install root React typings/workspace layout noted in `INTEGRATION.md`.
+- [x] Person 01: create/register the central migration, auth dependencies, storage, routers, and app-shell entries.
+- [x] Person 01/02: compose `BodyMetricsReader` from confirmed InBody and profile contracts.
+- [x] Person 01: resolve the clean-install root React typings/workspace layout noted in `INTEGRATION.md`.
 - [ ] Integration environment: smoke-test authenticated API and native Android/iOS routes.

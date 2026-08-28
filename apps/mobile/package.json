@@ -28,7 +28,7 @@
   "devDependencies": {
     "@types/react": "19.2.2",
     "@types/three": "^0.185.4",
-    "eslint": "^10.9.0",
+    "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.1",
     "typescript": "~6.0.3",
     "vitest": "^4.1.11"

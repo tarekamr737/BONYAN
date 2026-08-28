@@ -23,3 +23,12 @@ def test_production_requires_a_strong_auth_secret() -> None:
         Settings(api_env="production", auth_jwt_secret=None)
     with pytest.raises(ValidationError):
         Settings(auth_jwt_secret="too-short")
+
+
+def test_production_requires_https_public_api_url() -> None:
+    with pytest.raises(ValidationError, match="API_PUBLIC_URL must use HTTPS"):
+        Settings(
+            api_env="production",
+            auth_jwt_secret="a-secure-production-secret-that-is-long-enough",
+            api_public_url="http://api.bonyan.test",
+        )

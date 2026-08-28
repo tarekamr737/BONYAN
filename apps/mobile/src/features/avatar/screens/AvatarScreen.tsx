@@ -790,7 +790,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   manualActionText: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 12 },
-  explainer: { borderLeftColor: colors.bronzeBorder, borderLeftWidth: 2, paddingLeft: spacing.md },
+  explainer: {
+    backgroundColor: colors.bronzeSoft,
+    borderColor: colors.bronzeBorder,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    padding: spacing.md,
+  },
   explainerTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 13 },
   explainerCopy: {
     color: colors.mutedLight,

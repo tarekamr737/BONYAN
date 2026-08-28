@@ -7,7 +7,7 @@ export default function CommunityRoute() {
   return (
     <CommunityFeedScreen
       onBack={() => router.back()}
-      onCreatePost={() => router.push("/community/create")}
+      onCreatePost={() => router.push("./create")}
     />
   );
 }

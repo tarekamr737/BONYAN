@@ -6,6 +6,13 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
+from app.core.providers.contracts import (
+    AvatarProvider as CoreAvatarProvider,
+)
+from app.core.providers.contracts import (
+    AvatarResult,
+)
+
 
 class AvatarState(StrEnum):
     REQUESTED = "requested"
@@ -77,11 +84,7 @@ class AvatarGenerationRequest:
     presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN
 
 
-@dataclass(frozen=True, slots=True)
-class AvatarGenerationResult:
-    content: bytes = field(repr=False)
-    media_type: str
-    model: str
+AvatarGenerationResult = AvatarResult
 
 
 class AvatarProviderError(Exception):
@@ -91,8 +94,7 @@ class AvatarProviderError(Exception):
         self.retryable = retryable
 
 
-class AvatarProvider(Protocol):
-    async def generate(self, request: AvatarGenerationRequest) -> AvatarGenerationResult: ...
+AvatarProvider = CoreAvatarProvider[AvatarGenerationRequest]
 
 
 class PrivateAvatarStorage(Protocol):

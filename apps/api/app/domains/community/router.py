@@ -18,15 +18,17 @@ from app.domains.community.service import CommunityService
 
 
 def create_community_router(
-    service: CommunityService,
+    get_service: Callable[..., Any],
     get_current_actor: Callable[..., Any],
 ) -> APIRouter:
     router = APIRouter(prefix="/community", tags=["community"])
     CurrentActor = Annotated[CommunityActor, Depends(get_current_actor)]
+    CurrentService = Annotated[CommunityService, Depends(get_service)]
 
     @router.get("/feed", response_model=CommunityFeedView)
     async def get_feed(
         actor: CurrentActor,
+        service: CurrentService,
         cursor: str | None = None,
         limit: int = Query(default=20, ge=1, le=50),
     ) -> CommunityFeedView:
@@ -38,6 +40,7 @@ def create_community_router(
     async def create_post(
         payload: CreatePostRequest,
         actor: CurrentActor,
+        service: CurrentService,
     ) -> CommunityPostView:
         return await service.create_post(actor, payload)
 
@@ -45,6 +48,7 @@ def create_community_router(
     async def delete_post(
         post_id: UUID,
         actor: CurrentActor,
+        service: CurrentService,
     ) -> Response:
         await service.delete_post(actor, post_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -54,6 +58,7 @@ def create_community_router(
         post_id: UUID,
         payload: ReactionRequest,
         actor: CurrentActor,
+        service: CurrentService,
     ) -> ReactionSummaryView:
         return await service.set_reaction(actor, post_id, payload.reaction)
 
@@ -61,6 +66,7 @@ def create_community_router(
     async def remove_reaction(
         post_id: UUID,
         actor: CurrentActor,
+        service: CurrentService,
     ) -> ReactionSummaryView:
         return await service.remove_reaction(actor, post_id)
 
@@ -73,6 +79,7 @@ def create_community_router(
         post_id: UUID,
         payload: ReportPostRequest,
         actor: CurrentActor,
+        service: CurrentService,
     ) -> ReportAcceptedView:
         await service.report_post(actor, post_id, payload)
         return ReportAcceptedView()
