@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domains.avatar.contracts import AvatarState, BodyAvatarPresentation, BodyAvatarStyle
 
@@ -19,6 +19,24 @@ class AvatarPublicationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     enabled: bool
+
+
+class ManualBodyMeasurementsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    height_cm: float = Field(ge=100, le=240)
+    weight_kg: float = Field(ge=30, le=350)
+    body_fat_percentage: float | None = Field(default=None, ge=2, le=70)
+    skeletal_muscle_mass_kg: float | None = Field(default=None, ge=5, le=150)
+
+    @model_validator(mode="after")
+    def validate_muscle_mass(self) -> ManualBodyMeasurementsRequest:
+        if (
+            self.skeletal_muscle_mass_kg is not None
+            and self.skeletal_muscle_mass_kg >= self.weight_kg
+        ):
+            raise ValueError("skeletal muscle mass must be lower than body weight")
+        return self
 
 
 class AvatarView(BaseModel):
@@ -49,3 +67,4 @@ class AvatarMeasurementStatusView(BaseModel):
     recorded_at: datetime | None
     body_fat_available: bool = False
     muscle_mass_available: bool = False
+    shape_profile: str | None = None

@@ -3,7 +3,9 @@ import type {
   AvatarListView,
   AvatarMeasurementStatus,
   AvatarView,
+  AvatarPresentation,
   CreateAvatarPayload,
+  ManualBodyMeasurementsPayload,
 } from "./types";
 
 const avatarPath = "/api/v1/avatars";
@@ -12,8 +14,21 @@ export function listAvatars(): Promise<AvatarListView> {
   return apiRequest<AvatarListView>(avatarPath);
 }
 
-export function getAvatarMeasurementStatus(): Promise<AvatarMeasurementStatus> {
-  return apiRequest<AvatarMeasurementStatus>(`${avatarPath}/measurement-status`);
+export function getAvatarMeasurementStatus(
+  presentation: AvatarPresentation,
+): Promise<AvatarMeasurementStatus> {
+  return apiRequest<AvatarMeasurementStatus>(
+    `${avatarPath}/measurement-status?presentation=${presentation}`,
+  );
+}
+
+export function saveManualBodyMeasurements(
+  payload: ManualBodyMeasurementsPayload,
+): Promise<void> {
+  return apiRequest<void>(`${avatarPath}/manual-measurements`, {
+    method: "PUT",
+    body: payload,
+  });
 }
 
 export function createAvatar(payload: CreateAvatarPayload): Promise<AvatarView> {

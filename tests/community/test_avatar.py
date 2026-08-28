@@ -5,8 +5,6 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
-from pydantic import ValidationError
-
 from app.core.errors import AppError
 from app.domains.avatar.contracts import (
     AvatarGenerationRequest,
@@ -19,13 +17,17 @@ from app.domains.avatar.contracts import (
     BodyMetricsSource,
 )
 from app.domains.avatar.models import AvatarRecord
-from app.domains.avatar.schemas import CreateAvatarRequest
+from app.domains.avatar.schemas import (
+    CreateAvatarRequest,
+    ManualBodyMeasurementsRequest,
+)
 from app.domains.avatar.service import AvatarService
 from app.integrations.avatar.mock import (
     CinematicBodyProfile,
     MockAvatarProvider,
     select_cinematic_body_profile,
 )
+from pydantic import ValidationError
 
 MEASURED_AT = datetime(2026, 8, 24, 9, 30, tzinfo=UTC)
 CONFIRMED_METRICS = BodyMetricsSnapshot(
@@ -97,10 +99,15 @@ class FakeBodyMetricsReader:
     ) -> None:
         self.snapshot = snapshot
         self.requests: list[str] = []
+        self.manual_saves: list[str] = []
 
     async def latest_confirmed(self, owner_id: str) -> BodyMetricsSnapshot | None:
         self.requests.append(owner_id)
         return self.snapshot
+
+    async def save_manual(self, owner_id: str, snapshot: BodyMetricsSnapshot) -> None:
+        self.manual_saves.append(owner_id)
+        self.snapshot = snapshot
 
 
 def make_service(
@@ -119,6 +126,7 @@ def make_service(
         provider or MockAvatarProvider(),
         storage,
         reader,
+        manual_metrics_writer=reader,
         provider_timeout_seconds=timeout_seconds,
     )
     return service, repository, storage, reader
@@ -166,11 +174,49 @@ def test_measurement_status_shares_availability_not_measurement_values() -> None
             "recorded_at": "2026-08-24T09:30:00Z",
             "body_fat_available": True,
             "muscle_mass_available": True,
+            "shape_profile": "fit",
         }
         assert "82" not in str(serialized)
         assert "178" not in str(serialized)
 
     asyncio.run(scenario())
+
+
+def test_manual_measurements_become_the_confirmed_shape_source() -> None:
+    async def scenario() -> None:
+        service, _, _, reader = make_service()
+
+        await service.save_manual_measurements(
+            "user-1",
+            ManualBodyMeasurementsRequest(
+                height_cm=165,
+                weight_kg=95,
+                body_fat_percentage=40,
+                skeletal_muscle_mass_kg=25,
+            ),
+        )
+        status = await service.measurement_status(
+            "user-1", BodyAvatarPresentation.WOMEN
+        )
+
+        assert reader.manual_saves == ["user-1"]
+        assert status.source == "profile"
+        assert status.shape_profile == "full"
+        assert status.body_fat_available is True
+        serialized = str(status.model_dump(mode="json")).lower()
+        assert "95" not in serialized
+        assert "40" not in serialized
+
+    asyncio.run(scenario())
+
+
+def test_manual_measurements_reject_impossible_muscle_mass() -> None:
+    with pytest.raises(ValidationError):
+        ManualBodyMeasurementsRequest(
+            height_cm=165,
+            weight_kg=70,
+            skeletal_muscle_mass_kg=70,
+        )
 
 
 def test_missing_confirmed_metrics_block_generation_before_storage() -> None:
@@ -289,15 +335,17 @@ def test_women_shape_thresholds_and_assets_are_distinct() -> None:
         (BodyAvatarPresentation.MEN, 68, 14, 31, CinematicBodyProfile.SLIM),
         (BodyAvatarPresentation.MEN, 82, 23, 33, CinematicBodyProfile.NORMAL),
         (BodyAvatarPresentation.MEN, 82, 18, 36, CinematicBodyProfile.FIT),
-        (BodyAvatarPresentation.MEN, 100, 29, 40, CinematicBodyProfile.STRONG),
+        (BodyAvatarPresentation.MEN, 90, 22, 42, CinematicBodyProfile.STRONG),
+        (BodyAvatarPresentation.MEN, 100, 29, 40, CinematicBodyProfile.FULL),
         (BodyAvatarPresentation.WOMEN, 45, 18, 18, CinematicBodyProfile.SKINNY),
         (BodyAvatarPresentation.WOMEN, 55, 23, 21, CinematicBodyProfile.SLIM),
         (BodyAvatarPresentation.WOMEN, 68, 31, 23, CinematicBodyProfile.NORMAL),
         (BodyAvatarPresentation.WOMEN, 65, 27, 25, CinematicBodyProfile.FIT),
-        (BodyAvatarPresentation.WOMEN, 82, 37, 28, CinematicBodyProfile.STRONG),
+        (BodyAvatarPresentation.WOMEN, 75, 30, 30, CinematicBodyProfile.STRONG),
+        (BodyAvatarPresentation.WOMEN, 82, 37, 28, CinematicBodyProfile.FULL),
     ],
 )
-def test_five_shape_profiles_cover_men_and_women(
+def test_six_shape_profiles_cover_men_and_women(
     presentation: BodyAvatarPresentation,
     weight: float,
     body_fat: float,

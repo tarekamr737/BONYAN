@@ -4,12 +4,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
+from app.domains.avatar.contracts import BodyAvatarPresentation
 from app.domains.avatar.schemas import (
     AvatarListView,
     AvatarMeasurementStatusView,
     AvatarPublicationRequest,
     AvatarView,
     CreateAvatarRequest,
+    ManualBodyMeasurementsRequest,
 )
 from app.domains.avatar.service import AvatarService
 
@@ -32,8 +34,18 @@ def create_avatar_router(
         return await service.create(user_id, payload)
 
     @router.get("/measurement-status", response_model=AvatarMeasurementStatusView)
-    async def get_measurement_status(user_id: CurrentUserId) -> AvatarMeasurementStatusView:
-        return await service.measurement_status(user_id)
+    async def get_measurement_status(
+        user_id: CurrentUserId,
+        presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN,
+    ) -> AvatarMeasurementStatusView:
+        return await service.measurement_status(user_id, presentation)
+
+    @router.put("/manual-measurements", status_code=status.HTTP_204_NO_CONTENT)
+    async def save_manual_measurements(
+        payload: ManualBodyMeasurementsRequest, user_id: CurrentUserId
+    ) -> Response:
+        await service.save_manual_measurements(user_id, payload)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @router.get("/{avatar_id}", response_model=AvatarView)
     async def get_avatar(

@@ -8,7 +8,10 @@ class StaticBodyMetricsReader:
 
     def __init__(self, snapshot: BodyMetricsSnapshot | None) -> None:
         self._snapshot = snapshot
+        self._manual_by_owner: dict[str, BodyMetricsSnapshot] = {}
 
     async def latest_confirmed(self, owner_id: str) -> BodyMetricsSnapshot | None:
-        del owner_id
-        return self._snapshot
+        return self._manual_by_owner.get(owner_id, self._snapshot)
+
+    async def save_manual(self, owner_id: str, snapshot: BodyMetricsSnapshot) -> None:
+        self._manual_by_owner[owner_id] = snapshot

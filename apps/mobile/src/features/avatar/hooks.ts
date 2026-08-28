@@ -8,9 +8,15 @@ import {
   listAvatars,
   regenerateAvatar,
   rejectAvatar,
+  saveManualBodyMeasurements,
   setAvatarCommunityUse,
 } from "./api";
-import type { AvatarListView, AvatarView, CreateAvatarPayload } from "./types";
+import type {
+  AvatarListView,
+  AvatarPresentation,
+  AvatarView,
+  CreateAvatarPayload,
+} from "./types";
 
 export const avatarQueryKey = ["avatars"] as const;
 export const avatarMeasurementStatusQueryKey = ["avatar-measurement-status"] as const;
@@ -19,10 +25,20 @@ export function useAvatars() {
   return useQuery({ queryKey: avatarQueryKey, queryFn: listAvatars });
 }
 
-export function useAvatarMeasurementStatus() {
+export function useAvatarMeasurementStatus(presentation: AvatarPresentation) {
   return useQuery({
-    queryKey: avatarMeasurementStatusQueryKey,
-    queryFn: getAvatarMeasurementStatus,
+    queryKey: [...avatarMeasurementStatusQueryKey, presentation],
+    queryFn: () => getAvatarMeasurementStatus(presentation),
+  });
+}
+
+export function useManualBodyMeasurements() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveManualBodyMeasurements,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: avatarMeasurementStatusQueryKey });
+    },
   });
 }
 

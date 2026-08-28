@@ -36,6 +36,7 @@ class BodyShapeProfile(StrEnum):
     NORMAL = "normal"
     FIT = "fit"
     STRONG = "strong"
+    FULL = "full"
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -63,6 +64,10 @@ class BodyMetricsSnapshot:
 
 class BodyMetricsReader(Protocol):
     async def latest_confirmed(self, owner_id: str) -> BodyMetricsSnapshot | None: ...
+
+
+class ManualBodyMetricsWriter(Protocol):
+    async def save_manual(self, owner_id: str, snapshot: BodyMetricsSnapshot) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)

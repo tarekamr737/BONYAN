@@ -1,27 +1,24 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 
-import type { AvatarPresentation } from "../types";
+import type { AvatarPresentation, BodyShapeProfile } from "../types";
+import { GameAvatar3D } from "./GameAvatar3D";
 
-const cinematicPreviews = {
-  men: require("../../../../assets/avatar-styles/cinematic-men-normal.png"),
-  women: require("../../../../assets/avatar-styles/cinematic-women-normal.png"),
+type BodyFigurePreviewProps = {
+  presentation: AvatarPresentation;
+  shape: BodyShapeProfile;
 };
 
-export function BodyFigurePreview({ presentation }: { presentation: AvatarPresentation }) {
+export function BodyFigurePreview({ presentation, shape }: BodyFigurePreviewProps) {
   return (
-    <View
-      accessibilityLabel={`Selected Cinematic 3D ${presentation} full-body avatar style`}
-      accessibilityRole="image"
-      style={styles.stage}
-    >
-      <Image resizeMode="cover" source={cinematicPreviews[presentation]} style={styles.image} />
+    <View style={styles.container}>
+      <GameAvatar3D presentation={presentation} shape={shape} />
       <View style={styles.stylePanel}>
         <View style={styles.styleCopy}>
           <Text style={styles.title}>Cinematic 3D</Text>
           <Text style={styles.detail}>
-            {presentation === "women" ? "Women" : "Men"} · 5 measurement-shaped profiles
+            {presentation === "women" ? "Women" : "Men"} · {shape.toUpperCase()} preview · 6 body profiles
           </Text>
         </View>
         <View style={styles.selectedBadge}>
@@ -34,25 +31,14 @@ export function BodyFigurePreview({ presentation }: { presentation: AvatarPresen
 }
 
 const styles = StyleSheet.create({
-  stage: {
-    aspectRatio: 2 / 3,
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    overflow: "hidden",
-    position: "relative",
-    width: "100%",
-  },
-  image: { height: "100%", width: "100%" },
+  container: { gap: spacing.sm },
   stylePanel: {
     alignItems: "center",
-    backgroundColor: "rgba(11, 11, 11, 0.92)",
-    bottom: 0,
+    backgroundColor: colors.surface,
+    borderRadius: radii.control,
     flexDirection: "row",
     gap: spacing.sm,
-    left: 0,
     padding: spacing.md,
-    position: "absolute",
-    right: 0,
   },
   styleCopy: { flex: 1 },
   title: { color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 18 },

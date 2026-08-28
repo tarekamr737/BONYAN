@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,27 +14,56 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { AvatarButton } from "../components/AvatarButton";
+import { AvatarBuildProgress } from "../components/AvatarBuildProgress";
 import { BodyFigurePreview } from "../components/BodyFigurePreview";
+import { GameAvatar3D } from "../components/GameAvatar3D";
+import { ManualMeasurementsForm } from "../components/ManualMeasurementsForm";
 import { PrivacyTimeline } from "../components/PrivacyTimeline";
 import {
   useAvatarMeasurementStatus,
   useAvatarMutations,
   useAvatars,
 } from "../hooks";
-import type { AvatarPresentation, AvatarView } from "../types";
+import type { AvatarPresentation, AvatarView, BodyShapeProfile } from "../types";
 
 type AvatarScreenProps = {
   onBack: () => void;
 };
 
-const shapeProfiles = ["Skinny", "Slim", "Normal", "Fit", "Strong"] as const;
+const shapeProfiles: { label: string; value: BodyShapeProfile }[] = [
+  { label: "Skinny", value: "skinny" },
+  { label: "Slim", value: "slim" },
+  { label: "Normal", value: "normal" },
+  { label: "Fit", value: "fit" },
+  { label: "Strong", value: "strong" },
+  { label: "Full", value: "full" },
+];
 
 export function AvatarScreen({ onBack }: AvatarScreenProps) {
+  const [presentation, setPresentation] = useState<AvatarPresentation>("men");
   const avatarsQuery = useAvatars();
-  const measurementQuery = useAvatarMeasurementStatus();
+  const measurementQuery = useAvatarMeasurementStatus(presentation);
   const mutations = useAvatarMutations();
   const [activeAvatar, setActiveAvatar] = useState<AvatarView | null>(null);
-  const [presentation, setPresentation] = useState<AvatarPresentation>("men");
+  const [previewChoice, setPreviewChoice] = useState<{
+    presentation: AvatarPresentation;
+    shape: BodyShapeProfile;
+  } | null>(null);
+  const [buildProgress, setBuildProgress] = useState(0);
+  const [buildStage, setBuildStage] = useState("");
+  const buildTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const buildStartedAt = useRef(0);
+  const previewShape =
+    previewChoice?.presentation === presentation
+      ? previewChoice.shape
+      : (measurementQuery.data?.shape_profile ?? "normal");
+
+  useEffect(
+    () => () => {
+      buildTimers.current.forEach(clearTimeout);
+    },
+    [],
+  );
 
   const displayedAvatar = activeAvatar ?? avatarsQuery.data?.items[0] ?? null;
   const pending =
@@ -58,9 +87,51 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
 
   function generate() {
     mutations.resetErrors();
+    buildTimers.current.forEach(clearTimeout);
+    buildTimers.current = [];
+    buildStartedAt.current = Date.now();
+    setBuildProgress(12);
+    setBuildStage("Reading confirmed measurements");
+    const schedule = (delay: number, action: () => void) => {
+      buildTimers.current.push(setTimeout(action, delay));
+    };
+    schedule(450, () => {
+      setBuildProgress(38);
+      setBuildStage("Calculating body proportions");
+    });
+    schedule(900, () => {
+      setBuildProgress(68);
+      setBuildStage("Rigging your 3D body");
+    });
+    schedule(1350, () => {
+      setBuildProgress(86);
+      setBuildStage("Waiting for the private render");
+    });
     mutations.createMutation.mutate(
       { style: "cinematic_3d", presentation },
-      { onSuccess: setActiveAvatar },
+      {
+        onError: () => {
+          buildTimers.current.forEach(clearTimeout);
+          setBuildProgress(0);
+        },
+        onSuccess: (avatar) => {
+          if (avatar.state === "failed") {
+            buildTimers.current.forEach(clearTimeout);
+            setBuildProgress(0);
+            setActiveAvatar(avatar);
+            return;
+          }
+          const finishDelay = Math.max(0, 1500 - (Date.now() - buildStartedAt.current));
+          schedule(finishDelay, () => {
+            setBuildProgress(100);
+            setBuildStage("Avatar ready to explore");
+            schedule(380, () => {
+              setActiveAvatar(avatar);
+              setBuildProgress(0);
+            });
+          });
+        },
+      },
     );
   }
 
@@ -139,6 +210,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               Try again
             </AvatarButton>
           </View>
+        ) : buildProgress > 0 ? (
+          <AvatarBuildProgress progress={buildProgress} stage={buildStage} />
         ) : displayedAvatar ? (
           <AvatarReview
             avatar={displayedAvatar}
@@ -175,17 +248,34 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
                 This changes the avatar model only. Your health data stays unchanged.
               </Text>
             </View>
-            <BodyFigurePreview presentation={presentation} />
+            <BodyFigurePreview presentation={presentation} shape={previewShape} />
             <View style={styles.shapeScale}>
               <View style={styles.shapeScaleHeader}>
-                <Text style={styles.selectorEyebrow}>5 SHAPE PROFILES</Text>
-                <Text style={styles.shapeScaleHint}>Selected from your measurements</Text>
+                <Text style={styles.selectorEyebrow}>PREVIEW THE BODY SPECTRUM</Text>
+                <Text style={styles.shapeScaleHint}>Final shape comes from your measurements</Text>
               </View>
               <View style={styles.shapeScaleOptions}>
                 {shapeProfiles.map((shape) => (
-                  <View key={shape} style={styles.shapeScaleChip}>
-                    <Text style={styles.shapeScaleChipText}>{shape}</Text>
-                  </View>
+                  <Pressable
+                    accessibilityLabel={`Preview ${shape.label} body shape`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: previewShape === shape.value }}
+                    key={shape.value}
+                    onPress={() => setPreviewChoice({ presentation, shape: shape.value })}
+                    style={[
+                      styles.shapeScaleChip,
+                      previewShape === shape.value && styles.shapeScaleChipSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.shapeScaleChipText,
+                        previewShape === shape.value && styles.shapeScaleChipTextSelected,
+                      ]}
+                    >
+                      {shape.label}
+                    </Text>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -223,6 +313,8 @@ type MeasurementPanelProps = {
 };
 
 function MeasurementPanel({ query }: MeasurementPanelProps) {
+  const [showManualForm, setShowManualForm] = useState(false);
+
   if (query.isPending) {
     return (
       <View accessibilityLabel="Checking body data" style={styles.measurementPanel}>
@@ -249,16 +341,19 @@ function MeasurementPanel({ query }: MeasurementPanelProps) {
   }
   if (!query.data?.available) {
     return (
-      <View style={styles.measurementPanel}>
-        <View style={styles.measurementCopy}>
-          <Text style={styles.measurementTitle}>Confirmed measurements needed</Text>
-          <Text style={styles.measurementDetail}>
-            Add height and weight in your profile or complete an InBody scan first.
-          </Text>
+      <View style={styles.measurementSourceSection}>
+        <View style={styles.measurementPanel}>
+          <View style={styles.measurementCopy}>
+            <Text style={styles.measurementTitle}>Choose your measurement source</Text>
+            <Text style={styles.measurementDetail}>
+              Complete an InBody scan, or enter confirmed measurements below.
+            </Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => void query.refetch()}>
+            <Text style={styles.retryLabel}>Check InBody</Text>
+          </Pressable>
         </View>
-        <Pressable accessibilityRole="button" onPress={() => void query.refetch()}>
-          <Text style={styles.retryLabel}>Check again</Text>
-        </Pressable>
+        <ManualMeasurementsForm onSaved={() => void query.refetch()} />
       </View>
     );
   }
@@ -270,27 +365,54 @@ function MeasurementPanel({ query }: MeasurementPanelProps) {
     query.data.muscle_mass_available ? "Muscle mass" : null,
   ].filter((field): field is string => field !== null);
   return (
-    <View style={styles.measurementReadyPanel}>
-      <View style={styles.measurementReadyHeader}>
-        <View style={styles.readyDot} />
-        <Text style={styles.readyLabel}>
-          {query.data.source === "inbody" ? "LATEST INBODY READY" : "PROFILE DATA READY"}
+    <View style={styles.measurementSourceSection}>
+      <View style={styles.measurementReadyPanel}>
+        <View style={styles.measurementReadyHeader}>
+          <View style={styles.readyDot} />
+          <Text style={styles.readyLabel}>
+            {query.data.source === "inbody" ? "LATEST INBODY READY" : "MANUAL DATA READY"}
+          </Text>
+        </View>
+        <Text style={styles.measurementReadyTitle}>Enough data to shape your avatar</Text>
+        <View style={styles.shapeRow}>
+          <Text style={styles.shapeLabel}>CALCULATED SHAPE</Text>
+          <Text style={styles.shapeValue}>
+            {query.data.shape_profile ? titleCase(query.data.shape_profile) : "Ready after build"}
+          </Text>
+        </View>
+        <View style={styles.fieldRow}>
+          {fields.map((field) => (
+            <View key={field} style={styles.fieldChip}>
+              <Text style={styles.fieldChipText}>{field}</Text>
+            </View>
+          ))}
+        </View>
+        {query.data.recorded_at ? (
+          <Text style={styles.recordedAt}>Recorded {formatDate(query.data.recorded_at)}</Text>
+        ) : null}
+        <Text style={styles.sourceRule}>The most recently confirmed source is used.</Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setShowManualForm((current) => !current)}
+        style={styles.manualAction}
+      >
+        <Text style={styles.manualActionText}>
+          {showManualForm
+            ? "Keep current source"
+            : query.data.source === "profile"
+              ? "Update manual measurements"
+              : "Use manual measurements instead"}
         </Text>
-      </View>
-      <Text style={styles.measurementReadyTitle}>Enough data to shape your avatar</Text>
-      <View style={styles.shapeRow}>
-        <Text style={styles.shapeLabel}>SHAPE</Text>
-        <Text style={styles.shapeValue}>Calculated after you build</Text>
-      </View>
-      <View style={styles.fieldRow}>
-        {fields.map((field) => (
-          <View key={field} style={styles.fieldChip}>
-            <Text style={styles.fieldChipText}>{field}</Text>
-          </View>
-        ))}
-      </View>
-      {query.data.recorded_at ? (
-        <Text style={styles.recordedAt}>Recorded {formatDate(query.data.recorded_at)}</Text>
+      </Pressable>
+      {showManualForm ? (
+        <ManualMeasurementsForm
+          onCancel={() => setShowManualForm(false)}
+          onSaved={() => {
+            setShowManualForm(false);
+            void query.refetch();
+          }}
+        />
       ) : null}
     </View>
   );
@@ -316,17 +438,25 @@ function AvatarReview({
   return (
     <View style={styles.previewSection}>
       {avatar.preview_url ? (
-        <View style={styles.previewFrame}>
-          <Image
-            accessibilityLabel="Generated full-body avatar preview"
-            resizeMode="contain"
-            source={{ uri: avatar.preview_url }}
-            style={styles.previewImage}
-          />
-          <View style={styles.previewBadge}>
-            <Text style={styles.previewBadgeText}>
-              {avatar.public_in_community ? "COMMUNITY ENABLED" : "PRIVATE PREVIEW"}
-            </Text>
+        <View style={styles.gamePreview}>
+          <GameAvatar3D presentation={avatar.presentation} shape={avatar.shape_profile} />
+          <Text style={styles.gamePreviewStatus}>
+            {avatar.public_in_community ? "COMMUNITY ENABLED" : "PRIVATE · DRAG TO ROTATE"}
+          </Text>
+          <View style={styles.communityPortrait}>
+            <Image
+              accessibilityLabel="Private community portrait preview"
+              resizeMode="cover"
+              source={{ uri: avatar.preview_url }}
+              style={styles.communityPortraitImage}
+            />
+            <View style={styles.communityPortraitCopy}>
+              <Text style={styles.communityPortraitTitle}>Community portrait</Text>
+              <Text style={styles.communityPortraitDetail}>
+                This private 2D portrait is the version shown beside posts. Approving saves it
+                together with your interactive 3D body.
+              </Text>
+            </View>
           </View>
         </View>
       ) : (
@@ -362,7 +492,7 @@ function AvatarReview({
             loading={mutations.approveMutation.isPending}
             onPress={() => updateAvatar(mutations.approveMutation)}
           >
-            Approve body avatar
+            Approve 3D avatar + portrait
           </AvatarButton>
           <View style={styles.actionRow}>
             <View style={styles.actionHalf}>
@@ -590,7 +720,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
   },
+  shapeScaleChipSelected: {
+    backgroundColor: colors.bronzeSoft,
+    borderColor: colors.bronze,
+  },
   shapeScaleChipText: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 11 },
+  shapeScaleChipTextSelected: { color: colors.bronze, fontFamily: fonts.bodySemiBold },
   measurementPanel: {
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -612,6 +747,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   retryLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 13 },
+  measurementSourceSection: { gap: spacing.sm },
   measurementReadyPanel: {
     backgroundColor: colors.surface,
     borderColor: colors.bronzeBorder,
@@ -645,6 +781,15 @@ const styles = StyleSheet.create({
   },
   fieldChipText: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 11 },
   recordedAt: { color: colors.muted, fontFamily: fonts.body, fontSize: 11 },
+  sourceRule: { color: colors.muted, fontFamily: fonts.body, fontSize: 10, lineHeight: 15 },
+  manualAction: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: spacing.xs,
+  },
+  manualActionText: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 12 },
   explainer: { borderLeftColor: colors.bronzeBorder, borderLeftWidth: 2, paddingLeft: spacing.md },
   explainerTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 13 },
   explainerCopy: {
@@ -655,14 +800,32 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   previewSection: { gap: spacing.md },
-  previewFrame: {
-    aspectRatio: 2 / 3,
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    overflow: "hidden",
-    position: "relative",
+  gamePreview: { gap: spacing.sm },
+  gamePreviewStatus: {
+    color: colors.bronze,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textAlign: "center",
   },
-  previewImage: { height: "100%", width: "100%" },
+  communityPortrait: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.control,
+    flexDirection: "row",
+    gap: spacing.md,
+    padding: spacing.md,
+  },
+  communityPortraitImage: { borderRadius: radii.control, height: 76, width: 76 },
+  communityPortraitCopy: { flex: 1 },
+  communityPortraitTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14 },
+  communityPortraitDetail: {
+    color: colors.mutedLight,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 3,
+  },
   statusPanel: {
     alignItems: "center",
     aspectRatio: 2 / 3,
@@ -679,21 +842,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 11,
     letterSpacing: 1.2,
-  },
-  previewBadge: {
-    backgroundColor: colors.canvas,
-    borderRadius: radii.pill,
-    bottom: spacing.md,
-    left: spacing.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    position: "absolute",
-  },
-  previewBadgeText: {
-    color: colors.bronze,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 11,
-    letterSpacing: 1.1,
   },
   sourceLine: { alignItems: "center", flexDirection: "row", gap: spacing.sm },
   sourceDot: { backgroundColor: colors.line, borderRadius: 2, height: 4, width: 4 },

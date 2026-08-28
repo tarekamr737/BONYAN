@@ -9,7 +9,10 @@ Build one `AvatarService` with:
 
 - `SqlAlchemyAvatarRepository(session)`
 - a production implementation of `PrivateAvatarStorage`
-- an adapter implementing `BodyMetricsReader` from confirmed InBody/profile data
+- an adapter implementing `BodyMetricsReader` from the newest confirmed InBody or
+  manual-profile snapshot
+- an adapter implementing `ManualBodyMetricsWriter` that persists user-confirmed
+  manual measurements in the shared profile/measurement store
 - `MockAvatarProvider(model=settings.avatar_model)` until a provider is selected
 
 Build one `CommunityService` with:
@@ -29,25 +32,39 @@ create_community_router(community_service, get_current_actor)
 the trusted auth/profile context. Do not accept either value from request JSON or
 query parameters.
 
-`BodyMetricsReader.latest_confirmed(owner_id)` is the only InBody/User dependency.
-It returns a transient `BodyMetricsSnapshot` containing confirmed height, weight,
-optional body-fat and skeletal-muscle values, timestamp, and source. Implement this
-adapter against Workstream 02/User public contracts; do not read their repositories
-or OCR internals. When no confirmed snapshot exists, avatar creation returns
+`BodyMetricsReader.latest_confirmed(owner_id)` is the read boundary to InBody/User
+data. It returns the most recent confirmed `BodyMetricsSnapshot` containing height,
+weight, optional body-fat and skeletal-muscle values, timestamp, and source. Implement
+the adapter against Workstream 02/User public contracts; do not read OCR internals.
+`ManualBodyMetricsWriter.save_manual(owner_id, snapshot)` is the corresponding write
+boundary for the explicit `PUT /avatars/manual-measurements` flow. Persist manual data
+per owner, then make `latest_confirmed` compare timestamps across manual and confirmed
+InBody snapshots. When no confirmed snapshot exists, avatar creation returns
 `body_metrics_required` without creating an asset. `StaticBodyMetricsReader` is only
 for local development and tests.
 
 The provider-neutral `AvatarGenerationRequest` receives the metrics snapshot with
-`repr=False`. The request schema itself accepts only a visual style marker, so a
-client cannot upload a body photo or inject private measurements. Provider SDK types
-must remain inside `app.integrations.avatar`.
+`repr=False`, plus `BodyAvatarStyle` and `BodyAvatarPresentation`. The avatar creation
+schema accepts only style and presentation; raw values are saved through the separate,
+validated, authenticated manual-measurements endpoint and are never returned in avatar
+responses. Body-photo upload is intentionally unsupported. Provider SDK types must
+remain inside `app.integrations.avatar`.
 
-The development `MockAvatarProvider` implements `cinematic_3d` with three bundled
-original visual profiles: lean, athletic, and strong. It selects the closest broad
-profile from confirmed BMI and body-fat thresholds. This is deliberately a coarse,
-respectful preview rather than a medical reconstruction. A future production
-provider should preserve the same style enum and metrics-only request boundary while
-rendering continuous proportions.
+The development `MockAvatarProvider` implements `cinematic_3d` with deterministic
+men/women portrait fixtures. The interactive client supports six respectful broad
+profiles: Skinny, Slim, Normal, Fit, Strong, and Full. `classify_body_shape` uses
+height, weight, optional body-fat, optional skeletal-muscle mass, and presentation;
+the preview buttons never override the server-calculated result. This is a broad
+visual estimate rather than a diagnosis. A future production provider should preserve
+the same style/presentation/metrics boundary while rendering continuous proportions.
+
+The shared baseline contract in `app.core.providers.contracts` is prompt-oriented
+(`AvatarRequest(prompt)`). Workstream 04 consumes its domain-owned
+`AvatarGenerationRequest(metrics, style, presentation)` in
+`app.domains.avatar.service` and `app.integrations.avatar.mock`. During central
+integration, Person 01 should add a backward-compatible measurements-aware request or
+adapter and keep the existing prompt request available for other consumers. No source
+image is required, and no avatar vendor should be selected as part of reconciliation.
 
 ## Database migration
 
@@ -96,8 +113,15 @@ profile are available. The existing API client must attach the authenticated ses
 to these requests. Configure `EXPO_PUBLIC_API_URL` for a physical device or emulator;
 `127.0.0.1` addresses the device itself outside a local web runtime.
 
-No camera or photo-library permission is required. The avatar route reads only
-measurement availability and generated preview data from authenticated APIs.
+The 3D body viewer loads provider/CDN GLB URLs from
+`EXPO_PUBLIC_AVATAR_MEN_MODEL_URL` and `EXPO_PUBLIC_AVATAR_WOMEN_MODEL_URL`. Local
+MetaPerson sample files are evaluation-only; confirm distribution rights and replace
+them with licensed production assets before release.
+
+Expo Image Picker is not used by the final metrics-only avatar flow. Do not add its
+config plugin or camera/photo-library permission copy for Workstream 04. The avatar
+route reads measurement status and generated preview data from authenticated APIs,
+and sends manual values only through the explicit authenticated save action.
 
 The root npm workspace currently keeps `@types/react` below
 `apps/mobile/node_modules` while `react-native` is hoisted at the root. A clean local
@@ -112,9 +136,12 @@ owned and stable.
 ## Public behavior
 
 - Avatar approval and community enablement are separate explicit mutations.
-- Body photos and client-submitted measurements are rejected by the avatar request schema.
+- Body photos and raw measurements are rejected by the avatar creation schema.
+- Manual values are accepted only by the validated, authenticated
+  `PUT /avatars/manual-measurements` endpoint and persisted per owner.
 - Raw metric values and generated object keys never occur in response schemas.
-- Only source type, data timestamp, and metric-field availability are returned privately.
+- Only source type, data timestamp, metric-field availability, and calculated broad
+  shape are returned privately.
 - Posts contain only explicit caption/type/avatar input; no InBody data is accepted.
 - Feed order is `(created_at, id)` descending with an opaque cursor.
 - One reaction and one report are stored per user/post; repeats are idempotent.

@@ -11,6 +11,7 @@ from app.domains.avatar.contracts import (
     BodyMetricsSnapshot,
     BodyMetricsSource,
 )
+from app.domains.avatar.schemas import ManualBodyMeasurementsRequest
 from app.domains.avatar.shape import classify_body_shape
 from app.integrations.avatar.mock import MockAvatarProvider
 
@@ -29,14 +30,31 @@ images: dict[str, bytes] = {}
 
 
 @app.get("/api/v1/avatars/measurement-status")
-def measurement_status() -> dict[str, object]:
+def measurement_status(
+    presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN,
+) -> dict[str, object]:
     return {
         "available": True,
-        "source": "inbody",
+        "source": metrics.source.value,
         "recorded_at": metrics.recorded_at,
-        "body_fat_available": True,
-        "muscle_mass_available": True,
+        "body_fat_available": metrics.body_fat_percentage is not None,
+        "muscle_mass_available": metrics.skeletal_muscle_mass_kg is not None,
+        "shape_profile": classify_body_shape(metrics, presentation).value,
     }
+
+
+@app.put("/api/v1/avatars/manual-measurements", status_code=204)
+def save_manual_measurements(payload: ManualBodyMeasurementsRequest) -> Response:
+    global metrics
+    metrics = BodyMetricsSnapshot(
+        payload.height_cm,
+        payload.weight_kg,
+        payload.body_fat_percentage,
+        payload.skeletal_muscle_mass_kg,
+        datetime.now(UTC),
+        BodyMetricsSource.PROFILE,
+    )
+    return Response(status_code=204)
 
 
 @app.get("/api/v1/avatars")
@@ -64,7 +82,7 @@ async def create_avatar(request: Request) -> dict[str, object]:
         "approved": False,
         "public_in_community": False,
         "failure_code": None,
-        "measurement_source": "inbody",
+        "measurement_source": metrics.source.value,
         "measurements_recorded_at": metrics.recorded_at,
         "created_at": now,
         "updated_at": now,

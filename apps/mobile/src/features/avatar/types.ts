@@ -32,6 +32,14 @@ export type AvatarMeasurementStatus = {
   recorded_at: string | null;
   body_fat_available: boolean;
   muscle_mass_available: boolean;
+  shape_profile: BodyShapeProfile | null;
+};
+
+export type ManualBodyMeasurementsPayload = {
+  height_cm: number;
+  weight_kg: number;
+  body_fat_percentage: number | null;
+  skeletal_muscle_mass_kg: number | null;
 };
 
 export type CreateAvatarPayload = {
@@ -40,4 +48,4 @@ export type CreateAvatarPayload = {
 };
 
 export type AvatarPresentation = "men" | "women";
-export type BodyShapeProfile = "skinny" | "slim" | "normal" | "fit" | "strong";
+export type BodyShapeProfile = "skinny" | "slim" | "normal" | "fit" | "strong" | "full";

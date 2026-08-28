@@ -15,6 +15,8 @@ from app.domains.avatar.contracts import (
     BodyAvatarStyle,
     BodyMetricsReader,
     BodyMetricsSnapshot,
+    BodyMetricsSource,
+    ManualBodyMetricsWriter,
     PrivateAvatarStorage,
 )
 from app.domains.avatar.models import AvatarRecord
@@ -24,6 +26,7 @@ from app.domains.avatar.schemas import (
     AvatarMeasurementStatusView,
     AvatarView,
     CreateAvatarRequest,
+    ManualBodyMeasurementsRequest,
 )
 from app.domains.avatar.shape import classify_body_shape
 from app.domains.avatar.validation import validate_generated_image
@@ -36,6 +39,7 @@ class AvatarService:
         provider: AvatarProvider,
         storage: PrivateAvatarStorage,
         body_metrics_reader: BodyMetricsReader,
+        manual_metrics_writer: ManualBodyMetricsWriter | None = None,
         *,
         provider_timeout_seconds: float = 30,
     ) -> None:
@@ -43,6 +47,7 @@ class AvatarService:
         self._provider = provider
         self._storage = storage
         self._body_metrics_reader = body_metrics_reader
+        self._manual_metrics_writer = manual_metrics_writer
         self._provider_timeout_seconds = provider_timeout_seconds
 
     async def create(self, owner_id: str, request: CreateAvatarRequest) -> AvatarView:
@@ -69,7 +74,11 @@ class AvatarService:
         await self._generate(avatar, metrics)
         return await self._to_view(avatar)
 
-    async def measurement_status(self, owner_id: str) -> AvatarMeasurementStatusView:
+    async def measurement_status(
+        self,
+        owner_id: str,
+        presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN,
+    ) -> AvatarMeasurementStatusView:
         metrics = await self._body_metrics_reader.latest_confirmed(owner_id)
         if metrics is None:
             return AvatarMeasurementStatusView(
@@ -83,7 +92,27 @@ class AvatarService:
             recorded_at=metrics.recorded_at,
             body_fat_available=metrics.body_fat_percentage is not None,
             muscle_mass_available=metrics.skeletal_muscle_mass_kg is not None,
+            shape_profile=classify_body_shape(metrics, presentation).value,
         )
+
+    async def save_manual_measurements(
+        self, owner_id: str, request: ManualBodyMeasurementsRequest
+    ) -> None:
+        if self._manual_metrics_writer is None:
+            raise AppError(
+                code="manual_measurements_unavailable",
+                message="Manual measurements are not available right now.",
+                status_code=503,
+            )
+        snapshot = BodyMetricsSnapshot(
+            height_cm=request.height_cm,
+            weight_kg=request.weight_kg,
+            body_fat_percentage=request.body_fat_percentage,
+            skeletal_muscle_mass_kg=request.skeletal_muscle_mass_kg,
+            recorded_at=datetime.now(UTC),
+            source=BodyMetricsSource.PROFILE,
+        )
+        await self._manual_metrics_writer.save_manual(owner_id, snapshot)
 
     async def get(self, owner_id: str, avatar_id: UUID) -> AvatarView:
         avatar = await self._require_owned(owner_id, avatar_id)

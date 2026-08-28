@@ -20,11 +20,17 @@ def classify_body_shape(
     fit_body_fat = 28 if presentation is BodyAvatarPresentation.WOMEN else 20
     skinny_body_fat = 19 if presentation is BodyAvatarPresentation.WOMEN else 10
     slim_body_fat = 24 if presentation is BodyAvatarPresentation.WOMEN else 15
+    full_body_fat = 36 if presentation is BodyAvatarPresentation.WOMEN else 28
     strong_muscle_ratio = 0.38 if presentation is BodyAvatarPresentation.WOMEN else 0.44
+    if (body_fat is not None and body_fat >= full_body_fat) or (
+        bmi >= 30 and (muscle_ratio is None or muscle_ratio < strong_muscle_ratio)
+    ):
+        return BodyShapeProfile.FULL
     if (
-        bmi >= 29
-        or (body_fat is not None and body_fat >= strong_body_fat)
-        or (bmi >= 26 and muscle_ratio is not None and muscle_ratio >= strong_muscle_ratio)
+        bmi >= 26
+        and muscle_ratio is not None
+        and muscle_ratio >= strong_muscle_ratio
+        and (body_fat is None or body_fat < strong_body_fat)
     ):
         return BodyShapeProfile.STRONG
     if bmi < 18.5 or (body_fat is not None and body_fat <= skinny_body_fat):

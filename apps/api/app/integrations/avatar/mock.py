@@ -41,10 +41,17 @@ class MockAvatarProvider:
                 retryable=False,
             )
         profile = select_cinematic_body_profile(request.metrics, request.presentation)
+        # The local portrait fixture set predates the Full 3D profile. Reuse the
+        # closest private portrait only in the mock; production providers receive
+        # the original measurements and render the matching body directly.
+        portrait_profile = (
+            BodyShapeProfile.STRONG if profile is BodyShapeProfile.FULL else profile
+        )
         content = (
             files("app.integrations.avatar")
             .joinpath(
-                "assets", f"cinematic-{request.presentation.value}-{profile.value}.png"
+                "assets",
+                f"cinematic-{request.presentation.value}-{portrait_profile.value}.png",
             )
             .read_bytes()
         )
