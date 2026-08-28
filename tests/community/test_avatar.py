@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
+
 from app.core.errors import AppError
 from app.domains.avatar.contracts import (
     AvatarGenerationRequest,
@@ -27,7 +29,6 @@ from app.integrations.avatar.mock import (
     MockAvatarProvider,
     select_cinematic_body_profile,
 )
-from pydantic import ValidationError
 
 MEASURED_AT = datetime(2026, 8, 24, 9, 30, tzinfo=UTC)
 CONFIRMED_METRICS = BodyMetricsSnapshot(
