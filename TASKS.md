@@ -62,7 +62,7 @@
 - [x] Add backend lint/test CI.
 - [x] Add mobile lint/typecheck/test CI.
 - [x] Add migration validation.
-- [ ] Confirm CI passes.
+- [x] Confirm CI passes.
 
 ## J. Integration
 - [x] Publish integration contract.
