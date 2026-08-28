@@ -31,6 +31,9 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: str) -> None:
+    # Uvicorn logs raw request targets, including short-lived private asset tokens.
+    # BONYAN's correlation middleware emits the same request facts with route templates.
+    logging.getLogger("uvicorn.access").disabled = True
     logger = logging.getLogger("bonyan")
     logger.handlers.clear()
     handler = logging.StreamHandler()

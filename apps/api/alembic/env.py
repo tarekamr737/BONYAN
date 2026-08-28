@@ -9,6 +9,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import get_settings
 from app.core.database import Base
+from app.core.avatar_integration import manual_body_metrics  # noqa: F401
+from app.domains.avatar import models as avatar_models  # noqa: F401
+from app.domains.community import models as community_models  # noqa: F401
+from app.domains.inbody import models as inbody_models  # noqa: F401
 
 config = context.config
 

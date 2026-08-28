@@ -21,6 +21,12 @@ def _request_id(value: str | None) -> str:
     return str(uuid4())
 
 
+def _safe_request_path(request: Request) -> str:
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    return path if isinstance(path, str) else "/unmatched"
+
+
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = _request_id(request.headers.get("x-request-id"))
@@ -32,7 +38,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         except Exception:
             logger.exception(
                 "request_failed",
-                extra={"method": request.method, "path": request.url.path},
+                extra={"method": request.method, "path": _safe_request_path(request)},
             )
             raise
         else:
@@ -42,7 +48,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
                 extra={
                     "duration_ms": duration_ms,
                     "method": request.method,
-                    "path": request.url.path,
+                    "path": _safe_request_path(request),
                     "status_code": response.status_code,
                 },
             )

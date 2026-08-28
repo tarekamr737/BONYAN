@@ -68,7 +68,7 @@
 - [x] Publish integration contract.
 - [ ] After WS2 merge, register InBody modules.
 - [ ] After WS3 merge, register Training modules.
-- [ ] After WS4 merge, register Avatar/Community modules.
+- [x] After WS4 merge, register Avatar/Community modules.
 
 ## K. Final
 - [x] Fresh clone setup works.
