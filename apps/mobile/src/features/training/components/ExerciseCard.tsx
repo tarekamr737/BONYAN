@@ -12,34 +12,43 @@ type ExerciseCardProps = {
 };
 
 export function ExerciseCard({ exercise, index, active = false, onPress }: ExerciseCardProps) {
+  const card = (
+    <SurfaceCard>
+      <View style={styles.row}>
+        <View style={[styles.index, active && styles.activeIndex]}>
+          <Text style={[styles.indexText, active && styles.activeIndexText]}>{index + 1}</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.name}>{exercise.name}</Text>
+          <Text style={styles.meta}>
+            {exercise.sets} sets x {exercise.reps_min}-{exercise.reps_max} reps
+          </Text>
+        </View>
+        <Text style={styles.rest}>{Math.round(exercise.rest_seconds / 60)}m</Text>
+      </View>
+      <View style={styles.tags}>
+        {[...exercise.muscles, ...exercise.equipment].slice(0, 4).map((item) => (
+          <View key={item} style={styles.tag}>
+            <Text style={styles.tagText}>{item.toUpperCase()}</Text>
+          </View>
+        ))}
+      </View>
+    </SurfaceCard>
+  );
+
+  if (!onPress) {
+    return card;
+  }
+
   return (
     <Pressable
+      accessibilityLabel={`${exercise.name}, ${exercise.sets} sets of ${exercise.reps_min} to ${exercise.reps_max} reps`}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       onPress={onPress}
       style={({ pressed }) => [pressed && styles.pressed]}
     >
-      <SurfaceCard>
-        <View style={styles.row}>
-          <View style={[styles.index, active && styles.activeIndex]}>
-            <Text style={[styles.indexText, active && styles.activeIndexText]}>{index + 1}</Text>
-          </View>
-          <View style={styles.content}>
-            <Text style={styles.name}>{exercise.name}</Text>
-            <Text style={styles.meta}>
-              {exercise.sets} sets x {exercise.reps_min}-{exercise.reps_max} reps
-            </Text>
-          </View>
-          <Text style={styles.rest}>{Math.round(exercise.rest_seconds / 60)}m</Text>
-        </View>
-        <View style={styles.tags}>
-          {[...exercise.muscles, ...exercise.equipment].slice(0, 4).map((item) => (
-            <View key={item} style={styles.tag}>
-              <Text style={styles.tagText}>{item.toUpperCase()}</Text>
-            </View>
-          ))}
-        </View>
-      </SurfaceCard>
+      {card}
     </Pressable>
   );
 }

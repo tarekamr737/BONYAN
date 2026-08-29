@@ -1,7 +1,7 @@
 """Add training plans and sessions.
 
-Revision ID: 20260828_0003
-Revises: 20260825_0002
+Revision ID: 20260829_0004
+Revises: 20260828_0003
 Create Date: 2026-08-28 19:40:00
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "20260828_0003"
-down_revision: str | None = "20260825_0002"
+revision: str = "20260829_0004"
+down_revision: str | None = "20260828_0003"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

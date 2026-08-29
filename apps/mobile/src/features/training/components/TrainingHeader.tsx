@@ -34,7 +34,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.displayBold,
     fontSize: 40,
-    letterSpacing: -1.2,
     lineHeight: 44,
   },
 });
