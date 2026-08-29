@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Protocol
+from dataclasses import dataclass, field
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,15 +21,19 @@ class LLMProvider(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class AvatarRequest:
-    prompt: str
+    prompt: str | None = None
+    source_image_reference: str | None = field(default=None, repr=False)
+    style: str | None = None
+    options: dict[str, str] = field(default_factory=dict)
+    structured_context: dict[str, Any] = field(default_factory=dict, repr=False)
 
 
 @dataclass(frozen=True, slots=True)
 class AvatarResult:
-    content: bytes
+    content: bytes = field(repr=False)
     media_type: str
     model: str
 
 
-class AvatarProvider(Protocol):
-    async def generate(self, request: AvatarRequest) -> AvatarResult: ...
+class AvatarProvider[AvatarRequestT](Protocol):
+    async def generate(self, request: AvatarRequestT) -> AvatarResult: ...

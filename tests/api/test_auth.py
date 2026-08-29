@@ -64,12 +64,17 @@ def test_missing_auth_configuration_fails_closed() -> None:
     assert error.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
 
 
-async def get_inbody_history() -> int:
+async def get_private_route(path: str) -> int:
     transport = ASGITransport(app=create_app())
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/v1/inbody/scans")
+        response = await client.get(path)
     return response.status_code
 
 
 def test_private_inbody_route_rejects_missing_authentication() -> None:
-    assert asyncio.run(get_inbody_history()) == status.HTTP_401_UNAUTHORIZED
+    assert asyncio.run(get_private_route("/api/v1/inbody/scans")) == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.parametrize("path", ["/api/v1/avatars", "/api/v1/community/feed"])
+def test_private_ws4_routes_reject_missing_authentication(path: str) -> None:
+    assert asyncio.run(get_private_route(path)) == status.HTTP_401_UNAUTHORIZED
