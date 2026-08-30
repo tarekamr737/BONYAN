@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     chat_model: str = "TBD"
     avatar_model: str = "TBD"
     mistral_api_key: SecretStr | None = None
+    musclewiki_api_key: SecretStr | None = None
     auth_jwt_secret: SecretStr | None = None
     auth_jwt_issuer: str = "bonyan"
     auth_jwt_audience: str = "bonyan-api"

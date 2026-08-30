@@ -204,9 +204,15 @@ def test_manual_measurements_become_the_confirmed_shape_source() -> None:
         assert status.source == "profile"
         assert status.shape_profile == "full"
         assert status.body_fat_available is True
-        serialized = str(status.model_dump(mode="json")).lower()
-        assert "95" not in serialized
-        assert "40" not in serialized
+        serialized = status.model_dump(mode="json")
+        assert set(serialized) == {
+            "available",
+            "source",
+            "recorded_at",
+            "body_fat_available",
+            "muscle_mass_available",
+            "shape_profile",
+        }
 
     asyncio.run(scenario())
 
