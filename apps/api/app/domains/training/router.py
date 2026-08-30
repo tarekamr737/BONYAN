@@ -4,11 +4,13 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
+from app.core.errors import AppError
 from app.core.providers.mocks import MockLLMProvider
 from app.domains.inbody.contracts import InBodyTrainingAdapter
 from app.domains.inbody.repository import InBodyRepository
@@ -18,6 +20,7 @@ from app.domains.training.repository import TrainingRepository
 from app.domains.training.schemas import (
     CoachMessageRequest,
     CoachMessageResponse,
+    ExerciseMediaAccessResponse,
     GeneratePlanRequest,
     LoggedSetInput,
     SubstituteExerciseRequest,
@@ -26,6 +29,7 @@ from app.domains.training.schemas import (
 )
 from app.domains.training.service import TrainingService
 from app.integrations.musclewiki.client import MuscleWikiClient
+from app.integrations.musclewiki.media import MuscleWikiMediaSigner
 
 router = APIRouter(prefix="/training", tags=["training"])
 
@@ -42,6 +46,17 @@ async def get_training_service(
 
 
 TrainingServiceDep = Annotated[TrainingService, Depends(get_training_service)]
+
+
+def get_musclewiki_media_signer(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> MuscleWikiMediaSigner:
+    secret = (
+        settings.auth_jwt_secret.get_secret_value().encode("utf-8")
+        if settings.auth_jwt_secret
+        else b"development-musclewiki-media-secret"
+    )
+    return MuscleWikiMediaSigner(secret)
 
 
 @router.post("/plans", response_model=WorkoutPlan, status_code=status.HTTP_201_CREATED)
@@ -116,6 +131,34 @@ async def substitute_exercise(
     service: TrainingServiceDep,
 ) -> WorkoutPlan:
     return await service.substitute(user_id=current_user.id, request=request)
+
+
+@router.get("/exercises/{exercise_id}/media", response_model=ExerciseMediaAccessResponse)
+async def get_exercise_media_access(
+    exercise_id: str,
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+) -> ExerciseMediaAccessResponse:
+    access = await service.get_exercise_media_access(
+        user_id=current_user.id, exercise_id=exercise_id
+    )
+    if access is None:
+        raise AppError("musclewiki_media_unavailable", "Exercise media is unavailable.", 404)
+    return ExerciseMediaAccessResponse(url=access.url, expires_at=access.expires_at)
+
+
+@router.get("/media", include_in_schema=False)
+async def read_exercise_media(
+    token: Annotated[str, Query(min_length=1)],
+    current_user: CurrentUserDep,
+    signer: Annotated[MuscleWikiMediaSigner, Depends(get_musclewiki_media_signer)],
+) -> RedirectResponse:
+    verified = signer.verify(token, user_id=current_user.id)
+    return RedirectResponse(
+        verified.provider_url,
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+        headers={"Cache-Control": "private, no-store"},
+    )
 
 
 @router.post("/coach", response_model=CoachMessageResponse)

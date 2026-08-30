@@ -51,7 +51,13 @@ export function TrainingHomeScreen() {
       return startWorkoutSession(plan.id, today.key);
     },
     onSuccess: (session) => {
-      router.push(`/training/day?dayKey=${session.day_key}&sessionId=${session.id}`);
+      router.push({
+        pathname: "./day",
+        params: {
+          dayKey: session.day_key,
+          sessionId: session.id,
+        },
+      });
     },
   });
 
@@ -150,7 +156,7 @@ export function TrainingHomeScreen() {
         <View style={styles.actions}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push("/training/coach")}
+            onPress={() => router.push("./coach")}
             style={styles.secondaryAction}
           >
             <Text style={styles.secondaryActionText}>Ask coach</Text>

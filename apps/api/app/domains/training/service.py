@@ -91,8 +91,8 @@ class TrainingService:
     async def get_exercise_details(self, exercise_id: str) -> ExerciseDetails:
         return await self.exercise_provider.get_exercise(exercise_id)
 
-    async def get_exercise_media_access(self, exercise_id: str):
-        return await self.exercise_provider.get_media_access(exercise_id)
+    async def get_exercise_media_access(self, *, user_id: str, exercise_id: str):
+        return await self.exercise_provider.get_media_access(exercise_id, user_id=user_id)
 
     async def start_session(
         self, *, user_id: str, plan_id: UUID, day_key: str

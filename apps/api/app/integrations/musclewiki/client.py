@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from urllib import error, parse, request
 
 from app.core.config import Settings
@@ -11,6 +11,7 @@ from app.integrations.musclewiki.errors import (
     MuscleWikiInvalidResponseError,
     MuscleWikiUnavailableError,
 )
+from app.integrations.musclewiki.media import MuscleWikiMediaSigner
 from app.integrations.musclewiki.provider import (
     ExerciseDetails,
     ExerciseSearchFilters,
@@ -26,11 +27,23 @@ class MuscleWikiClient:
         settings: Settings,
         base_url: str = "https://api.musclewiki.com",
         cache: MetadataCache[ExerciseDetails] | None = None,
+        media_signer: MuscleWikiMediaSigner | None = None,
+        api_public_url: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         secret = getattr(settings, "musclewiki_api_key", None)
         self.api_key = secret.get_secret_value() if secret else None
         self.cache = cache or MetadataCache[ExerciseDetails]()
+        auth_secret = getattr(settings, "auth_jwt_secret", None)
+        configured_secret = (
+            auth_secret.get_secret_value().encode("utf-8")
+            if auth_secret
+            else b"development-musclewiki-media-secret"
+        )
+        self.media_signer = media_signer or MuscleWikiMediaSigner(configured_secret)
+        self.api_public_url = (
+            api_public_url or getattr(settings, "api_public_url", "http://127.0.0.1:8000")
+        ).rstrip("/")
 
     async def search_exercises(
         self, filters: ExerciseSearchFilters, *, page: int = 1, page_size: int = 20
@@ -71,11 +84,21 @@ class MuscleWikiClient:
         self.cache.set(item.id, item)
         return item
 
-    async def get_media_access(self, exercise_id: str) -> MediaAccess | None:
+    async def get_media_access(self, exercise_id: str, *, user_id: str) -> MediaAccess | None:
         video_url = (await self.get_exercise(exercise_id)).video_url
         if video_url is None:
             return None
-        return MediaAccess(url=video_url, expires_at=datetime.now(UTC) + timedelta(minutes=10))
+        expires_in_seconds = int(timedelta(minutes=10).total_seconds())
+        token = self.media_signer.sign(
+            provider_url=video_url,
+            user_id=user_id,
+            expires_in_seconds=expires_in_seconds,
+        )
+        verified = self.media_signer.verify(token, user_id=user_id)
+        return MediaAccess(
+            url=f"{self.api_public_url}/api/v1/training/media?token={token}",
+            expires_at=verified.expires_at,
+        )
 
     async def _get_json(self, path: str) -> object:
         return await asyncio.to_thread(self._get_json_blocking, path)

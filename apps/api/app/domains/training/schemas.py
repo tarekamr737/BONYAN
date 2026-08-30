@@ -180,3 +180,8 @@ class CoachMessageResponse(BaseModel):
     response: str
     model: str
     tool_results: list[dict[str, object]] = Field(default_factory=list)
+
+
+class ExerciseMediaAccessResponse(BaseModel):
+    url: str
+    expires_at: datetime
