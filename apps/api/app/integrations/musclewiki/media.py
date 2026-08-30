@@ -208,7 +208,10 @@ def _urlsafe_encode(value: bytes) -> str:
 
 
 def _urlsafe_decode(value: str) -> bytes:
-    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    decoded = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    if _urlsafe_encode(decoded) != value:
+        raise ValueError("non-canonical base64url encoding")
+    return decoded
 
 
 def _validated_provider_url(value: object) -> str:

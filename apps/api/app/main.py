@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.correlation import CorrelationIdMiddleware
@@ -32,6 +33,14 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     application.state.settings = settings
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Accept", "Authorization", "Content-Type", "Range"],
+        expose_headers=["Content-Range", "X-Request-ID"],
+    )
     application.add_middleware(CorrelationIdMiddleware)
     register_error_handlers(application)
     application.include_router(health_router)

@@ -52,7 +52,7 @@ export function TrainingHomeScreen() {
     },
     onSuccess: (session) => {
       router.push({
-        pathname: "./day",
+        pathname: "/training/day",
         params: {
           dayKey: session.day_key,
           sessionId: session.id,
@@ -156,7 +156,7 @@ export function TrainingHomeScreen() {
         <View style={styles.actions}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push("./coach")}
+            onPress={() => router.push("/training/coach")}
             style={styles.secondaryAction}
           >
             <Text style={styles.secondaryActionText}>Ask coach</Text>

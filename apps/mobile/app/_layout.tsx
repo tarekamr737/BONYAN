@@ -7,6 +7,7 @@ import { SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk/700Bold";
 import { useFonts } from "expo-font";
 import { useQuery } from "@tanstack/react-query";
 import { Redirect, Stack, usePathname } from "expo-router";
+import Head from "expo-router/head";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -44,6 +45,13 @@ export default function RootLayout() {
 
   return (
     <AppProviders>
+      <Head>
+        <title>BONYAN</title>
+        <meta
+          content="Private body composition insights, deterministic training, avatars, and community."
+          name="description"
+        />
+      </Head>
       <StatusBar style="light" />
       <RootNavigator />
     </AppProviders>

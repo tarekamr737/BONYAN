@@ -36,7 +36,7 @@ include = ["app*"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 pythonpath = ["."]
-testpaths = ["../../tests/api", "../../tests/community"]
+testpaths = ["../../tests"]
 
 [tool.ruff]
 line-length = 100

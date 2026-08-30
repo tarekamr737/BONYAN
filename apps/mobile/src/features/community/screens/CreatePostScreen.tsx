@@ -150,7 +150,11 @@ export function CreatePostScreen({
           ) : approvedAvatar ? (
             <View style={styles.avatarControl}>
               {approvedAvatar.preview_url ? (
-                <Image source={{ uri: approvedAvatar.preview_url }} style={styles.avatarImage} />
+                <Image
+                  accessibilityLabel="Selected approved body avatar"
+                  source={{ uri: approvedAvatar.preview_url }}
+                  style={styles.avatarImage}
+                />
               ) : null}
               <View style={styles.avatarCopy}>
                 <Text style={styles.avatarTitle}>Use approved body avatar</Text>
