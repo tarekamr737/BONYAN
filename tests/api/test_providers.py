@@ -9,7 +9,7 @@ from app.core.providers.mocks import MockAvatarProvider, MockLLMProvider
 def test_mock_llm_provider_is_deterministic_without_credentials() -> None:
     response = asyncio.run(MockLLMProvider().complete(LLMRequest(prompt="hello")))
 
-    assert response.text == "Mock response: hello"
+    assert response.text == "Mock response: BONYAN processed the validated training context."
     assert response.model == "TBD"
 
 

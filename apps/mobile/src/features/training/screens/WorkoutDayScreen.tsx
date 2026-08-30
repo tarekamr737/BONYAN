@@ -126,7 +126,11 @@ export function WorkoutDayScreen() {
           <SurfaceCard>
             <Text style={styles.stateTitle}>No workout day</Text>
             <Text style={styles.stateCopy}>Generate a plan before starting a training session.</Text>
-            <Pressable accessibilityRole="button" onPress={() => router.push("./")} style={styles.completeButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/training")}
+              style={styles.completeButton}
+            >
               <Text style={styles.completeButtonText}>Back to Training</Text>
             </Pressable>
           </SurfaceCard>

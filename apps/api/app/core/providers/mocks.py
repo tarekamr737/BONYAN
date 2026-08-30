@@ -19,7 +19,11 @@ class MockLLMProvider:
         self._model = model
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
-        return LLMResponse(text=f"Mock response: {request.prompt}", model=self._model)
+        del request
+        return LLMResponse(
+            text="Mock response: BONYAN processed the validated training context.",
+            model=self._model,
+        )
 
 
 class MockAvatarProvider:

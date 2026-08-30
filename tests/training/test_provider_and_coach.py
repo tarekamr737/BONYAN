@@ -378,6 +378,9 @@ def test_coach_uses_mock_llm_and_validated_tool_results() -> None:
 
     assert response.model == "TBD"
     assert response.tool_results[0]["name"] == CoachToolName.GENERATE_WORKOUT_PLAN
+    plan_result = response.tool_results[0]["result"]["plan"]
+    assert plan_result["days"][0]["exercise_count"] > 0
+    assert "prescriptions" not in str(plan_result)
 
 
 def test_coach_llm_outage_does_not_mutate_without_valid_tool() -> None:
