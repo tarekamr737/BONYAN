@@ -6,9 +6,17 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
+from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
-from app.domains.users.repository import SqlAlchemyProfileRepository
-from app.domains.users.schemas import ProfileUpdate, UserProfileView
+from app.core.passwords import PasswordHasher
+from app.domains.users.auth_service import AuthService
+from app.domains.users.repository import SqlAlchemyAccountRepository, SqlAlchemyProfileRepository
+from app.domains.users.schemas import (
+    AccessTokenView,
+    AuthCredentials,
+    ProfileUpdate,
+    UserProfileView,
+)
 from app.domains.users.service import ProfileService
 
 router = APIRouter(tags=["users"])
@@ -21,6 +29,26 @@ async def get_profile_service(
 
 
 ProfileServiceDep = Annotated[ProfileService, Depends(get_profile_service)]
+
+
+async def get_auth_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> AuthService:
+    return AuthService(SqlAlchemyAccountRepository(session), PasswordHasher(), settings)
+
+
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
+
+@router.post("/auth/register", response_model=AccessTokenView, status_code=201)
+async def register(request: AuthCredentials, service: AuthServiceDep) -> AccessTokenView:
+    return await service.register(request)
+
+
+@router.post("/auth/login", response_model=AccessTokenView)
+async def login(request: AuthCredentials, service: AuthServiceDep) -> AccessTokenView:
+    return await service.login(request)
 
 
 @router.get("/me", response_model=UserProfileView)

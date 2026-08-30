@@ -6,7 +6,31 @@ from enum import StrEnum
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+
+
+class AuthCredentials(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str = Field(min_length=3, max_length=254)
+    password: SecretStr = Field(min_length=12, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized.count("@") != 1 or any(character.isspace() for character in normalized):
+            raise ValueError("email must be valid")
+        local_part, domain = normalized.split("@")
+        if not local_part or "." not in domain or domain.startswith(".") or domain.endswith("."):
+            raise ValueError("email must be valid")
+        return normalized
+
+
+class AccessTokenView(BaseModel):
+    access_token: str
+    expires_in: int
+    token_type: str = "bearer"
 
 
 class Sex(StrEnum):

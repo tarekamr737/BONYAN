@@ -64,6 +64,16 @@ def test_missing_auth_configuration_fails_closed() -> None:
     assert error.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
 
 
+def test_issued_access_token_round_trips_through_verifier() -> None:
+    from app.core.auth import create_access_token
+
+    settings = make_settings()
+    token, expires_in = create_access_token("server-user", settings)
+
+    assert expires_in == settings.auth_access_token_minutes * 60
+    assert JwtAccessTokenVerifier(settings).verify(token).id == "server-user"
+
+
 async def get_private_route(path: str) -> int:
     transport = ASGITransport(app=create_app())
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -73,6 +83,11 @@ async def get_private_route(path: str) -> int:
 
 def test_private_inbody_route_rejects_missing_authentication() -> None:
     assert asyncio.run(get_private_route("/api/v1/inbody/scans")) == status.HTTP_401_UNAUTHORIZED
+
+
+def test_private_training_route_rejects_missing_authentication() -> None:
+    path = "/api/v1/training/plans/current"
+    assert asyncio.run(get_private_route(path)) == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.parametrize("path", ["/api/v1/avatars", "/api/v1/community/feed"])

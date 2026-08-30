@@ -34,6 +34,7 @@ class ProfileService:
             "training_goal": profile.training_goal,
             "experience_level": profile.experience_level,
             "available_training_days": profile.available_training_days,
+            "available_equipment": profile.available_equipment or None,
         }
         missing = [field for field, value in required.items() if value is None]
         if missing:

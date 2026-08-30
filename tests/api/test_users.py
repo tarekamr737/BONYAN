@@ -4,6 +4,7 @@ import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+import pytest
 from fastapi import status
 from httpx import ASGITransport, AsyncClient
 
@@ -82,6 +83,27 @@ def test_onboarding_cannot_complete_without_required_fields() -> None:
             assert exc.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         else:
             raise AssertionError("incomplete onboarding was accepted")
+
+    asyncio.run(scenario())
+
+
+def test_onboarding_requires_an_equipment_choice() -> None:
+    async def scenario() -> None:
+        service = ProfileService(FakeProfileRepository())
+        with pytest.raises(AppError) as error:
+            await service.update(
+                "user-1",
+                ProfileUpdate(
+                    display_name="User",
+                    training_goal="general_fitness",
+                    experience_level="beginner",
+                    available_training_days=3,
+                    available_equipment=[],
+                    onboarding_completed=True,
+                ),
+            )
+
+        assert error.value.code == "onboarding_incomplete"
 
     asyncio.run(scenario())
 
