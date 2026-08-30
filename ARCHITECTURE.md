@@ -65,6 +65,10 @@ Shared error shape:
 ```
 
 ## Authentication / Authorization
+The core user domain owns first-party email/password accounts. Passwords are stored as
+salted scrypt hashes and successful registration/login returns a short-lived HS256 access
+token. Mobile stores the token in platform secure storage (session storage on web).
+
 For every private route:
 1. authenticate caller
 2. derive trusted `user_id`
