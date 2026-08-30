@@ -85,3 +85,14 @@ export type CoachMessageResponse = {
   model: string;
   tool_results: Record<string, unknown>[];
 };
+
+export type CoachToolCall = {
+  name:
+    | "get_current_plan"
+    | "get_training_history"
+    | "search_exercises"
+    | "get_exercise_details"
+    | "generate_workout_plan"
+    | "log_workout";
+  arguments?: Record<string, unknown>;
+};

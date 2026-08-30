@@ -7,6 +7,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.domains.training.coach.schemas import CoachToolCall
+
 
 class TrainingGoal(StrEnum):
     STRENGTH = "strength"
@@ -109,8 +111,21 @@ class WorkoutPlan(BaseModel):
     updated_at: datetime | None = None
 
 
-class GeneratePlanRequest(PlanningContext):
+class GeneratePlanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    goal: TrainingGoal = TrainingGoal.GENERAL_FITNESS
+    experience: ExperienceLevel = ExperienceLevel.BEGINNER
+    days_per_week: Annotated[int, Field(ge=2, le=6)] = 3
+    session_duration_minutes: Annotated[int, Field(ge=25, le=120)] = 45
+    equipment: list[str] = Field(default_factory=list, max_length=20)
+    preferences: list[str] = Field(default_factory=list, max_length=20)
     activate: bool = True
+
+    @field_validator("equipment", "preferences")
+    @classmethod
+    def normalize_text_list(cls, value: list[str]) -> list[str]:
+        return sorted({item.strip().lower() for item in value if item.strip()})
 
 
 class LoggedSetInput(BaseModel):
@@ -158,6 +173,7 @@ class SubstituteExerciseRequest(BaseModel):
 
 class CoachMessageRequest(BaseModel):
     message: str = Field(min_length=1, max_length=1000)
+    tool_calls: list[CoachToolCall] = Field(default_factory=list, max_length=8)
 
 
 class CoachMessageResponse(BaseModel):

@@ -64,6 +64,11 @@ export function HomeScreen() {
                 <Text style={styles.secondaryActionText}>Create Body Avatar</Text>
               </Pressable>
             </Link>
+            <Link asChild href="./training">
+              <Pressable accessibilityRole="button" style={styles.secondaryAction}>
+                <Text style={styles.secondaryActionText}>Open Training</Text>
+              </Pressable>
+            </Link>
             <Link asChild href="./community">
               <Pressable accessibilityRole="button" style={styles.secondaryAction}>
                 <Text style={styles.secondaryActionText}>Open Community</Text>

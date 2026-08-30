@@ -1,132 +1,169 @@
-import { Link } from "expo-router";
-import { useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
+import { generateWorkoutPlan, getCurrentWorkoutPlan, startWorkoutSession } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { TrainingHeader } from "../components/TrainingHeader";
-import type { WorkoutPlan } from "../types";
+import type { GeneratePlanRequest, WorkoutDay, WorkoutPlan } from "../types";
 
-const demoPlan: WorkoutPlan = {
-  id: "demo-plan",
-  status: "active",
-  goal: "hypertrophy",
-  experience: "intermediate",
-  days_per_week: 4,
-  session_duration_minutes: 55,
-  equipment: ["dumbbell", "cable", "bodyweight"],
-  generation_snapshot: { engine: "deterministic-v1" },
-  created_at: null,
-  updated_at: null,
-  days: [
-    {
-      key: "day-1",
-      order: 1,
-      name: "Upper A",
-      estimated_minutes: 52,
-      prescriptions: [
-        {
-          musclewiki_id: "mw-db-press",
-          name: "Dumbbell Bench Press",
-          muscles: ["chest"],
-          equipment: ["dumbbell"],
-          sets: 3,
-          reps_min: 8,
-          reps_max: 12,
-          rest_seconds: 90,
-          intensity_target: "RIR 1-2",
-          notes: "Keep shoulder blades set before each rep.",
-          progression: {
-            type: "double_progression",
-            increment_kg: 2.5,
-            hold_after_failures: 1,
-            regress_after_failures: 2,
-          },
-        },
-        {
-          musclewiki_id: "mw-row",
-          name: "One Arm Dumbbell Row",
-          muscles: ["back"],
-          equipment: ["dumbbell"],
-          sets: 3,
-          reps_min: 8,
-          reps_max: 12,
-          rest_seconds: 90,
-          intensity_target: "RIR 1-2",
-          notes: "Pause briefly with elbow beside ribs.",
-          progression: {
-            type: "double_progression",
-            increment_kg: 2.5,
-            hold_after_failures: 1,
-            regress_after_failures: 2,
-          },
-        },
-      ],
-    },
-  ],
+const defaultRequest: GeneratePlanRequest = {
+  activate: true,
+  days_per_week: 3,
+  equipment: ["bodyweight", "dumbbell"],
+  experience: "beginner",
+  goal: "general_fitness",
+  session_duration_minutes: 45,
 };
 
-const fallbackDay = demoPlan.days[0];
+function formatLabel(value: string): string {
+  return value.replace("_", " ");
+}
+
+function firstDay(plan: WorkoutPlan | null | undefined): WorkoutDay | undefined {
+  return plan?.days.slice().sort((a, b) => a.order - b.order)[0];
+}
 
 export function TrainingHomeScreen() {
-  const today = useMemo(() => fallbackDay, []);
+  const queryClient = useQueryClient();
+  const planQuery = useQuery({
+    queryFn: getCurrentWorkoutPlan,
+    queryKey: ["training", "current-plan"],
+  });
+  const plan = planQuery.data;
+  const today = firstDay(plan);
 
-  if (!today) {
-    return null;
-  }
+  const generateMutation = useMutation({
+    mutationFn: () => generateWorkoutPlan(defaultRequest),
+    onSuccess: (createdPlan) => {
+      queryClient.setQueryData(["training", "current-plan"], createdPlan);
+    },
+  });
+
+  const startMutation = useMutation({
+    mutationFn: async () => {
+      if (!plan?.id || !today?.key) {
+        throw new Error("No workout day is ready to start.");
+      }
+      return startWorkoutSession(plan.id, today.key);
+    },
+    onSuccess: (session) => {
+      router.push(`/training/day?dayKey=${session.day_key}&sessionId=${session.id}`);
+    },
+  });
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TrainingHeader
           title="Training"
-          subtitle="Today's work, current progression, and your coach in one fast gym surface."
+          subtitle="Your current plan, live session logging, and coach support stay synced with BONYAN."
         />
 
-        <SurfaceCard>
-          <View style={styles.planHeader}>
-            <View>
-              <Text style={styles.label}>CURRENT PLAN</Text>
-              <Text style={styles.planTitle}>{today.name}</Text>
-            </View>
-            <View style={styles.durationPill}>
-              <Text style={styles.durationText}>{today.estimated_minutes} min</Text>
-            </View>
-          </View>
-          <View style={styles.planStats}>
-            <Text style={styles.stat}>{demoPlan.days_per_week} days/wk</Text>
-            <Text style={styles.stat}>{demoPlan.goal.replace("_", " ")}</Text>
-            <Text style={styles.stat}>{demoPlan.experience}</Text>
-          </View>
-          <Link asChild href={{ pathname: "/training/day", params: { day: today.key } }}>
-            <Pressable accessibilityRole="button" style={styles.primaryAction}>
-              <Text style={styles.primaryActionText}>Start workout</Text>
-            </Pressable>
-          </Link>
-        </SurfaceCard>
+        {planQuery.isPending ? (
+          <SurfaceCard>
+            <Text style={styles.stateTitle}>Loading your plan</Text>
+            <Text style={styles.stateCopy}>Checking the active training cycle for this account.</Text>
+          </SurfaceCard>
+        ) : null}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>First exercises</Text>
-          {today.prescriptions.map((exercise, index) => (
-            <ExerciseCard
-              key={exercise.musclewiki_id}
-              active={index === 0}
-              exercise={exercise}
-              index={index}
-            />
-          ))}
-        </View>
+        {planQuery.isError ? (
+          <SurfaceCard>
+            <Text style={styles.stateTitle}>Plan unavailable</Text>
+            <Text style={styles.stateCopy}>
+              The training API could not load your current plan. Retry when the connection is back.
+            </Text>
+            <Pressable accessibilityRole="button" onPress={() => planQuery.refetch()} style={styles.secondaryAction}>
+              <Text style={styles.secondaryActionText}>Retry</Text>
+            </Pressable>
+          </SurfaceCard>
+        ) : null}
+
+        {!planQuery.isPending && !planQuery.isError && !plan ? (
+          <SurfaceCard>
+            <Text style={styles.stateTitle}>No active plan yet</Text>
+            <Text style={styles.stateCopy}>
+              Generate a deterministic starter plan from your profile defaults and latest confirmed InBody data when
+              available.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={generateMutation.isPending}
+              onPress={() => generateMutation.mutate()}
+              style={[styles.primaryAction, generateMutation.isPending && styles.disabledAction]}
+            >
+              <Text style={styles.primaryActionText}>
+                {generateMutation.isPending ? "Generating..." : "Generate plan"}
+              </Text>
+            </Pressable>
+            {generateMutation.isError ? <Text style={styles.errorText}>Plan generation failed. Try again.</Text> : null}
+          </SurfaceCard>
+        ) : null}
+
+        {plan && today ? (
+          <>
+            <SurfaceCard>
+              <View style={styles.planHeader}>
+                <View style={styles.titleWrap}>
+                  <Text style={styles.label}>CURRENT PLAN</Text>
+                  <Text style={styles.planTitle}>{today.name}</Text>
+                </View>
+                <View style={styles.durationPill}>
+                  <Text style={styles.durationText}>{today.estimated_minutes} min</Text>
+                </View>
+              </View>
+              <View style={styles.planStats}>
+                <Text style={styles.stat}>{plan.days_per_week} days/wk</Text>
+                <Text style={styles.stat}>{formatLabel(plan.goal)}</Text>
+                <Text style={styles.stat}>{plan.experience}</Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                disabled={startMutation.isPending}
+                onPress={() => startMutation.mutate()}
+                style={[styles.primaryAction, startMutation.isPending && styles.disabledAction]}
+              >
+                <Text style={styles.primaryActionText}>
+                  {startMutation.isPending ? "Starting..." : "Start workout"}
+                </Text>
+              </Pressable>
+              {startMutation.isError ? <Text style={styles.errorText}>Workout could not be started.</Text> : null}
+            </SurfaceCard>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Today</Text>
+              {today.prescriptions.map((exercise, index) => (
+                <ExerciseCard
+                  key={`${exercise.musclewiki_id}-${index}`}
+                  active={index === 0}
+                  exercise={exercise}
+                  index={index}
+                />
+              ))}
+            </View>
+          </>
+        ) : null}
 
         <View style={styles.actions}>
-          <Link asChild href="/training/coach">
-            <Pressable accessibilityRole="button" style={styles.secondaryAction}>
-              <Text style={styles.secondaryActionText}>Ask coach</Text>
-            </Pressable>
-          </Link>
-          <Pressable accessibilityRole="button" style={styles.secondaryAction}>
-            <Text style={styles.secondaryActionText}>Generate plan</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/training/coach")}
+            style={styles.secondaryAction}
+          >
+            <Text style={styles.secondaryActionText}>Ask coach</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={generateMutation.isPending}
+            onPress={() => generateMutation.mutate()}
+            style={styles.secondaryAction}
+          >
+            <Text style={styles.secondaryActionText}>
+              {generateMutation.isPending ? "Generating..." : plan ? "Replace plan" : "Generate plan"}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -145,6 +182,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  disabledAction: {
+    opacity: 0.55,
+  },
   durationPill: {
     backgroundColor: colors.bronzeSoft,
     borderColor: colors.bronzeBorder,
@@ -158,6 +198,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
   },
+  errorText: {
+    color: colors.error,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: spacing.md,
+  },
   label: {
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
@@ -167,6 +214,7 @@ const styles = StyleSheet.create({
   planHeader: {
     alignItems: "center",
     flexDirection: "row",
+    gap: spacing.md,
     justifyContent: "space-between",
   },
   planStats: {
@@ -231,5 +279,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     textTransform: "uppercase",
+  },
+  stateCopy: {
+    color: colors.mutedLight,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
+  },
+  stateTitle: {
+    color: colors.text,
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  titleWrap: {
+    flex: 1,
+    minWidth: 0,
   },
 });

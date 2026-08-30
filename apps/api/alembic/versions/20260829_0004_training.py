@@ -30,11 +30,26 @@ def upgrade() -> None:
         sa.Column("equipment", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("generation_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("days", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_training_workout_plans_owner_id"), "training_workout_plans", ["owner_id"], unique=False)
+    op.create_index(
+        op.f("ix_training_workout_plans_owner_id"),
+        "training_workout_plans",
+        ["owner_id"],
+        unique=False,
+    )
     op.create_index(
         "ix_training_plans_owner_status_created",
         "training_workout_plans",
@@ -50,13 +65,28 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=40), nullable=False),
         sa.Column("logged_sets", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("summary", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("started_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "started_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["plan_id"], ["training_workout_plans.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_training_workout_sessions_owner_id"), "training_workout_sessions", ["owner_id"], unique=False)
-    op.create_index(op.f("ix_training_workout_sessions_plan_id"), "training_workout_sessions", ["plan_id"], unique=False)
+    op.create_index(
+        op.f("ix_training_workout_sessions_owner_id"),
+        "training_workout_sessions",
+        ["owner_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_training_workout_sessions_plan_id"),
+        "training_workout_sessions",
+        ["plan_id"],
+        unique=False,
+    )
     op.create_index(
         "ix_training_sessions_owner_status_started",
         "training_workout_sessions",
@@ -66,9 +96,15 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_training_sessions_owner_status_started", table_name="training_workout_sessions")
-    op.drop_index(op.f("ix_training_workout_sessions_plan_id"), table_name="training_workout_sessions")
-    op.drop_index(op.f("ix_training_workout_sessions_owner_id"), table_name="training_workout_sessions")
+    op.drop_index(
+        "ix_training_sessions_owner_status_started", table_name="training_workout_sessions"
+    )
+    op.drop_index(
+        op.f("ix_training_workout_sessions_plan_id"), table_name="training_workout_sessions"
+    )
+    op.drop_index(
+        op.f("ix_training_workout_sessions_owner_id"), table_name="training_workout_sessions"
+    )
     op.drop_table("training_workout_sessions")
     op.drop_index("ix_training_plans_owner_status_created", table_name="training_workout_plans")
     op.drop_index(op.f("ix_training_workout_plans_owner_id"), table_name="training_workout_plans")

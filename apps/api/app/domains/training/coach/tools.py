@@ -46,18 +46,13 @@ class CoachToolExecutor:
             plan = await self.training_service.get_current_plan(user_id=user_id)
             return {"plan": plan.model_dump(mode="json") if plan else None}
         if call.name == CoachToolName.GET_TRAINING_HISTORY:
-            sessions = await self.training_service.repository.list_sessions(
-                owner_id=user_id, limit=5
-            )
+            sessions = await self.training_service.list_recent_sessions(user_id=user_id, limit=5)
             return {
-                "sessions": [
-                    self.training_service._session_response(item).model_dump(mode="json")
-                    for item in sessions
-                ]
+                "sessions": [item.model_dump(mode="json") for item in sessions]
             }
         if call.name == CoachToolName.SEARCH_EXERCISES:
             args = SearchExercisesArgs.model_validate(call.arguments)
-            page = await self.training_service.exercise_provider.search_exercises(
+            page = await self.training_service.search_exercises(
                 ExerciseSearchFilters(
                     query=args.query,
                     muscles=tuple(args.muscles),
@@ -69,7 +64,7 @@ class CoachToolExecutor:
             return {"items": [item.__dict__ for item in page.items]}
         if call.name == CoachToolName.GET_EXERCISE_DETAILS:
             args = ExerciseDetailsArgs.model_validate(call.arguments)
-            item = await self.training_service.exercise_provider.get_exercise(args.exercise_id)
+            item = await self.training_service.get_exercise_details(args.exercise_id)
             return {"exercise": item.__dict__}
         if call.name == CoachToolName.GENERATE_WORKOUT_PLAN:
             args = GeneratePlanRequest.model_validate(call.arguments)

@@ -10,6 +10,8 @@ from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.providers.mocks import MockLLMProvider
+from app.domains.inbody.contracts import InBodyTrainingAdapter
+from app.domains.inbody.repository import InBodyRepository
 from app.domains.training.coach.service import CoachService
 from app.domains.training.coach.tools import CoachToolExecutor
 from app.domains.training.repository import TrainingRepository
@@ -32,7 +34,11 @@ async def get_training_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> TrainingService:
-    return TrainingService(TrainingRepository(session), MuscleWikiClient(settings=settings))
+    return TrainingService(
+        TrainingRepository(session),
+        MuscleWikiClient(settings=settings),
+        InBodyTrainingAdapter(InBodyRepository(session)),
+    )
 
 
 TrainingServiceDep = Annotated[TrainingService, Depends(get_training_service)]
@@ -123,4 +129,6 @@ async def coach_message(
         llm_provider=MockLLMProvider(settings.chat_model),
         tool_executor=CoachToolExecutor(service),
     )
-    return await coach.respond(user_id=current_user.id, message=request.message)
+    return await coach.respond(
+        user_id=current_user.id, message=request.message, tool_calls=request.tool_calls
+    )

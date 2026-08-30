@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import status
 
 from app.core.errors import AppError
+from app.domains.inbody.contracts import LatestInBodyProvider
 from app.domains.training.engine.planner import WorkoutPlanner
 from app.domains.training.engine.progression import decide_progression
 from app.domains.training.engine.rules import normalize_equipment
@@ -21,20 +23,38 @@ from app.domains.training.schemas import (
     WorkoutSessionResponse,
     WorkoutSessionStatus,
 )
-from app.integrations.musclewiki.provider import ExerciseSearchFilters, MuscleWikiExerciseProvider
+from app.integrations.musclewiki.provider import (
+    ExerciseDetails,
+    ExerciseSearchFilters,
+    ExerciseSearchPage,
+    MuscleWikiExerciseProvider,
+)
 
 
 class TrainingService:
     def __init__(
-        self, repository: TrainingRepository, exercise_provider: MuscleWikiExerciseProvider
+        self,
+        repository: TrainingRepository,
+        exercise_provider: MuscleWikiExerciseProvider,
+        inbody_provider: LatestInBodyProvider | None = None,
     ) -> None:
         self.repository = repository
         self.exercise_provider = exercise_provider
+        self.inbody_provider = inbody_provider
         self.planner = WorkoutPlanner(exercise_provider)
 
     async def generate_plan(self, *, user_id: str, request: GeneratePlanRequest) -> WorkoutPlan:
+        latest_inbody = (
+            await self.inbody_provider.get_latest_inbody(user_id)
+            if self.inbody_provider is not None
+            else None
+        )
         plan = await self.planner.generate(
-            PlanningContext.model_validate(request), activate=request.activate
+            PlanningContext(
+                **request.model_dump(exclude={"activate"}),
+                latest_inbody=latest_inbody,
+            ),
+            activate=request.activate,
         )
         record = await self.repository.save_plan(
             owner_id=user_id,
@@ -55,6 +75,25 @@ class TrainingService:
         record = await self.repository.get_active_plan(owner_id=user_id)
         return self._plan_response(record) if record else None
 
+    async def list_recent_sessions(
+        self, *, user_id: str, limit: int = 10
+    ) -> list[WorkoutSessionResponse]:
+        records = await self.repository.list_sessions(owner_id=user_id, limit=limit)
+        return [self._session_response(item) for item in records]
+
+    async def search_exercises(
+        self, filters: ExerciseSearchFilters, *, page: int = 1, page_size: int = 20
+    ) -> ExerciseSearchPage:
+        return await self.exercise_provider.search_exercises(
+            filters, page=page, page_size=page_size
+        )
+
+    async def get_exercise_details(self, exercise_id: str) -> ExerciseDetails:
+        return await self.exercise_provider.get_exercise(exercise_id)
+
+    async def get_exercise_media_access(self, exercise_id: str):
+        return await self.exercise_provider.get_media_access(exercise_id)
+
     async def start_session(
         self, *, user_id: str, plan_id: UUID, day_key: str
     ) -> WorkoutSessionResponse:
@@ -71,10 +110,12 @@ class TrainingService:
         self, *, user_id: str, session_id: UUID, logged_set: LoggedSetInput
     ) -> WorkoutSessionResponse:
         session = await self._owned_session(user_id=user_id, session_id=session_id)
-        if session.status != WorkoutSessionStatus.ACTIVE:
-            raise AppError(
-                "session_completed", "This workout is already complete.", status.HTTP_409_CONFLICT
-            )
+        self._ensure_active_session(session)
+        self._validate_set_target(
+            await self._session_day(user_id=user_id, session=session),
+            prescription_index=logged_set.prescription_index,
+            set_number=logged_set.set_number,
+        )
         sets = list(session.logged_sets)
         sets = [
             item
@@ -94,6 +135,12 @@ class TrainingService:
         self, *, user_id: str, session_id: UUID, prescription_index: int, set_number: int
     ) -> WorkoutSessionResponse:
         session = await self._owned_session(user_id=user_id, session_id=session_id)
+        self._ensure_active_session(session)
+        self._validate_set_target(
+            await self._session_day(user_id=user_id, session=session),
+            prescription_index=prescription_index,
+            set_number=set_number,
+        )
         session.logged_sets = [
             item
             for item in session.logged_sets
@@ -106,7 +153,9 @@ class TrainingService:
 
     async def complete_session(self, *, user_id: str, session_id: UUID) -> WorkoutSessionResponse:
         session = await self._owned_session(user_id=user_id, session_id=session_id)
+        self._ensure_active_session(session)
         session.status = WorkoutSessionStatus.COMPLETED
+        session.completed_at = datetime.now(UTC)
         session.summary = {
             "sets": len(session.logged_sets),
             "volume_kg": round(
@@ -147,6 +196,35 @@ class TrainingService:
         )
         plan.days = [item.model_dump(mode="json") for item in plan_schema.days]
         return self._plan_response(plan)
+
+    async def _session_day(self, *, user_id: str, session):
+        plan = await self._owned_plan(user_id=user_id, plan_id=session.plan_id)
+        plan_schema = self._plan_response(plan)
+        day = next((item for item in plan_schema.days if item.key == session.day_key), None)
+        if day is None:
+            raise AppError(
+                "training_day_not_found", "Workout day not found.", status.HTTP_404_NOT_FOUND
+            )
+        return day
+
+    def _ensure_active_session(self, session) -> None:
+        if session.status != WorkoutSessionStatus.ACTIVE:
+            raise AppError(
+                "session_completed", "This workout is already complete.", status.HTTP_409_CONFLICT
+            )
+
+    def _validate_set_target(self, day, *, prescription_index: int, set_number: int) -> None:
+        if prescription_index >= len(day.prescriptions):
+            raise AppError(
+                "training_prescription_not_found", "Exercise not found.", status.HTTP_404_NOT_FOUND
+            )
+        prescription = day.prescriptions[prescription_index]
+        if set_number > prescription.sets:
+            raise AppError(
+                "training_set_not_found",
+                "Set number is not prescribed for this exercise.",
+                status.HTTP_404_NOT_FOUND,
+            )
 
     async def _owned_plan(self, *, user_id: str, plan_id: UUID):
         plan = await self.repository.get_plan(owner_id=user_id, plan_id=plan_id)

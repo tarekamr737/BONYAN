@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Protocol
 
 
@@ -34,6 +35,12 @@ class ExerciseSearchPage:
     next_page: int | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class MediaAccess:
+    url: str
+    expires_at: datetime
+
+
 class MuscleWikiExerciseProvider(Protocol):
     async def search_exercises(
         self, filters: ExerciseSearchFilters, *, page: int = 1, page_size: int = 20
@@ -41,4 +48,4 @@ class MuscleWikiExerciseProvider(Protocol):
 
     async def get_exercise(self, exercise_id: str) -> ExerciseDetails: ...
 
-    async def get_media_access(self, exercise_id: str) -> str | None: ...
+    async def get_media_access(self, exercise_id: str) -> MediaAccess | None: ...

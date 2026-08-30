@@ -1,6 +1,7 @@
 import { apiRequest } from "../../../core/api/client";
 import type {
   CoachMessageResponse,
+  CoachToolCall,
   GeneratePlanRequest,
   LoggedSetInput,
   WorkoutPlan,
@@ -41,9 +42,29 @@ export function completeWorkoutSession(sessionId: string): Promise<WorkoutSessio
   });
 }
 
-export function sendCoachMessage(message: string): Promise<CoachMessageResponse> {
+export function removeWorkoutSet(
+  sessionId: string,
+  prescriptionIndex: number,
+  setNumber: number,
+): Promise<WorkoutSession> {
+  const query = new URLSearchParams({
+    prescription_index: String(prescriptionIndex),
+    set_number: String(setNumber),
+  });
+  return apiRequest<WorkoutSession>(
+    `/api/v1/training/sessions/${sessionId}/sets?${query.toString()}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
+export function sendCoachMessage(
+  message: string,
+  toolCalls: CoachToolCall[] = [],
+): Promise<CoachMessageResponse> {
   return apiRequest<CoachMessageResponse>("/api/v1/training/coach", {
-    body: { message },
+    body: { message, tool_calls: toolCalls },
     method: "POST",
   });
 }

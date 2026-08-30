@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+from datetime import UTC, datetime, timedelta
 from urllib import error, parse, request
 
 from app.core.config import Settings
@@ -13,6 +15,7 @@ from app.integrations.musclewiki.provider import (
     ExerciseDetails,
     ExerciseSearchFilters,
     ExerciseSearchPage,
+    MediaAccess,
 )
 
 
@@ -45,7 +48,7 @@ class MuscleWikiClient:
         if filters.difficulty:
             query["difficulty"] = filters.difficulty
 
-        payload = self._get_json(f"/exercises/?{parse.urlencode(query)}")
+        payload = await self._get_json(f"/exercises/?{parse.urlencode(query)}")
         rows = payload.get("results", payload) if isinstance(payload, dict) else payload
         if not isinstance(rows, list):
             raise MuscleWikiInvalidResponseError("Exercise search returned invalid data.")
@@ -62,14 +65,22 @@ class MuscleWikiClient:
         cached = self.cache.get(exercise_id)
         if cached is not None:
             return cached
-        item = self._parse_exercise(self._get_json(f"/exercises/{parse.quote(exercise_id)}/"))
+        item = self._parse_exercise(
+            await self._get_json(f"/exercises/{parse.quote(exercise_id)}/")
+        )
         self.cache.set(item.id, item)
         return item
 
-    async def get_media_access(self, exercise_id: str) -> str | None:
-        return (await self.get_exercise(exercise_id)).video_url
+    async def get_media_access(self, exercise_id: str) -> MediaAccess | None:
+        video_url = (await self.get_exercise(exercise_id)).video_url
+        if video_url is None:
+            return None
+        return MediaAccess(url=video_url, expires_at=datetime.now(UTC) + timedelta(minutes=10))
 
-    def _get_json(self, path: str) -> object:
+    async def _get_json(self, path: str) -> object:
+        return await asyncio.to_thread(self._get_json_blocking, path)
+
+    def _get_json_blocking(self, path: str) -> object:
         headers = {"Accept": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"

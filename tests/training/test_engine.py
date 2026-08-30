@@ -68,7 +68,7 @@ class FakeExerciseProvider:
             difficulty="beginner",
         )
 
-    async def get_media_access(self, exercise_id: str) -> str | None:
+    async def get_media_access(self, exercise_id: str):
         return f"https://media.example/{exercise_id}"
 
 
