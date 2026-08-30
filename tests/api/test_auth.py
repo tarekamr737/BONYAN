@@ -93,3 +93,23 @@ def test_private_training_route_rejects_missing_authentication() -> None:
 @pytest.mark.parametrize("path", ["/api/v1/avatars", "/api/v1/community/feed"])
 def test_private_ws4_routes_reject_missing_authentication(path: str) -> None:
     assert asyncio.run(get_private_route(path)) == status.HTTP_401_UNAUTHORIZED
+
+
+def test_development_web_origin_can_call_private_api() -> None:
+    async def scenario() -> None:
+        transport = ASGITransport(app=create_app())
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.options(
+                "/api/v1/auth/register",
+                headers={
+                    "Access-Control-Request-Headers": "content-type",
+                    "Access-Control-Request-Method": "POST",
+                    "Origin": "http://127.0.0.1:4173",
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"
+        assert response.headers.get("access-control-allow-credentials") is None
+
+    asyncio.run(scenario())

@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     auth_jwt_issuer: str = "bonyan"
     auth_jwt_audience: str = "bonyan-api"
     auth_access_token_minutes: int = 720
+    cors_allowed_origins: str = ""
     private_storage_root: Path = API_DIRECTORY / ".private-storage"
     api_public_url: str = "http://127.0.0.1:8000"
 
@@ -96,6 +97,26 @@ class Settings(BaseSettings):
     @property
     def sqlalchemy_database_url(self) -> str:
         return self.database_url.get_secret_value()
+
+    @property
+    def cors_origins(self) -> list[str]:
+        configured = [
+            origin.strip().rstrip("/")
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
+        if configured:
+            return configured
+        if self.api_env in {"development", "test"}:
+            return [
+                "http://localhost:4173",
+                "http://127.0.0.1:4173",
+                "http://localhost:8081",
+                "http://127.0.0.1:8081",
+                "http://localhost:19006",
+                "http://127.0.0.1:19006",
+            ]
+        return []
 
 
 @lru_cache

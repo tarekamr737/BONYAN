@@ -32,3 +32,17 @@ def test_production_requires_https_public_api_url() -> None:
             auth_jwt_secret="a-secure-production-secret-that-is-long-enough",
             api_public_url="http://api.bonyan.test",
         )
+
+
+def test_cors_origins_are_explicit_and_production_fails_closed() -> None:
+    development = Settings()
+    production = Settings(
+        api_env="production",
+        api_public_url="https://api.bonyan.example",
+        auth_jwt_secret="a-secure-production-secret-that-is-long-enough",
+    )
+    configured = Settings(cors_allowed_origins="https://app.bonyan.example/")
+
+    assert "http://127.0.0.1:4173" in development.cors_origins
+    assert production.cors_origins == []
+    assert configured.cors_origins == ["https://app.bonyan.example"]
