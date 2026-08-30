@@ -13,6 +13,7 @@
     "mobile:typecheck": "npm run typecheck --workspace @bonyan/mobile",
     "mobile:test": "npm run test --workspace @bonyan/mobile",
     "mobile:export:web": "npm run export:web --workspace @bonyan/mobile",
+    "mobile:routes": "npm run routes:check --workspace @bonyan/mobile",
     "api:install": "python -m pip install -e \"apps/api[dev]\"",
     "api:dev": "python -m uvicorn app.main:app --reload --app-dir apps/api",
     "api:lint": "python -m ruff check --config apps/api/pyproject.toml apps/api/app tests/api tests/community",

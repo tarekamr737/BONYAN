@@ -1,5 +1,5 @@
 import { ApiError, parseApiErrorPayload } from "./errors";
-import { getAccessToken } from "../auth/session";
+import { clearSession, getAccessToken } from "../auth/session";
 
 const defaultBaseUrl = "http://127.0.0.1:8000";
 
@@ -55,6 +55,9 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const details = parseApiErrorPayload(await readPayload(response));
+    if (response.status === 401 && accessToken) {
+      void clearSession();
+    }
     throw new ApiError(response.status, details.code, details.message);
   }
 

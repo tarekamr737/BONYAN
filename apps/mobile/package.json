@@ -15,6 +15,7 @@
     "expo-gl": "~57.0.2",
     "expo-linking": "~57.0.7",
     "expo-router": "~57.0.16",
+    "expo-secure-store": "~57.0.2",
     "expo-splash-screen": "~57.0.8",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
@@ -40,6 +41,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web",
+    "routes:check": "node ../../scripts/generate-mobile-routes.cjs",
     "lint": "eslint app src tests --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
