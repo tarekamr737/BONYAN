@@ -67,7 +67,7 @@
 ## J. Integration
 - [x] Publish integration contract.
 - [x] After WS2 merge, register InBody modules.
-- [ ] After WS3 merge, register Training modules.
+- [x] After WS3 merge, register Training modules.
 - [x] After WS4 merge, register Avatar/Community modules.
 
 ## K. Final
