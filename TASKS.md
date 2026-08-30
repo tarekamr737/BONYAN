@@ -9,10 +9,10 @@
 
 ## B. Mobile Core
 - [x] Implement design tokens from prototype.
-- [ ] Add reusable button/input/card/loading/error primitives.
+- [x] Add reusable button/input/card/loading/error primitives.
 - [x] Configure Expo Router.
-- [ ] Add unauthenticated route group.
-- [ ] Add authenticated app shell.
+- [x] Add unauthenticated route group.
+- [x] Add authenticated app shell.
 - [x] Add typed API client.
 - [x] Add TanStack Query provider.
 - [x] Add shared API error handling.
@@ -28,23 +28,23 @@
 ## D. Database
 - [x] Configure PostgreSQL + SQLAlchemy 2.
 - [x] Configure Alembic.
-- [ ] Create initial user/profile migration.
+- [x] Create initial user/profile migration.
 - [x] Add DB session/repository dependency.
 - [x] Verify migration from clean DB.
 
 ## E. Authentication
-- [ ] Implement auth integration.
+- [x] Implement auth integration.
 - [x] Add current-user dependency.
 - [x] Add unauthorized/forbidden tests.
 - [x] Derive user ID from trusted auth context.
 
 ## F. User / Onboarding
-- [ ] Create profile schemas/repository/service.
-- [ ] Add `GET /api/v1/me`.
-- [ ] Add `PATCH /api/v1/me`.
-- [ ] Implement onboarding screens.
-- [ ] Persist onboarding completion.
-- [ ] Implement profile/settings screen.
+- [x] Create profile schemas/repository/service.
+- [x] Add `GET /api/v1/me`.
+- [x] Add `PATCH /api/v1/me`.
+- [x] Implement onboarding screens.
+- [x] Persist onboarding completion.
+- [x] Implement profile/settings screen.
 
 ## G. Shared Interfaces
 - [x] Create `LLMProvider` + mock.
@@ -62,19 +62,19 @@
 - [x] Add backend lint/test CI.
 - [x] Add mobile lint/typecheck/test CI.
 - [x] Add migration validation.
-- [ ] Confirm CI passes.
+- [x] Confirm CI passes.
 
 ## J. Integration
 - [x] Publish integration contract.
-- [ ] After WS2 merge, register InBody modules.
-- [ ] After WS3 merge, register Training modules.
+- [x] After WS2 merge, register InBody modules.
+- [x] After WS3 merge, register Training modules.
 - [x] After WS4 merge, register Avatar/Community modules.
 
 ## K. Final
 - [x] Fresh clone setup works.
 - [x] Mobile boots.
 - [x] API boots.
-- [ ] Auth/onboarding/profile work.
+- [x] Auth/onboarding/profile work.
 - [x] Lint passes.
 - [x] Typecheck passes.
 - [x] Tests pass.

@@ -19,6 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run mobile:lint
       - run: npm run mobile:export:web
+      - run: npm run mobile:routes
       - run: npm run mobile:typecheck
       - run: npm run mobile:test
 

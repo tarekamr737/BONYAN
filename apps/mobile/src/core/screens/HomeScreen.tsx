@@ -3,14 +3,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../components/SurfaceCard";
-import { useAuthSession } from "../auth/session";
 import { colors, fonts, radii, spacing } from "../theme/tokens";
 
 const foundations = ["EXPO ROUTER", "TANSTACK QUERY", "TYPED API"] as const;
 
 export function HomeScreen() {
-  const { isAuthenticated } = useAuthSession();
-
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView
@@ -47,8 +44,7 @@ export function HomeScreen() {
           </View>
         </SurfaceCard>
 
-        {isAuthenticated ? (
-          <View accessibilityLabel="Feature navigation" style={styles.featureActions}>
+        <View accessibilityLabel="Feature navigation" style={styles.featureActions}>
             <Link asChild href="./inbody">
               <Pressable accessibilityRole="button" style={styles.primaryAction}>
                 <Text style={styles.primaryActionText}>Upload InBody Report</Text>
@@ -74,8 +70,12 @@ export function HomeScreen() {
                 <Text style={styles.secondaryActionText}>Open Community</Text>
               </Pressable>
             </Link>
+            <Link asChild href="./profile">
+              <Pressable accessibilityRole="button" style={styles.secondaryAction}>
+                <Text style={styles.secondaryActionText}>Profile &amp; Preferences</Text>
+              </Pressable>
+            </Link>
           </View>
-        ) : null}
 
         <Text style={styles.footer}>BONYAN · DEVELOPMENT BASELINE</Text>
       </ScrollView>

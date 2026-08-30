@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Protocol
 
 import jwt
@@ -60,6 +61,29 @@ class JwtAccessTokenVerifier:
                 status.HTTP_401_UNAUTHORIZED,
             )
         return CurrentUser(id=subject)
+
+
+def create_access_token(user_id: str, settings: Settings) -> tuple[str, int]:
+    if not settings.auth_jwt_secret:
+        raise AppError(
+            "auth_not_configured",
+            "Authentication is temporarily unavailable.",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    now = datetime.now(UTC)
+    expires_in = timedelta(minutes=settings.auth_access_token_minutes)
+    token = jwt.encode(
+        {
+            "aud": settings.auth_jwt_audience,
+            "exp": now + expires_in,
+            "iat": now,
+            "iss": settings.auth_jwt_issuer,
+            "sub": user_id,
+        },
+        settings.auth_jwt_secret.get_secret_value(),
+        algorithm="HS256",
+    )
+    return token, int(expires_in.total_seconds())
 
 
 def get_access_token_verifier(

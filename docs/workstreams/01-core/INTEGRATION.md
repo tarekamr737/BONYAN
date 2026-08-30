@@ -43,6 +43,15 @@ adapters implement those protocols without leaking provider SDK types into servi
 The deterministic mocks require no credentials and remain the default until model and
 provider decisions are explicitly made.
 
+## Authentication contract
+
+Clients register or sign in through `POST /api/v1/auth/register` and
+`POST /api/v1/auth/login`, then send the returned access token as
+`Authorization: Bearer <token>`. Feature routes depend on the shared `CurrentUserDep` (or
+the WS4 adapter backed by the same dependency) and pass only its trusted ID into services.
+Feature request bodies and query parameters must never accept an ownership ID for
+authorization.
+
 ## Merge handoff
 
 Each feature PR must list its exported router and screen components. It must not edit

@@ -38,7 +38,7 @@ def register_error_handlers(app: FastAPI) -> None:
         return error_response(
             code="validation_error",
             message="The request contains invalid data.",
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     @app.exception_handler(Exception)

@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     auth_jwt_secret: SecretStr | None = None
     auth_jwt_issuer: str = "bonyan"
     auth_jwt_audience: str = "bonyan-api"
+    auth_access_token_minutes: int = 720
     private_storage_root: Path = API_DIRECTORY / ".private-storage"
     api_public_url: str = "http://127.0.0.1:8000"
 
@@ -52,6 +53,13 @@ class Settings(BaseSettings):
     def require_non_empty_auth_claim(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("auth JWT claims cannot be empty")
+        return value
+
+    @field_validator("auth_access_token_minutes")
+    @classmethod
+    def validate_access_token_lifetime(cls, value: int) -> int:
+        if not 5 <= value <= 1440:
+            raise ValueError("AUTH_ACCESS_TOKEN_MINUTES must be between 5 and 1440")
         return value
 
     @field_validator("api_public_url")

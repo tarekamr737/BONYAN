@@ -22,6 +22,11 @@ Copy-Item apps/api/.env.example apps/api/.env
 Copy-Item apps/mobile/.env.example apps/mobile/.env
 ```
 
+Before starting the API, set `AUTH_JWT_SECRET` in `apps/api/.env` to a random value of at
+least 32 bytes. Do not commit that value. For example, generate one with
+`python -c "import secrets; print(secrets.token_urlsafe(48))"` and paste the output into
+the copied environment file.
+
 On macOS/Linux, activate Python with `source .venv/bin/activate` and copy the
 environment examples with `cp`.
 
@@ -48,6 +53,7 @@ device, emulator, and web launch options when it starts.
 
 ```powershell
 npm run mobile:lint
+npm run mobile:routes
 npm run mobile:typecheck
 npm run mobile:test
 npm run api:lint
