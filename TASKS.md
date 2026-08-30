@@ -28,7 +28,7 @@
 ## D. Database
 - [x] Configure PostgreSQL + SQLAlchemy 2.
 - [x] Configure Alembic.
-- [ ] Create initial user/profile migration.
+- [x] Create initial user/profile migration.
 - [x] Add DB session/repository dependency.
 - [x] Verify migration from clean DB.
 
@@ -39,11 +39,11 @@
 - [x] Derive user ID from trusted auth context.
 
 ## F. User / Onboarding
-- [ ] Create profile schemas/repository/service.
-- [ ] Add `GET /api/v1/me`.
-- [ ] Add `PATCH /api/v1/me`.
+- [x] Create profile schemas/repository/service.
+- [x] Add `GET /api/v1/me`.
+- [x] Add `PATCH /api/v1/me`.
 - [ ] Implement onboarding screens.
-- [ ] Persist onboarding completion.
+- [x] Persist onboarding completion.
 - [ ] Implement profile/settings screen.
 
 ## G. Shared Interfaces
