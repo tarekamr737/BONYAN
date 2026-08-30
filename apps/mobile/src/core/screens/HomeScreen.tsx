@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../theme/tokens";
 
-const foundations = ["EXPO ROUTER", "TANSTACK QUERY", "TYPED API"] as const;
+const foundations = ["INBODY INSIGHTS", "PERSONAL TRAINING", "PRIVATE AVATARS"] as const;
 
 export function HomeScreen() {
   return (
@@ -16,7 +16,7 @@ export function HomeScreen() {
       >
         <View style={styles.topline}>
           <View style={styles.statusDot} />
-          <Text style={styles.statusText}>CORE PLATFORM · ONLINE</Text>
+          <Text style={styles.statusText}>YOUR HUB · READY</Text>
         </View>
 
         <View style={styles.hero}>
@@ -25,13 +25,13 @@ export function HomeScreen() {
           </Text>
           <Text style={styles.eyebrow}>BUILD HUMAN POTENTIAL</Text>
           <Text style={styles.intro}>
-            The shared foundation is ready for focused feature workstreams.
+            Track body composition, train with intent, and share only what you choose.
           </Text>
         </View>
 
         <SurfaceCard>
-          <Text style={styles.cardLabel}>FOUNDATION / 01</Text>
-          <Text style={styles.cardTitle}>One platform. Clear boundaries.</Text>
+          <Text style={styles.cardLabel}>YOUR JOURNEY / 01</Text>
+          <Text style={styles.cardTitle}>One place for measurable progress.</Text>
           <View style={styles.rule} />
           <View style={styles.foundationList}>
             {foundations.map((foundation, index) => (
@@ -77,7 +77,7 @@ export function HomeScreen() {
             </Link>
           </View>
 
-        <Text style={styles.footer}>BONYAN · DEVELOPMENT BASELINE</Text>
+        <Text style={styles.footer}>BONYAN · TRAIN WITH INTENT</Text>
       </ScrollView>
     </SafeAreaView>
   );
