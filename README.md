@@ -1,7 +1,8 @@
 # BONYAN
 
-BONYAN is a modular Expo + FastAPI application. This branch establishes the shared
-platform baseline only; product features remain owned by their workstreams.
+BONYAN is a modular Expo + FastAPI fitness application integrating authentication and
+profiles, InBody OCR and progress, deterministic training, avatar generation, and a
+privacy-aware community experience.
 
 ## Prerequisites
 
@@ -74,5 +75,13 @@ are declared in `apps/api/pyproject.toml`.
 
 Provider selection remains intentionally unresolved. Local development uses
 `MockLLMProvider` and `MockAvatarProvider`; `CHAT_MODEL` and `AVATAR_MODEL` remain `TBD`.
+
+Current provider status:
+
+- OCR: Mistral `mistral-ocr-4-1` (`MISTRAL_API_KEY` is optional for mock/test flows).
+- Exercises and media: MuscleWiki API (`MUSCLEWIKI_API_KEY` is optional for mock tests).
+- Coach LLM: `TBD`; the deterministic `MockLLMProvider` is available without credentials.
+- Avatar model: `TBD`; the metrics-driven `MockAvatarProvider` is available without
+  credentials. The MVP intentionally does not upload a source photo.
 
 See `docs/workstreams/01-core/INTEGRATION.md` before opening a feature PR.
