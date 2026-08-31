@@ -1,5 +1,11 @@
 from app.domains.inbody.schemas import InBodyMeasurement, InBodyMetricKey, InBodyResult
-from app.domains.inbody.validation import is_supported_upload, validate_measurement
+from app.domains.inbody.validation import (
+    MAX_IMAGE_BYTES,
+    MAX_PDF_PAGES,
+    is_supported_upload,
+    normalize_upload_filename,
+    validate_measurement,
+)
 
 
 def test_schema_preserves_missing_measurements_as_null() -> None:
@@ -35,3 +41,15 @@ def test_corrupt_and_unsupported_files_are_rejected() -> None:
 def test_valid_image_and_pdf_signatures_are_accepted() -> None:
     assert is_supported_upload("image/jpeg", 4, b"\xff\xd8\xff\xe0")
     assert is_supported_upload("application/pdf", 8, b"%PDF-1.7")
+
+
+def test_upload_limits_and_pdf_page_ceiling_are_enforced() -> None:
+    assert not is_supported_upload("image/jpeg", MAX_IMAGE_BYTES + 1, b"\xff\xd8\xff")
+    oversized_pdf = b"%PDF-1.7" + b" /Type /Page" * (MAX_PDF_PAGES + 1)
+    assert not is_supported_upload("application/pdf", len(oversized_pdf), oversized_pdf)
+
+
+def test_upload_filename_is_reduced_to_a_safe_display_name() -> None:
+    assert normalize_upload_filename("../../private/report.pdf") == "report.pdf"
+    assert normalize_upload_filename("..\\private\\scan.png") == "scan.png"
+    assert normalize_upload_filename("bad\r\nname.pdf") == "inbody-report"

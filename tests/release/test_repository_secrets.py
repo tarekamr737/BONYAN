@@ -15,7 +15,13 @@ SECRET_PATTERNS = {
 
 def tracked_files() -> list[Path]:
     result = subprocess.run(
-        ["git", "ls-files", "-z"],
+        [
+            "git",
+            "-c",
+            f"safe.directory={REPOSITORY_ROOT.as_posix()}",
+            "ls-files",
+            "-z",
+        ],
         cwd=REPOSITORY_ROOT,
         check=True,
         capture_output=True,

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
 from app.core.database import get_db_session
+from app.core.rate_limit import limit_ocr
 from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.inbody.repository import InBodyRepository
 from app.domains.inbody.schemas import (
@@ -39,6 +40,7 @@ async def upload_scan(
     report: ReportFile,
     current_user: CurrentUserDep,
     service: InBodyServiceDep,
+    _: Annotated[None, Depends(limit_ocr)],
 ) -> UploadResponse:
     content = await report.read(MAX_UPLOAD_BYTES + 1)
     return await service.upload_scan(

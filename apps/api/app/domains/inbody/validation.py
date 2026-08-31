@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 from app.domains.inbody.schemas import InBodyMeasurement, InBodyMetricKey
 
-MAX_UPLOAD_BYTES = 12 * 1024 * 1024
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_PDF_BYTES = 12 * 1024 * 1024
+MAX_UPLOAD_BYTES = max(MAX_IMAGE_BYTES, MAX_PDF_BYTES)
+MAX_PDF_PAGES = 25
 SUPPORTED_CONTENT_TYPES = {
     "image/jpeg",
     "image/png",
@@ -69,10 +74,12 @@ def normalize_unit(unit: str | None) -> str | None:
 def is_supported_upload(content_type: str, byte_size: int, content: bytes) -> bool:
     if content_type not in SUPPORTED_CONTENT_TYPES:
         return False
-    if byte_size <= 0 or byte_size > MAX_UPLOAD_BYTES:
+    byte_limit = MAX_PDF_BYTES if content_type == "application/pdf" else MAX_IMAGE_BYTES
+    if byte_size <= 0 or byte_size > byte_limit:
         return False
     if content_type == "application/pdf":
-        return content.startswith(b"%PDF")
+        page_count = len(re.findall(rb"/Type\s*/Page\b", content))
+        return content.startswith(b"%PDF") and page_count <= MAX_PDF_PAGES
     if content_type == "image/png":
         return content.startswith(b"\x89PNG\r\n\x1a\n")
     if content_type == "image/jpeg":
@@ -80,6 +87,19 @@ def is_supported_upload(content_type: str, byte_size: int, content: bytes) -> bo
     if content_type == "image/webp":
         return content.startswith(b"RIFF") and content[8:12] == b"WEBP"
     return False
+
+
+def normalize_upload_filename(filename: str) -> str:
+    normalized = filename.strip().replace("\\", "/")
+    basename = PurePosixPath(normalized).name
+    if (
+        not basename
+        or basename in {".", ".."}
+        or len(basename) > 255
+        or any(ord(character) < 32 for character in basename)
+    ):
+        return "inbody-report"
+    return basename
 
 
 def validate_measurement(measurement: InBodyMeasurement) -> InBodyMeasurement:

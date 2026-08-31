@@ -18,7 +18,11 @@ from app.domains.inbody.schemas import (
     ReviewUpdate,
     UploadResponse,
 )
-from app.domains.inbody.validation import is_supported_upload, validate_measurement
+from app.domains.inbody.validation import (
+    is_supported_upload,
+    normalize_upload_filename,
+    validate_measurement,
+)
 from app.integrations.mistral.ocr_provider import MistralOcrProvider, OcrProvider
 
 if TYPE_CHECKING:
@@ -51,13 +55,14 @@ class InBodyService:
                 "Upload a readable InBody image or PDF.",
                 status.HTTP_400_BAD_REQUEST,
             )
-        if len(filename) > 255 or len(content_type) > 120:
+        if len(content_type) > 120:
             raise AppError(
                 "invalid_inbody_file",
                 "Upload a readable InBody image or PDF.",
                 status.HTTP_400_BAD_REQUEST,
             )
 
+        filename = normalize_upload_filename(filename)
         content_hash = hashlib.sha256(content).hexdigest()
         duplicate = await self.repository.find_duplicate(
             owner_id=user_id,
@@ -76,11 +81,20 @@ class InBodyService:
             content_hash=content_hash,
             storage_key=storage_key,
         )
-        await self.storage.put(
-            key=storage_key,
-            content=content,
-            content_type=content_type,
-        )
+        try:
+            await self.storage.put(
+                key=storage_key,
+                content=content,
+                content_type=content_type,
+            )
+        except Exception as exc:
+            await self.storage.delete(key=storage_key)
+            await self.repository.delete(scan)
+            raise AppError(
+                "private_upload_failed",
+                "The report could not be stored. Please try again.",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ) from exc
 
         try:
             result = await self.ocr_provider.extract(

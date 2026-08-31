@@ -3,7 +3,7 @@
 ## A. Baseline
 
 - [x] Sync from latest merged `main` (`2d1736b8cba7ce31e7e3f7ea8fc136e556e23d5f`).
-- [ ] Verify current CI and final integration tests. Mobile checks pass; API/migration checks require Python and PostgreSQL.
+- [x] Verify current CI and final integration tests. Mobile checks and 124 API/release tests pass; a live PostgreSQL migration still requires Docker or staging.
 - [x] Create release/operations docs structure.
 
 ## B. Staging
@@ -23,8 +23,8 @@
 ## D–F. Security
 
 - [x] Audit tracked files for secrets; document separation, rotation, least privilege, and signing.
-- [ ] Add/test registration, login, OCR, Coach, Avatar, and media-token rate limits.
-- [ ] Verify upload type/size/name/privacy/cleanup/deletion and add release security tests.
+- [x] Add/test registration, login, OCR, Coach, Avatar, and media-token rate limits.
+- [x] Verify upload type/size/name/privacy/cleanup/deletion and add release security tests.
 
 ## G–I. Operations and Privacy
 

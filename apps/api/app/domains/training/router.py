@@ -13,6 +13,7 @@ from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.errors import AppError
 from app.core.providers.mocks import MockLLMProvider
+from app.core.rate_limit import limit_coach, limit_media_token
 from app.domains.inbody.contracts import InBodyTrainingAdapter
 from app.domains.inbody.repository import InBodyRepository
 from app.domains.training.coach.service import CoachService
@@ -143,6 +144,7 @@ async def get_exercise_media_access(
     exercise_id: str,
     current_user: CurrentUserDep,
     service: TrainingServiceDep,
+    _: Annotated[None, Depends(limit_media_token)],
 ) -> ExerciseMediaAccessResponse:
     access = await service.get_exercise_media_access(
         user_id=current_user.id, exercise_id=exercise_id
@@ -175,6 +177,7 @@ async def coach_message(
     current_user: CurrentUserDep,
     service: TrainingServiceDep,
     settings: Annotated[Settings, Depends(get_settings)],
+    _: Annotated[None, Depends(limit_coach)],
 ) -> CoachMessageResponse:
     coach = CoachService(
         llm_provider=MockLLMProvider(settings.chat_model),

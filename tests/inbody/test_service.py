@@ -45,6 +45,12 @@ class FakeStorage:
         return self.objects[key][0]
 
 
+class FailingStorage(FakeStorage):
+    async def put(self, *, key: str, content: bytes, content_type: str) -> None:
+        self.objects[key] = (content, content_type)
+        raise OSError("storage unavailable")
+
+
 class FakeRepository:
     def __init__(self) -> None:
         self.scans: dict[UUID, SimpleNamespace] = {}
@@ -183,6 +189,26 @@ def test_duplicate_upload_returns_existing_scan() -> None:
 
     assert duplicate.duplicate is True
     assert duplicate.scan.id == first.scan.id
+
+
+def test_failed_private_upload_is_cleaned_up_before_ocr() -> None:
+    repository = FakeRepository()
+    storage = FailingStorage()
+    service = InBodyService(repository, storage, FakeOcrProvider(InBodyResult(measurements=[])))
+
+    with pytest.raises(AppError) as raised:
+        run(
+            service.upload_scan(
+                user_id="user-1",
+                filename="../../scan.pdf",
+                content_type="application/pdf",
+                content=b"%PDF-1.7",
+            )
+        )
+
+    assert raised.value.code == "private_upload_failed"
+    assert storage.objects == {}
+    assert all(scan.status == InBodyScanStatus.DELETED for scan in repository.scans.values())
 
 
 def test_provider_timeout_and_failure_are_safe_states() -> None:

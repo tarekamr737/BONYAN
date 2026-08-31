@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     cors_allowed_origins: str = ""
     private_storage_root: Path = API_DIRECTORY / ".private-storage"
     api_public_url: str = "http://127.0.0.1:8000"
+    rate_limit_register_per_minute: int = 5
+    rate_limit_login_per_minute: int = 10
+    rate_limit_ocr_per_minute: int = 10
+    rate_limit_coach_per_minute: int = 30
+    rate_limit_avatar_per_minute: int = 6
+    rate_limit_media_token_per_minute: int = 60
 
     @field_validator("database_url")
     @classmethod
@@ -61,6 +67,20 @@ class Settings(BaseSettings):
     def validate_access_token_lifetime(cls, value: int) -> int:
         if not 5 <= value <= 1440:
             raise ValueError("AUTH_ACCESS_TOKEN_MINUTES must be between 5 and 1440")
+        return value
+
+    @field_validator(
+        "rate_limit_register_per_minute",
+        "rate_limit_login_per_minute",
+        "rate_limit_ocr_per_minute",
+        "rate_limit_coach_per_minute",
+        "rate_limit_avatar_per_minute",
+        "rate_limit_media_token_per_minute",
+    )
+    @classmethod
+    def validate_rate_limits(cls, value: int) -> int:
+        if not 1 <= value <= 10_000:
+            raise ValueError("rate limits must be between 1 and 10000 requests per minute")
         return value
 
     @field_validator("api_public_url")

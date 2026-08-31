@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
+from app.core.rate_limit import limit_avatar
 from app.domains.avatar.contracts import BodyAvatarPresentation
 from app.domains.avatar.schemas import (
     AvatarListView,
@@ -30,7 +31,10 @@ def create_avatar_router(
 
     @router.post("", response_model=AvatarView, status_code=status.HTTP_201_CREATED)
     async def create_avatar(
-        payload: CreateAvatarRequest, service: CurrentService, user_id: CurrentUserId
+        payload: CreateAvatarRequest,
+        service: CurrentService,
+        user_id: CurrentUserId,
+        _: Annotated[None, Depends(limit_avatar)],
     ) -> AvatarView:
         return await service.create(user_id, payload)
 
@@ -71,7 +75,10 @@ def create_avatar_router(
 
     @router.post("/{avatar_id}/regenerate", response_model=AvatarView)
     async def regenerate_avatar(
-        avatar_id: UUID, service: CurrentService, user_id: CurrentUserId
+        avatar_id: UUID,
+        service: CurrentService,
+        user_id: CurrentUserId,
+        _: Annotated[None, Depends(limit_avatar)],
     ) -> AvatarView:
         return await service.regenerate(user_id, avatar_id)
 

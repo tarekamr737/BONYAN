@@ -9,6 +9,7 @@ from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.passwords import PasswordHasher
+from app.core.rate_limit import limit_login, limit_registration
 from app.domains.users.auth_service import AuthService
 from app.domains.users.repository import SqlAlchemyAccountRepository, SqlAlchemyProfileRepository
 from app.domains.users.schemas import (
@@ -42,12 +43,20 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
 @router.post("/auth/register", response_model=AccessTokenView, status_code=201)
-async def register(request: AuthCredentials, service: AuthServiceDep) -> AccessTokenView:
+async def register(
+    request: AuthCredentials,
+    service: AuthServiceDep,
+    _: Annotated[None, Depends(limit_registration)],
+) -> AccessTokenView:
     return await service.register(request)
 
 
 @router.post("/auth/login", response_model=AccessTokenView)
-async def login(request: AuthCredentials, service: AuthServiceDep) -> AccessTokenView:
+async def login(
+    request: AuthCredentials,
+    service: AuthServiceDep,
+    _: Annotated[None, Depends(limit_login)],
+) -> AccessTokenView:
     return await service.login(request)
 
 
