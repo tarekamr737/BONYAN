@@ -8,14 +8,14 @@
 
 ## B. Staging
 
-- [ ] Define staging environment variables.
+- [x] Define staging environment variables.
 - [ ] Configure staging HTTPS API, PostgreSQL, private object storage, and migrations.
-- [ ] Verify health/readiness.
+- [ ] Verify health/readiness. Liveness exists; DB readiness is implemented but API execution requires Python/PostgreSQL.
 - [ ] Document staging deploy/startup.
 
 ## C. Production Preparation
 
-- [ ] Define the production environment template and DB/storage references.
+- [x] Define the production environment template and DB/storage references.
 - [ ] Document migrations, deployment rollback, and migration rollback.
 - [ ] Prevent feature-branch production deploys and require a release/manual gate.
 - [ ] Add a post-deploy health/smoke check.
@@ -49,4 +49,3 @@
 - [ ] Measure release-level API, upload, feed, workout, video, Coach, and Avatar behavior.
 - [ ] Create and execute the release checklist.
 - [ ] Complete final lint/tests/export/migration/security verification and integration handoff.
-

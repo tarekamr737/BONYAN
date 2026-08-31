@@ -17,7 +17,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    api_env: Literal["development", "test", "production"] = "development"
+    api_env: Literal["development", "test", "staging", "production"] = "development"
     database_url: SecretStr = SecretStr(
         "postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan"
     )
@@ -87,11 +87,13 @@ class Settings(BaseSettings):
         return value if value.is_absolute() else API_DIRECTORY / value
 
     @model_validator(mode="after")
-    def require_production_auth(self) -> Settings:
-        if self.api_env == "production" and self.auth_jwt_secret is None:
-            raise ValueError("AUTH_JWT_SECRET is required in production")
-        if self.api_env == "production" and not self.api_public_url.startswith("https://"):
-            raise ValueError("API_PUBLIC_URL must use HTTPS in production")
+    def require_release_security(self) -> Settings:
+        if self.api_env in {"staging", "production"} and self.auth_jwt_secret is None:
+            raise ValueError("AUTH_JWT_SECRET is required in staging and production")
+        if self.api_env in {"staging", "production"} and not self.api_public_url.startswith(
+            "https://"
+        ):
+            raise ValueError("API_PUBLIC_URL must use HTTPS in staging and production")
         return self
 
     @property
