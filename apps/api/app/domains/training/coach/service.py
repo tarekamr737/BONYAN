@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import status
 
 from app.core.errors import AppError
@@ -25,9 +27,16 @@ logger = get_logger("providers")
 
 
 class CoachService:
-    def __init__(self, *, llm_provider: LLMProvider, tool_executor: CoachToolExecutor) -> None:
+    def __init__(
+        self,
+        *,
+        llm_provider: LLMProvider,
+        tool_executor: CoachToolExecutor,
+        provider_timeout_seconds: float = 30,
+    ) -> None:
         self.llm_provider = llm_provider
         self.tool_executor = tool_executor
+        self.provider_timeout_seconds = provider_timeout_seconds
 
     async def respond(
         self, *, user_id: str, message: str, tool_calls: list[CoachToolCall] | None = None
@@ -44,13 +53,16 @@ class CoachService:
             results.append(result.model_dump(mode="json"))
         compact_context = {"tool_results": results[:4]}
         try:
-            response = await self.llm_provider.complete(
-                LLMRequest(
-                    prompt=(
-                        "You are BONYAN's fitness coach. Do not diagnose medical conditions. "
-                        f"User message: {message[:1000]}. Context: {compact_context}"
+            response = await asyncio.wait_for(
+                self.llm_provider.complete(
+                    LLMRequest(
+                        prompt=(
+                            "You are BONYAN's fitness coach. Do not diagnose medical conditions. "
+                            f"User message: {message[:1000]}. Context: {compact_context}"
+                        )
                     )
-                )
+                ),
+                timeout=self.provider_timeout_seconds,
             )
         except TimeoutError as exc:
             logger.warning(

@@ -117,3 +117,7 @@ class AvatarIdentityReader(Protocol):
     async def get_community_identity(
         self, owner_id: str, avatar_id: UUID
     ) -> AvatarCommunityIdentity | None: ...
+
+    async def get_community_identities(
+        self, references: list[tuple[str, UUID]]
+    ) -> dict[tuple[str, UUID], AvatarCommunityIdentity]: ...

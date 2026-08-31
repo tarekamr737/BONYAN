@@ -61,6 +61,18 @@ class FakeAvatarRepository:
             reverse=True,
         )
 
+    async def list_public_for_references(
+        self, references: list[tuple[str, UUID]]
+    ) -> list[AvatarRecord]:
+        return [
+            avatar
+            for owner_id, avatar_id in dict.fromkeys(references)
+            if (avatar := self.items.get(avatar_id)) is not None
+            and avatar.owner_id == owner_id
+            and avatar.state is AvatarState.APPROVED
+            and avatar.is_public
+        ]
+
     async def save(self, avatar: AvatarRecord) -> None:
         self.items[avatar.id] = avatar
 
