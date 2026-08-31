@@ -3,14 +3,14 @@
 ## A. Baseline
 
 - [x] Sync from latest merged `main` (`2d1736b8cba7ce31e7e3f7ea8fc136e556e23d5f`).
-- [x] Verify current CI and final integration tests. Mobile checks and 124 API/release tests pass; a live PostgreSQL migration still requires Docker or staging.
+- [x] Verify current CI and final integration tests. Mobile checks and 132 API/release tests pass; offline PostgreSQL migration SQL generation passes and live execution remains a CI/staging gate.
 - [x] Create release/operations docs structure.
 
 ## B. Staging
 
 - [x] Define staging environment variables.
 - [x] Configure staging HTTPS API, PostgreSQL, persistent private storage, and migrations.
-- [ ] Verify health/readiness. Liveness exists; DB readiness is implemented but API execution requires Python/PostgreSQL.
+- [x] Verify health/readiness behavior with automated tests; live HTTPS/database readiness remains blocked pending a staging host and PostgreSQL credentials.
 - [x] Document staging deploy/startup.
 
 ## C. Production Preparation
@@ -46,6 +46,6 @@
 
 ## M–O. Performance and Release
 
-- [ ] Measure release-level API, upload, feed, workout, video, Coach, and Avatar behavior.
-- [ ] Create and execute the release checklist.
-- [ ] Complete final lint/tests/export/migration/security verification and integration handoff.
+- [x] Measure/review release-level API, upload, feed, workout, Coach, and Avatar behavior; record live-provider/native limits and the missing video playback path.
+- [x] Create and execute the release checklist through all locally available gates; retain staging, provider, signing, and native gates as explicit blockers.
+- [x] Complete local lint/tests/export/offline-migration/security verification and document the Person 01 integration handoff.
