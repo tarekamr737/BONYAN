@@ -8,5 +8,6 @@ This directory owns executable operational procedures for:
 - private-object recovery and deletion implications;
 - secrets inventory and rotation.
 
-Procedures must distinguish staging from production and must not contain real secret values.
+Current runbook: [Secrets inventory and rotation](secrets.md).
 
+Procedures must distinguish staging from production and must not contain real secret values.

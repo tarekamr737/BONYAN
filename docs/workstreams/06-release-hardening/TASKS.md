@@ -22,7 +22,7 @@
 
 ## D–F. Security
 
-- [ ] Audit tracked files for secrets; document separation, rotation, least privilege, and signing.
+- [x] Audit tracked files for secrets; document separation, rotation, least privilege, and signing.
 - [ ] Add/test registration, login, OCR, Coach, Avatar, and media-token rate limits.
 - [ ] Verify upload type/size/name/privacy/cleanup/deletion and add release security tests.
 
