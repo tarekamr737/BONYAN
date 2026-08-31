@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getAccessToken, setSessionAccessToken } from "../src/core/auth/session";
 import { login, register } from "../src/features/auth/api/authApi";
-import { getMyProfile, updateMyProfile } from "../src/features/auth/api/profileApi";
+import {
+  deleteMyAccount,
+  getMyProfile,
+  updateMyProfile,
+} from "../src/features/auth/api/profileApi";
 import {
   profileDraftToUpdate,
   profileToDraft,
@@ -48,9 +52,12 @@ describe("mobile auth and profile contracts", () => {
 
     await getMyProfile();
     await updateMyProfile({ display_name: "Tarek" });
+    await deleteMyAccount();
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/me");
     expect(fetchMock.mock.calls[1]?.[0]).toContain("/api/v1/me");
+    expect(fetchMock.mock.calls[2]?.[0]).toContain("/api/v1/me");
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("DELETE");
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       display_name: "Tarek",
     });

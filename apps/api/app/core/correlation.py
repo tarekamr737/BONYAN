@@ -36,7 +36,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
         except Exception:
-            logger.exception(
+            logger.error(
                 "request_failed",
                 extra={"method": request.method, "path": _safe_request_path(request)},
             )

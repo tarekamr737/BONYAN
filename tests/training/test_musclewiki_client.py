@@ -16,6 +16,7 @@ from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 
 from app.core.config import get_settings
+from app.core.database import get_db_session
 from app.core.errors import AppError
 from app.domains.training.router import (
     get_musclewiki_media_relay,
@@ -241,6 +242,10 @@ def test_training_media_endpoint_requires_auth_and_enforces_token_expiry(
                 status_code=206,
             )
 
+    class ExistingAccountSession:
+        async def scalar(self, statement: object) -> str:
+            return "user-1"
+
     async def scenario() -> None:
         monkeypatch.setenv("AUTH_JWT_SECRET", "test-secret-that-is-at-least-32-bytes")
         monkeypatch.setenv("AUTH_JWT_ISSUER", "bonyan-test")
@@ -254,6 +259,7 @@ def test_training_media_endpoint_requires_auth_and_enforces_token_expiry(
         relay = FakeRelay()
         app.dependency_overrides[get_musclewiki_media_signer] = lambda: signer
         app.dependency_overrides[get_musclewiki_media_relay] = lambda: relay
+        app.dependency_overrides[get_db_session] = lambda: ExistingAccountSession()
         token = signer.sign(
             provider_url="https://media.musclewiki.test/push-up.mp4",
             user_id="user-1",

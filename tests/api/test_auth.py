@@ -6,9 +6,10 @@ from datetime import UTC, datetime, timedelta
 import jwt
 import pytest
 from fastapi import status
+from fastapi.security import HTTPAuthorizationCredentials
 from httpx import ASGITransport, AsyncClient
 
-from app.core.auth import JwtAccessTokenVerifier
+from app.core.auth import CurrentUser, JwtAccessTokenVerifier, get_current_user
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.main import create_app
@@ -72,6 +73,27 @@ def test_issued_access_token_round_trips_through_verifier() -> None:
 
     assert expires_in == settings.auth_access_token_minutes * 60
     assert JwtAccessTokenVerifier(settings).verify(token).id == "server-user"
+
+
+def test_deleted_account_invalidates_an_otherwise_valid_token() -> None:
+    class Verifier:
+        def verify(self, token: str) -> CurrentUser:
+            return CurrentUser(id="deleted-user")
+
+    class MissingAccountSession:
+        async def scalar(self, statement: object) -> None:
+            return None
+
+    async def exercise() -> None:
+        with pytest.raises(AppError) as raised:
+            await get_current_user(
+                HTTPAuthorizationCredentials(scheme="Bearer", credentials="valid-token"),
+                Verifier(),
+                MissingAccountSession(),  # type: ignore[arg-type]
+            )
+        assert raised.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+    asyncio.run(exercise())
 
 
 async def get_private_route(path: str) -> int:

@@ -28,10 +28,10 @@
 
 ## G–I. Operations and Privacy
 
-- [ ] Audit sensitive logging and add safe request/provider/latency/5xx visibility.
-- [ ] Document alerting and triage.
+- [x] Audit sensitive logging and add safe request/provider/latency/5xx visibility.
+- [x] Document alerting and triage.
 - [ ] Define backup schedule/retention and test restore where feasible.
-- [ ] Verify logout and account/InBody/source-photo/avatar/post deletion lifecycle.
+- [x] Verify logout and account/InBody/source-photo/avatar/post deletion lifecycle.
 
 ## J. CI/CD
 

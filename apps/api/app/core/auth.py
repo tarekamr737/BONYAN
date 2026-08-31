@@ -8,9 +8,13 @@ import jwt
 from fastapi import Depends, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
+from app.core.database import get_db_session
 from app.core.errors import AppError
+from app.domains.users.models import UserAccount
 
 
 @dataclass(frozen=True)
@@ -98,6 +102,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Security(bearer_scheme)],
     verifier: Annotated[AccessTokenVerifier, Depends(get_access_token_verifier)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> CurrentUser:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise AppError(
@@ -105,7 +110,17 @@ async def get_current_user(
             "Sign in to continue.",
             status.HTTP_401_UNAUTHORIZED,
         )
-    return verifier.verify(credentials.credentials)
+    current_user = verifier.verify(credentials.credentials)
+    account_id = await session.scalar(
+        select(UserAccount.id).where(UserAccount.id == current_user.id)
+    )
+    if account_id is None:
+        raise AppError(
+            "unauthorized",
+            "Sign in to continue.",
+            status.HTTP_401_UNAUTHORIZED,
+        )
+    return current_user
 
 
 CurrentUserDep = Annotated[CurrentUser, Depends(get_current_user)]

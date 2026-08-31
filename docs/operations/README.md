@@ -8,6 +8,10 @@ This directory owns executable operational procedures for:
 - private-object recovery and deletion implications;
 - secrets inventory and rotation.
 
-Current runbook: [Secrets inventory and rotation](secrets.md).
+Current runbooks:
+
+- [Secrets inventory and rotation](secrets.md)
+- [Monitoring and incident triage](monitoring.md)
+- [Privacy and account lifecycle](privacy-lifecycle.md)
 
 Procedures must distinguish staging from production and must not contain real secret values.

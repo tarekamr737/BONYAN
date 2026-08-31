@@ -387,9 +387,11 @@ def test_coach_llm_outage_does_not_mutate_without_valid_tool() -> None:
     service, repo = make_service()
     coach = CoachService(llm_provider=FailingLLM(), tool_executor=CoachToolExecutor(service))
 
-    with pytest.raises(TimeoutError):
+    with pytest.raises(AppError) as raised:
         run(coach.respond(user_id="user-1", message="help with my workout"))
 
+    assert raised.value.code == "coach_unavailable"
+    assert raised.value.status_code == 503
     assert repo.plans == {}
 
 

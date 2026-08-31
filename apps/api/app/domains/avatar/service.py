@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.domains.avatar.contracts import (
     AvatarCommunityIdentity,
     AvatarGenerationRequest,
@@ -30,6 +31,8 @@ from app.domains.avatar.schemas import (
 )
 from app.domains.avatar.shape import classify_body_shape
 from app.domains.avatar.validation import validate_generated_image
+
+logger = get_logger("providers")
 
 
 class AvatarService:
@@ -230,24 +233,40 @@ class AvatarService:
                 generated.content, generated.media_type
             )
         except TimeoutError:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "provider_timeout", "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = "provider_timeout"
             self._touch(avatar)
             await self._repository.save(avatar)
             return
         except AvatarProviderError as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": exc.code, "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = exc.code
             self._touch(avatar)
             await self._repository.save(avatar)
             return
         except AppError as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": exc.code, "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = exc.code
             self._touch(avatar)
             await self._repository.save(avatar)
             return
         except Exception:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "generation_failed", "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = "generation_failed"
             self._touch(avatar)

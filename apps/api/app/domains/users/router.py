@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.account_deletion import AccountDeletionService
 from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.passwords import PasswordHasher
 from app.core.rate_limit import limit_login, limit_registration
+from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.users.auth_service import AuthService
 from app.domains.users.repository import SqlAlchemyAccountRepository, SqlAlchemyProfileRepository
 from app.domains.users.schemas import (
@@ -72,3 +74,13 @@ async def update_me(
     service: ProfileServiceDep,
 ) -> UserProfileView:
     return await service.update(current_user.id, request)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    current_user: CurrentUserDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    storage: Annotated[PrivateObjectStorage, Depends(get_private_object_storage)],
+) -> Response:
+    await AccountDeletionService(session, storage).delete(current_user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

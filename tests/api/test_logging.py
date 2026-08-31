@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json
 import logging
 
 from starlette.requests import Request
 
 from app.core.correlation import _safe_request_path
-from app.core.logging import configure_logging
+from app.core.logging import JsonFormatter, configure_logging
 
 
 class RouteStub:
@@ -30,3 +31,24 @@ def test_raw_uvicorn_access_logging_is_disabled() -> None:
     configure_logging("INFO")
 
     assert logging.getLogger("uvicorn.access").disabled is True
+
+
+def test_provider_logs_allow_only_safe_operational_metadata() -> None:
+    record = logging.LogRecord(
+        "bonyan.providers",
+        logging.WARNING,
+        __file__,
+        1,
+        "provider_request_failed",
+        (),
+        None,
+    )
+    record.provider = "avatar"
+    record.error_code = "provider_timeout"
+    record.access_token = "must-not-be-serialized"
+
+    payload = json.loads(JsonFormatter().format(record))
+
+    assert payload["provider"] == "avatar"
+    assert payload["error_code"] == "provider_timeout"
+    assert "access_token" not in payload

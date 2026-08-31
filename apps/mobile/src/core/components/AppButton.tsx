@@ -11,7 +11,7 @@ import { colors, fonts, radii, spacing } from "../theme/tokens";
 type AppButtonProps = Omit<PressableProps, "children" | "style"> & {
   label: string;
   loading?: boolean;
-  variant?: "primary" | "secondary";
+  variant?: "danger" | "primary" | "secondary";
 };
 
 export function AppButton({
@@ -31,18 +31,30 @@ export function AppButton({
       disabled={unavailable}
       style={({ pressed }) => [
         styles.base,
-        variant === "primary" ? styles.primary : styles.secondary,
+        variant === "primary"
+          ? styles.primary
+          : variant === "danger"
+            ? styles.danger
+            : styles.secondary,
         pressed && !unavailable ? styles.pressed : undefined,
         unavailable ? styles.disabled : undefined,
       ]}
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "primary" ? colors.canvas : colors.bronze}
+          color={variant === "primary" ? colors.canvas : variant === "danger" ? colors.error : colors.bronze}
           size="small"
         />
       ) : (
-        <Text style={variant === "primary" ? styles.primaryLabel : styles.secondaryLabel}>
+        <Text
+          style={
+            variant === "primary"
+              ? styles.primaryLabel
+              : variant === "danger"
+                ? styles.dangerLabel
+                : styles.secondaryLabel
+          }
+        >
           {label}
         </Text>
       )}
@@ -65,6 +77,10 @@ const styles = StyleSheet.create({
     borderColor: colors.bronzeBorder,
     borderWidth: 1,
   },
+  danger: {
+    borderColor: colors.error,
+    borderWidth: 1,
+  },
   pressed: {
     opacity: 0.78,
   },
@@ -78,6 +94,11 @@ const styles = StyleSheet.create({
   },
   secondaryLabel: {
     color: colors.bronze,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+  },
+  dangerLabel: {
+    color: colors.error,
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
   },

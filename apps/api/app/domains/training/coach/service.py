@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import status
 
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.core.providers.contracts import LLMProvider, LLMRequest
 from app.domains.training.coach.schemas import CoachToolCall
 from app.domains.training.coach.tools import CoachToolExecutor
@@ -20,6 +21,7 @@ FITNESS_SCOPE_TERMS = (
     "hypertrophy",
     "cardio",
 )
+logger = get_logger("providers")
 
 
 class CoachService:
@@ -41,14 +43,35 @@ class CoachService:
             result = await self.tool_executor.execute(user_id=user_id, call=call)
             results.append(result.model_dump(mode="json"))
         compact_context = {"tool_results": results[:4]}
-        response = await self.llm_provider.complete(
-            LLMRequest(
-                prompt=(
-                    "You are BONYAN's fitness coach. Do not diagnose medical conditions. "
-                    f"User message: {message[:1000]}. Context: {compact_context}"
+        try:
+            response = await self.llm_provider.complete(
+                LLMRequest(
+                    prompt=(
+                        "You are BONYAN's fitness coach. Do not diagnose medical conditions. "
+                        f"User message: {message[:1000]}. Context: {compact_context}"
+                    )
                 )
             )
-        )
+        except TimeoutError as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "coach_timeout", "provider": "coach"},
+            )
+            raise AppError(
+                "coach_unavailable",
+                "The coach is taking too long to respond. Please try again.",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ) from exc
+        except Exception as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "coach_provider_failed", "provider": "coach"},
+            )
+            raise AppError(
+                "coach_unavailable",
+                "The coach is unavailable right now. Please try again.",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ) from exc
         return CoachMessageResponse(
             response=response.text, model=response.model, tool_results=results
         )

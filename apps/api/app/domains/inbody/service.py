@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import status
 
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.core.storage import PrivateObjectStorage
 from app.domains.inbody.schemas import (
     InBodyHistoryResponse,
@@ -28,6 +29,8 @@ from app.integrations.mistral.ocr_provider import MistralOcrProvider, OcrProvide
 if TYPE_CHECKING:
     from app.domains.inbody.models import InBodyScan
     from app.domains.inbody.repository import InBodyRepository
+
+logger = get_logger("providers")
 
 
 class InBodyService:
@@ -103,12 +106,20 @@ class InBodyService:
                 filename=filename,
             )
         except TimeoutError:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "ocr_timeout", "provider": "mistral_ocr"},
+            )
             scan = await self.repository.mark_failed(
                 scan,
                 code="ocr_timeout",
                 message="The report took too long to process. Please retry.",
             )
         except Exception:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "ocr_provider_failed", "provider": "mistral_ocr"},
+            )
             scan = await self.repository.mark_failed(
                 scan,
                 code="ocr_provider_failed",
