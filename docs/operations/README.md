@@ -13,5 +13,7 @@ Current runbooks:
 - [Secrets inventory and rotation](secrets.md)
 - [Monitoring and incident triage](monitoring.md)
 - [Privacy and account lifecycle](privacy-lifecycle.md)
+- [PostgreSQL and private-object backup/restore](backup-restore.md)
+- [Deployment and migration rollback](rollback.md)
 
 Procedures must distinguish staging from production and must not contain real secret values.

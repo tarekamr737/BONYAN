@@ -9,16 +9,16 @@
 ## B. Staging
 
 - [x] Define staging environment variables.
-- [ ] Configure staging HTTPS API, PostgreSQL, private object storage, and migrations.
+- [x] Configure staging HTTPS API, PostgreSQL, persistent private storage, and migrations.
 - [ ] Verify health/readiness. Liveness exists; DB readiness is implemented but API execution requires Python/PostgreSQL.
-- [ ] Document staging deploy/startup.
+- [x] Document staging deploy/startup.
 
 ## C. Production Preparation
 
 - [x] Define the production environment template and DB/storage references.
-- [ ] Document migrations, deployment rollback, and migration rollback.
-- [ ] Prevent feature-branch production deploys and require a release/manual gate.
-- [ ] Add a post-deploy health/smoke check.
+- [x] Document migrations, deployment rollback, and migration rollback.
+- [x] Prevent feature-branch production deploys and require a release/manual gate.
+- [x] Add a post-deploy health/smoke check.
 
 ## D–F. Security
 
@@ -30,19 +30,19 @@
 
 - [x] Audit sensitive logging and add safe request/provider/latency/5xx visibility.
 - [x] Document alerting and triage.
-- [ ] Define backup schedule/retention and test restore where feasible.
+- [x] Define backup schedule/retention and restore procedure. Live restore remains a staging gate because PostgreSQL/Docker is unavailable locally.
 - [x] Verify logout and account/InBody/source-photo/avatar/post deletion lifecycle.
 
 ## J. CI/CD
 
-- [ ] Validate lint, typecheck, tests, migrations, and mobile build/export on pull requests.
-- [ ] Configure staging deployment and production release approval.
-- [ ] Add deployment smoke checks.
+- [x] Validate lint, typecheck, tests, migrations, container build, and all-platform mobile export on pull requests.
+- [ ] Configure staging deployment and production release approval. Gated image publication is configured; host rollout awaits the hosting decision.
+- [x] Add deployment smoke checks.
 
 ## K–L. Native Release QA
 
-- [ ] Validate Android identifiers, versioning, permissions, API URL, release build, and device flows.
-- [ ] Validate iOS identifiers, versioning, permissions, API URL, release build, and device flows, or record the exact blocker.
+- [ ] Validate Android identifiers, versioning, permissions, API URL, release build, and device flows. Configuration and JS export pass; signed build/device unavailable.
+- [ ] Validate iOS identifiers, versioning, permissions, API URL, release build, and device flows, or record the exact blocker. Configuration and JS export pass; Windows has no iOS simulator.
 
 ## M–O. Performance and Release
 
