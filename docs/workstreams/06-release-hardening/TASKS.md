@@ -3,7 +3,7 @@
 ## A. Baseline
 
 - [x] Sync from latest merged `main` (`2d1736b8cba7ce31e7e3f7ea8fc136e556e23d5f`).
-- [x] Verify current CI and final integration tests. Mobile checks and 132 API/release tests pass; offline PostgreSQL migration SQL generation passes and live execution remains a CI/staging gate.
+- [x] Verify current CI and final integration tests. Mobile checks and 132 API/release tests pass locally; GitHub Actions run `33597510534` passes PostgreSQL 17 migrations, container build, and all-platform mobile export.
 - [x] Create release/operations docs structure.
 
 ## B. Staging

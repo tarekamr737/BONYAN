@@ -18,7 +18,8 @@ Workstream 06 is ready for integration review on `feat/06-release-hardening`, ba
 
 - Review [the release checklist](checklist.md), [deployment procedure](deployment.md), and
   [performance record](performance-sanity.md).
-- CI-equivalent local checks and all-platform Expo export pass; GitHub CI performs a live PostgreSQL
-  migration validation and container build.
+- CI-equivalent local checks and all-platform Expo export pass. GitHub Actions run `33597510534`
+  passed its mobile checks/export, PostgreSQL 17 migrations, and release-container build for commit
+  `88f5b6d98bc265da65f30c068a68b610a8afe4a7`.
 - Live staging smoke/restore, signed native builds, real-device QA, provider latency, and video
   startup remain release gates. No native or staging PASS is claimed.

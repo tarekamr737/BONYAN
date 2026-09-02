@@ -84,7 +84,9 @@ python -m alembic -c apps/api/alembic.ini upgrade head --sql
 ## Workstream 06 execution record (2026-08-31)
 
 Local CI-equivalent tests, security tests, all-platform Expo export, offline migration SQL
-generation, configuration review, and rollback/privacy documentation are complete. The remaining
-unchecked gates require a selected host/domain, staging and production credentials, a live
-PostgreSQL/private-storage environment, Person 05's production providers, signing credentials,
-and real Android/iOS device infrastructure.
+generation, configuration review, and rollback/privacy documentation are complete. GitHub Actions
+run `33597510534` also passed the mobile job, release-container build, and PostgreSQL 17
+`upgrade head` plus `alembic check` on commit `88f5b6d98bc265da65f30c068a68b610a8afe4a7`.
+The remaining unchecked gates require a selected host/domain, staging and production credentials,
+a persistent staging PostgreSQL/private-storage environment, Person 05's production providers,
+signing credentials, and real Android/iOS device infrastructure.
