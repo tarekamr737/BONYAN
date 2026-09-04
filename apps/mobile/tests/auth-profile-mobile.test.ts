@@ -2,12 +2,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getAccessToken, setSessionAccessToken } from "../src/core/auth/session";
 import { login, register } from "../src/features/auth/api/authApi";
-import { getMyProfile, updateMyProfile } from "../src/features/auth/api/profileApi";
+import {
+  deleteMyAccount,
+  getMyProfile,
+  updateMyProfile,
+} from "../src/features/auth/api/profileApi";
 import {
   profileDraftToUpdate,
   profileToDraft,
   validateProfileDraft,
 } from "../src/features/auth/profileDraft";
+import {
+  accountDeletionConfirmationActions,
+  usesInlineAccountDeletionConfirmation,
+} from "../src/features/auth/accountDeletionConfirmation";
 
 afterEach(() => {
   setSessionAccessToken(null);
@@ -48,12 +56,36 @@ describe("mobile auth and profile contracts", () => {
 
     await getMyProfile();
     await updateMyProfile({ display_name: "Tarek" });
+    await deleteMyAccount();
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/me");
     expect(fetchMock.mock.calls[1]?.[0]).toContain("/api/v1/me");
+    expect(fetchMock.mock.calls[2]?.[0]).toContain("/api/v1/me");
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("DELETE");
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       display_name: "Tarek",
     });
+  });
+
+  it("requires an explicit web account-deletion confirmation", () => {
+    const dismiss = vi.fn();
+    const removeAccount = vi.fn();
+    const actions = accountDeletionConfirmationActions({ dismiss, removeAccount });
+
+    actions.cancel();
+    expect(dismiss).toHaveBeenCalledOnce();
+    expect(removeAccount).not.toHaveBeenCalled();
+
+    dismiss.mockClear();
+    actions.confirm();
+    expect(dismiss).toHaveBeenCalledOnce();
+    expect(removeAccount).toHaveBeenCalledOnce();
+  });
+
+  it("uses the inline confirmation on web while preserving native confirmation", () => {
+    expect(usesInlineAccountDeletionConfirmation("web")).toBe(true);
+    expect(usesInlineAccountDeletionConfirmation("android")).toBe(false);
+    expect(usesInlineAccountDeletionConfirmation("ios")).toBe(false);
   });
 
   it("clears the active session after an authenticated 401", async () => {

@@ -9,3 +9,6 @@ export function updateMyProfile(update: ProfileUpdate): Promise<UserProfile> {
   return apiRequest<UserProfile>("/api/v1/me", { body: update, method: "PATCH" });
 }
 
+export function deleteMyAccount(): Promise<void> {
+  return apiRequest<void>("/api/v1/me", { method: "DELETE" });
+}

@@ -25,6 +25,26 @@ def test_production_requires_a_strong_auth_secret() -> None:
         Settings(auth_jwt_secret="too-short")
 
 
+def test_staging_has_the_same_transport_and_auth_floor_as_production() -> None:
+    with pytest.raises(ValidationError, match="AUTH_JWT_SECRET is required"):
+        Settings(api_env="staging", api_public_url="https://staging-api.bonyan.example")
+    with pytest.raises(ValidationError, match="API_PUBLIC_URL must use HTTPS"):
+        Settings(
+            api_env="staging",
+            auth_jwt_secret="a-secure-staging-secret-that-is-long-enough",
+            api_public_url="http://staging-api.bonyan.example",
+        )
+
+    settings = Settings(
+        api_env="staging",
+        auth_jwt_secret="a-secure-staging-secret-that-is-long-enough",
+        api_public_url="https://staging-api.bonyan.example",
+    )
+
+    assert settings.api_env == "staging"
+    assert settings.cors_origins == []
+
+
 def test_production_requires_https_public_api_url() -> None:
     with pytest.raises(ValidationError, match="API_PUBLIC_URL must use HTTPS"):
         Settings(

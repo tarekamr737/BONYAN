@@ -6,6 +6,7 @@ from datetime import timedelta
 from urllib import error, parse, request
 
 from app.core.config import Settings
+from app.core.logging import get_logger
 from app.integrations.musclewiki.cache import MetadataCache
 from app.integrations.musclewiki.errors import (
     MuscleWikiInvalidResponseError,
@@ -18,6 +19,8 @@ from app.integrations.musclewiki.provider import (
     ExerciseSearchPage,
     MediaAccess,
 )
+
+logger = get_logger("providers")
 
 
 class MuscleWikiClient:
@@ -112,8 +115,16 @@ class MuscleWikiClient:
             with request.urlopen(req, timeout=8) as response:
                 return json.loads(response.read().decode("utf-8"))
         except (TimeoutError, error.URLError, error.HTTPError) as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "musclewiki_unavailable", "provider": "musclewiki"},
+            )
             raise MuscleWikiUnavailableError("MuscleWiki is unavailable.") from exc
         except json.JSONDecodeError as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "musclewiki_invalid_json", "provider": "musclewiki"},
+            )
             raise MuscleWikiInvalidResponseError("MuscleWiki returned invalid JSON.") from exc
 
     def _parse_exercise(self, raw: object) -> ExerciseDetails:

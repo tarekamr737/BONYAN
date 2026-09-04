@@ -13,11 +13,6 @@ from uuid import uuid4
 
 from fastapi import Depends
 from sqlalchemy import (
-    Column,
-    DateTime,
-    Float,
-    String,
-    Table,
     insert,
     select,
     update,
@@ -26,13 +21,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUser, get_current_user
 from app.core.config import Settings, get_settings
-from app.core.database import Base, get_db_session
+from app.core.database import get_db_session
 from app.core.errors import AppError
 from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.avatar.contracts import (
     BodyMetricsSnapshot,
     BodyMetricsSource,
 )
+from app.domains.avatar.models import manual_body_metrics
 from app.domains.avatar.repository import SqlAlchemyAvatarRepository
 from app.domains.avatar.service import AvatarService
 from app.domains.community.contracts import CommunityActor
@@ -40,17 +36,6 @@ from app.domains.community.repository import SqlAlchemyCommunityRepository
 from app.domains.community.service import CommunityService
 from app.domains.inbody.models import InBodyScan
 from app.integrations.avatar.mock import MockAvatarProvider
-
-manual_body_metrics = Table(
-    "avatar_manual_body_metrics",
-    Base.metadata,
-    Column("owner_id", String(128), primary_key=True),
-    Column("height_cm", Float, nullable=False),
-    Column("weight_kg", Float, nullable=False),
-    Column("body_fat_percentage", Float, nullable=True),
-    Column("skeletal_muscle_mass_kg", Float, nullable=True),
-    Column("recorded_at", DateTime(timezone=True), nullable=False),
-)
 
 
 class AvatarAssetSigner:

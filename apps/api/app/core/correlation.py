@@ -36,21 +36,33 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
         except Exception:
-            logger.exception(
+            duration_ms = round((perf_counter() - started_at) * 1000, 2)
+            logger.error(
                 "request_failed",
-                extra={"method": request.method, "path": _safe_request_path(request)},
+                extra={
+                    "duration_ms": duration_ms,
+                    "error_code": "internal_error",
+                    "method": request.method,
+                    "path": _safe_request_path(request),
+                    "status_code": 500,
+                },
             )
             raise
         else:
             duration_ms = round((perf_counter() - started_at) * 1000, 2)
-            logger.info(
+            extra = {
+                "duration_ms": duration_ms,
+                "method": request.method,
+                "path": _safe_request_path(request),
+                "status_code": response.status_code,
+            }
+            error_code = getattr(request.state, "safe_error_code", None)
+            if isinstance(error_code, str):
+                extra["error_code"] = error_code
+            log = logger.error if response.status_code >= 500 else logger.info
+            log(
                 "request_completed",
-                extra={
-                    "duration_ms": duration_ms,
-                    "method": request.method,
-                    "path": _safe_request_path(request),
-                    "status_code": response.status_code,
-                },
+                extra=extra,
             )
             response.headers["x-request-id"] = request_id
             return response

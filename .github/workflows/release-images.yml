@@ -1,0 +1,124 @@
+name: Release Images
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Image channel to publish
+        required: true
+        type: choice
+        options: [staging, production]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.channel || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_API_URL: https://api.ci.bonyan.invalid
+      API_ENV: test
+      DATABASE_URL: postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan
+      CHAT_MODEL: TBD
+      AVATAR_MODEL: TBD
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: bonyan
+          POSTGRES_USER: bonyan
+          POSTGRES_PASSWORD: bonyan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bonyan -d bonyan"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: npm ci
+      - run: npm run mobile:lint
+      - run: npm run mobile:routes
+      - run: npm run mobile:typecheck
+      - run: npm run mobile:test
+      - run: npm run mobile:export:release
+      - run: python -m pip install -e "./apps/api[dev]"
+      - run: python -m ruff check --config apps/api/pyproject.toml apps/api/app tests deployment
+      - run: python -m pytest -c apps/api/pyproject.toml
+      - run: python -m alembic -c apps/api/alembic.ini upgrade head
+      - run: python -m alembic -c apps/api/alembic.ini check
+
+  staging:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.channel == 'staging')
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: staging
+    steps:
+      - name: Require main for staging
+        if: github.ref != 'refs/heads/main'
+        run: exit 1
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deployment/api.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/bonyan-api:staging
+            ghcr.io/${{ github.repository_owner }}/bonyan-api:sha-${{ github.sha }}
+
+  production:
+    if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.channel == 'production')
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: production
+    steps:
+      - name: Require a release tag or manual run from main
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != refs/tags/v* && "${GITHUB_REF}" != refs/heads/main ]]; then
+            echo "Production images require a v* tag or a manual run from main."
+            exit 1
+          fi
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deployment/api.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/bonyan-api:production-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/bonyan-api:${{ github.ref_name }}

@@ -149,6 +149,11 @@ class EchoLLM:
         return SimpleNamespace(text=f"ok {request.prompt[:8]}", model="TBD")
 
 
+class HangingLLM:
+    async def complete(self, request: LLMRequest):
+        await asyncio.Event().wait()
+
+
 def run(coro):
     return asyncio.run(coro)
 
@@ -387,10 +392,27 @@ def test_coach_llm_outage_does_not_mutate_without_valid_tool() -> None:
     service, repo = make_service()
     coach = CoachService(llm_provider=FailingLLM(), tool_executor=CoachToolExecutor(service))
 
-    with pytest.raises(TimeoutError):
+    with pytest.raises(AppError) as raised:
         run(coach.respond(user_id="user-1", message="help with my workout"))
 
+    assert raised.value.code == "coach_unavailable"
+    assert raised.value.status_code == 503
     assert repo.plans == {}
+
+
+def test_coach_enforces_provider_timeout() -> None:
+    service, _ = make_service()
+    coach = CoachService(
+        llm_provider=HangingLLM(),
+        tool_executor=CoachToolExecutor(service),
+        provider_timeout_seconds=0.01,
+    )
+
+    with pytest.raises(AppError) as raised:
+        run(coach.respond(user_id="user-1", message="help with my workout"))
+
+    assert raised.value.code == "coach_unavailable"
+    assert raised.value.status_code == 503
 
 
 def test_coach_rejects_out_of_scope_medical_question() -> None:

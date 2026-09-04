@@ -5,6 +5,7 @@ from uuid import UUID
 
 from httpx import ASGITransport, AsyncClient, Response
 
+from app.core.health import database_is_ready
 from app.main import create_app
 
 
@@ -27,3 +28,27 @@ def test_valid_request_id_is_preserved() -> None:
     response = asyncio.run(get_health(headers={"x-request-id": request_id}))
 
     assert response.headers["x-request-id"] == request_id
+
+
+def test_readiness_reports_database_availability_without_error_details() -> None:
+    async def ready() -> bool:
+        return True
+
+    async def unavailable() -> bool:
+        return False
+
+    async def request(probe) -> Response:
+        app = create_app()
+        app.dependency_overrides[database_is_ready] = probe
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.get("/ready")
+
+    ready_response = asyncio.run(request(ready))
+    unavailable_response = asyncio.run(request(unavailable))
+
+    assert ready_response.status_code == 200
+    assert ready_response.json() == {"status": "ready"}
+    assert unavailable_response.status_code == 503
+    assert unavailable_response.json() == {"status": "unavailable"}
+    assert "database" not in unavailable_response.text.lower()

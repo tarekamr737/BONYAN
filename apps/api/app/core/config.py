@@ -17,7 +17,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    api_env: Literal["development", "test", "production"] = "development"
+    api_env: Literal["development", "test", "staging", "production"] = "development"
     database_url: SecretStr = SecretStr(
         "postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan"
     )
@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     cors_allowed_origins: str = ""
     private_storage_root: Path = API_DIRECTORY / ".private-storage"
     api_public_url: str = "http://127.0.0.1:8000"
+    rate_limit_register_per_minute: int = 5
+    rate_limit_login_per_minute: int = 10
+    rate_limit_ocr_per_minute: int = 10
+    rate_limit_coach_per_minute: int = 30
+    rate_limit_avatar_per_minute: int = 6
+    rate_limit_media_token_per_minute: int = 60
 
     @field_validator("database_url")
     @classmethod
@@ -63,6 +69,20 @@ class Settings(BaseSettings):
             raise ValueError("AUTH_ACCESS_TOKEN_MINUTES must be between 5 and 1440")
         return value
 
+    @field_validator(
+        "rate_limit_register_per_minute",
+        "rate_limit_login_per_minute",
+        "rate_limit_ocr_per_minute",
+        "rate_limit_coach_per_minute",
+        "rate_limit_avatar_per_minute",
+        "rate_limit_media_token_per_minute",
+    )
+    @classmethod
+    def validate_rate_limits(cls, value: int) -> int:
+        if not 1 <= value <= 10_000:
+            raise ValueError("rate limits must be between 1 and 10000 requests per minute")
+        return value
+
     @field_validator("api_public_url")
     @classmethod
     def normalize_api_public_url(cls, value: str) -> str:
@@ -87,11 +107,13 @@ class Settings(BaseSettings):
         return value if value.is_absolute() else API_DIRECTORY / value
 
     @model_validator(mode="after")
-    def require_production_auth(self) -> Settings:
-        if self.api_env == "production" and self.auth_jwt_secret is None:
-            raise ValueError("AUTH_JWT_SECRET is required in production")
-        if self.api_env == "production" and not self.api_public_url.startswith("https://"):
-            raise ValueError("API_PUBLIC_URL must use HTTPS in production")
+    def require_release_security(self) -> Settings:
+        if self.api_env in {"staging", "production"} and self.auth_jwt_secret is None:
+            raise ValueError("AUTH_JWT_SECRET is required in staging and production")
+        if self.api_env in {"staging", "production"} and not self.api_public_url.startswith(
+            "https://"
+        ):
+            raise ValueError("API_PUBLIC_URL must use HTTPS in staging and production")
         return self
 
     @property

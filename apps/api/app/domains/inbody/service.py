@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import status
 
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.core.storage import PrivateObjectStorage
 from app.domains.inbody.schemas import (
     InBodyHistoryResponse,
@@ -18,12 +19,18 @@ from app.domains.inbody.schemas import (
     ReviewUpdate,
     UploadResponse,
 )
-from app.domains.inbody.validation import is_supported_upload, validate_measurement
+from app.domains.inbody.validation import (
+    is_supported_upload,
+    normalize_upload_filename,
+    validate_measurement,
+)
 from app.integrations.mistral.ocr_provider import MistralOcrProvider, OcrProvider
 
 if TYPE_CHECKING:
     from app.domains.inbody.models import InBodyScan
     from app.domains.inbody.repository import InBodyRepository
+
+logger = get_logger("providers")
 
 
 class InBodyService:
@@ -51,13 +58,14 @@ class InBodyService:
                 "Upload a readable InBody image or PDF.",
                 status.HTTP_400_BAD_REQUEST,
             )
-        if len(filename) > 255 or len(content_type) > 120:
+        if len(content_type) > 120:
             raise AppError(
                 "invalid_inbody_file",
                 "Upload a readable InBody image or PDF.",
                 status.HTTP_400_BAD_REQUEST,
             )
 
+        filename = normalize_upload_filename(filename)
         content_hash = hashlib.sha256(content).hexdigest()
         duplicate = await self.repository.find_duplicate(
             owner_id=user_id,
@@ -76,11 +84,19 @@ class InBodyService:
             content_hash=content_hash,
             storage_key=storage_key,
         )
-        await self.storage.put(
-            key=storage_key,
-            content=content,
-            content_type=content_type,
-        )
+        try:
+            await self.storage.put(
+                key=storage_key,
+                content=content,
+                content_type=content_type,
+            )
+        except Exception as exc:
+            await self._cleanup_failed_upload(scan, storage_key)
+            raise AppError(
+                "private_upload_failed",
+                "The report could not be stored. Please try again.",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ) from exc
 
         try:
             result = await self.ocr_provider.extract(
@@ -89,12 +105,20 @@ class InBodyService:
                 filename=filename,
             )
         except TimeoutError:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "ocr_timeout", "provider": "mistral_ocr"},
+            )
             scan = await self.repository.mark_failed(
                 scan,
                 code="ocr_timeout",
                 message="The report took too long to process. Please retry.",
             )
         except Exception:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "ocr_provider_failed", "provider": "mistral_ocr"},
+            )
             scan = await self.repository.mark_failed(
                 scan,
                 code="ocr_provider_failed",
@@ -108,6 +132,22 @@ class InBodyService:
             )
 
         return UploadResponse(scan=self._to_response(scan), duplicate=False)
+
+    async def _cleanup_failed_upload(self, scan: InBodyScan, storage_key: str) -> None:
+        try:
+            await self.storage.delete(key=storage_key)
+        except Exception:
+            logger.warning(
+                "private_upload_cleanup_failed",
+                extra={"error_code": "storage_delete_failed", "provider": "private_storage"},
+            )
+        try:
+            await self.repository.delete(scan)
+        except Exception:
+            logger.warning(
+                "private_upload_cleanup_failed",
+                extra={"error_code": "database_cleanup_failed", "provider": "database"},
+            )
 
     async def get_scan(self, *, user_id: str, scan_id: UUID) -> InBodyScanResponse:
         return self._to_response(await self._get_owned_or_404(user_id=user_id, scan_id=scan_id))

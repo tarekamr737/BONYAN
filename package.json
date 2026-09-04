@@ -6,6 +6,7 @@
     "apps/mobile"
   ],
   "scripts": {
+    "dev:all": "node scripts/dev-all.cjs",
     "install:all": "npm install && npm run api:install",
     "mobile:install": "npm install",
     "mobile:dev": "npm run dev --workspace @bonyan/mobile",
@@ -13,6 +14,7 @@
     "mobile:typecheck": "npm run typecheck --workspace @bonyan/mobile",
     "mobile:test": "npm run test --workspace @bonyan/mobile",
     "mobile:export:web": "npm run export:web --workspace @bonyan/mobile",
+    "mobile:export:release": "npm run export:release --workspace @bonyan/mobile",
     "mobile:routes": "npm run routes:check --workspace @bonyan/mobile",
     "api:install": "python -m pip install -e \"apps/api[dev]\"",
     "api:dev": "python -m uvicorn app.main:app --reload --app-dir apps/api",

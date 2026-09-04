@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.domains.avatar.contracts import (
     AvatarCommunityIdentity,
     AvatarGenerationRequest,
@@ -30,6 +31,8 @@ from app.domains.avatar.schemas import (
 )
 from app.domains.avatar.shape import classify_body_shape
 from app.domains.avatar.validation import validate_generated_image
+
+logger = get_logger("providers")
 
 
 class AvatarService:
@@ -207,6 +210,24 @@ class AvatarService:
         )
         return AvatarCommunityIdentity(avatar_id=avatar.id, image_url=image_url)
 
+    async def get_community_identities(
+        self, references: list[tuple[str, UUID]]
+    ) -> dict[tuple[str, UUID], AvatarCommunityIdentity]:
+        unique_references = list(dict.fromkeys(references))
+        avatars = await self._repository.list_public_for_references(unique_references)
+        identities: dict[tuple[str, UUID], AvatarCommunityIdentity] = {}
+        for avatar in avatars:
+            if avatar.generated_object_key is None:
+                continue
+            image_url = await self._storage.create_read_url(
+                avatar.generated_object_key, expires_in_seconds=300
+            )
+            identities[(avatar.owner_id, avatar.id)] = AvatarCommunityIdentity(
+                avatar_id=avatar.id,
+                image_url=image_url,
+            )
+        return identities
+
     async def _generate(self, avatar: AvatarRecord, metrics: BodyMetricsSnapshot) -> None:
         previous_generated_key = avatar.generated_object_key
         avatar.state = AvatarState.PROCESSING
@@ -230,24 +251,40 @@ class AvatarService:
                 generated.content, generated.media_type
             )
         except TimeoutError:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "provider_timeout", "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = "provider_timeout"
             self._touch(avatar)
             await self._repository.save(avatar)
             return
         except AvatarProviderError as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": exc.code, "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = exc.code
             self._touch(avatar)
             await self._repository.save(avatar)
             return
         except AppError as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": exc.code, "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = exc.code
             self._touch(avatar)
             await self._repository.save(avatar)
             return
         except Exception:
+            logger.warning(
+                "provider_request_failed",
+                extra={"error_code": "generation_failed", "provider": "avatar"},
+            )
             avatar.state = AvatarState.FAILED
             avatar.failure_code = "generation_failed"
             self._touch(avatar)

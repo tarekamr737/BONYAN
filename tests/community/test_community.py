@@ -24,11 +24,24 @@ from app.domains.community.service import CommunityService
 class FakeAvatarIdentityReader:
     def __init__(self) -> None:
         self.identities: dict[tuple[str, UUID], AvatarCommunityIdentity] = {}
+        self.single_reads = 0
+        self.batch_reads = 0
 
     async def get_community_identity(
         self, owner_id: str, avatar_id: UUID
     ) -> AvatarCommunityIdentity | None:
+        self.single_reads += 1
         return self.identities.get((owner_id, avatar_id))
+
+    async def get_community_identities(
+        self, references: list[tuple[str, UUID]]
+    ) -> dict[tuple[str, UUID], AvatarCommunityIdentity]:
+        self.batch_reads += 1
+        return {
+            reference: self.identities[reference]
+            for reference in dict.fromkeys(references)
+            if reference in self.identities
+        }
 
 
 class FakeCommunityRepository:
@@ -226,6 +239,31 @@ def test_feed_is_recent_first_and_cursor_paginated() -> None:
         assert second.next_cursor is not None
         assert third.next_cursor is None
         assert set(all_ids) == {item.id for item in created}
+
+    asyncio.run(scenario())
+
+
+def test_feed_batches_avatar_identity_reads() -> None:
+    async def scenario() -> None:
+        service, _, avatar_reader = make_service()
+        actor = CommunityActor(user_id="owner", display_name="Owner")
+        for index in range(3):
+            avatar_id = uuid4()
+            avatar_reader.identities[(actor.user_id, avatar_id)] = AvatarCommunityIdentity(
+                avatar_id=avatar_id,
+                image_url=f"https://private-storage.test/avatar-{index}",
+            )
+            await service.create_post(
+                actor,
+                CreatePostRequest(caption=f"Milestone {index}", avatar_id=avatar_id),
+            )
+
+        avatar_reader.single_reads = 0
+        feed = await service.feed(actor, cursor=None, limit=20)
+
+        assert avatar_reader.single_reads == 0
+        assert avatar_reader.batch_reads == 1
+        assert all(item.author.avatar_url for item in feed.items)
 
     asyncio.run(scenario())
 

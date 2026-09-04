@@ -3,11 +3,22 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Enum, String, Uuid
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, String, Table, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.domains.avatar.contracts import AvatarState
+
+manual_body_metrics = Table(
+    "avatar_manual_body_metrics",
+    Base.metadata,
+    Column("owner_id", String(128), primary_key=True),
+    Column("height_cm", Float, nullable=False),
+    Column("weight_kg", Float, nullable=False),
+    Column("body_fat_percentage", Float, nullable=True),
+    Column("skeletal_muscle_mass_kg", Float, nullable=True),
+    Column("recorded_at", DateTime(timezone=True), nullable=False),
+)
 
 
 class AvatarRecord(Base):

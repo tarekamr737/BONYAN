@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+deployment/**/api.env
+deployment/**/compose.env
 
 # JavaScript / Expo
 node_modules/
@@ -12,6 +14,7 @@ npm-debug.log*
 
 # Python
 .venv/
+.tools/
 __pycache__/
 *.py[cod]
 .pytest_cache/

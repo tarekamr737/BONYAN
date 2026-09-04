@@ -36,6 +36,7 @@ class CommunityService:
     async def create_post(
         self, actor: CommunityActor, request: CreatePostRequest
     ) -> CommunityPostView:
+        avatar_url = None
         if request.avatar_id is not None:
             identity = await self._avatar_reader.get_community_identity(
                 actor.user_id, request.avatar_id
@@ -46,6 +47,7 @@ class CommunityService:
                     message="Choose an approved avatar that is enabled for community use.",
                     status_code=409,
                 )
+            avatar_url = identity.image_url
 
         now = datetime.now(UTC)
         post = CommunityPost(
@@ -59,10 +61,11 @@ class CommunityService:
             updated_at=now,
         )
         await self._repository.add_post(post)
-        return await self._to_view(
+        return self._to_view(
             post,
             actor.user_id,
             ReactionSummary(counts={}, viewer_reaction=None),
+            avatar_url=avatar_url,
         )
 
     async def feed(
@@ -79,12 +82,24 @@ class CommunityService:
         summaries = await self._repository.reaction_summaries(
             [post.id for post in visible_posts], actor.user_id
         )
+        avatar_references = [
+            (post.owner_id, post.avatar_id)
+            for post in visible_posts
+            if post.avatar_id is not None
+        ]
+        identities = await self._avatar_reader.get_community_identities(avatar_references)
         items = [
-            await self._to_view(
+            self._to_view(
                 post,
                 actor.user_id,
                 summaries.get(
                     post.id, ReactionSummary(counts={}, viewer_reaction=None)
+                ),
+                avatar_url=(
+                    identities[(post.owner_id, post.avatar_id)].image_url
+                    if post.avatar_id is not None
+                    and (post.owner_id, post.avatar_id) in identities
+                    else None
                 ),
             )
             for post in visible_posts
@@ -164,18 +179,14 @@ class CommunityService:
             )
         return post
 
-    async def _to_view(
+    def _to_view(
         self,
         post: CommunityPost,
         viewer_id: str,
         reactions: ReactionSummary,
+        *,
+        avatar_url: str | None,
     ) -> CommunityPostView:
-        avatar_url = None
-        if post.avatar_id is not None:
-            identity = await self._avatar_reader.get_community_identity(
-                post.owner_id, post.avatar_id
-            )
-            avatar_url = identity.image_url if identity else None
         return CommunityPostView(
             id=post.id,
             post_type=post.post_type,
