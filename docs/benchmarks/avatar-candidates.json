@@ -1,0 +1,22 @@
+{
+  "as_of": "2026-09-04",
+  "provider": "google",
+  "candidates": [
+    {
+      "model": "gemini-3.1-flash-lite-image",
+      "estimated_1k_output_usd": 0.0336,
+      "role": "cost and latency floor"
+    },
+    {
+      "model": "gemini-3.1-flash-image",
+      "estimated_1k_output_usd": 0.067,
+      "role": "provisional production selection"
+    },
+    {
+      "model": "gemini-3-pro-image",
+      "estimated_1k_output_usd": 0.134,
+      "role": "quality ceiling"
+    }
+  ],
+  "source": "https://ai.google.dev/gemini-api/docs/pricing"
+}
