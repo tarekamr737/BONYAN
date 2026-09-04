@@ -55,11 +55,12 @@ def test_production_requires_https_public_api_url() -> None:
 
 
 def test_cors_origins_are_explicit_and_production_fails_closed() -> None:
-    development = Settings()
+    development = Settings(cors_allowed_origins="")
     production = Settings(
         api_env="production",
         api_public_url="https://api.bonyan.example",
         auth_jwt_secret="a-secure-production-secret-that-is-long-enough",
+        cors_allowed_origins="",
     )
     configured = Settings(cors_allowed_origins="https://app.bonyan.example/")
 
@@ -75,11 +76,28 @@ def test_selected_providers_require_backend_credentials() -> None:
         Settings(avatar_provider="gemini", avatar_api_key=None)
 
 
+def test_selected_providers_require_explicit_models() -> None:
+    with pytest.raises(ValidationError, match="CHAT_MODEL"):
+        Settings(
+            chat_provider="openai",
+            chat_api_key="chat-secret",
+            chat_model="TBD",
+        )
+    with pytest.raises(ValidationError, match="AVATAR_MODEL"):
+        Settings(
+            avatar_provider="gemini",
+            avatar_api_key="avatar-secret",
+            avatar_model="TBD",
+        )
+
+
 def test_provider_secrets_are_redacted() -> None:
     settings = Settings(
         chat_provider="openai",
+        chat_model="gpt-5.6-terra",
         chat_api_key="chat-secret",
         avatar_provider="gemini",
+        avatar_model="gemini-3.1-flash-image",
         avatar_api_key="avatar-secret",
     )
 

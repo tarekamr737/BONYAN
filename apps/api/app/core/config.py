@@ -23,11 +23,11 @@ class Settings(BaseSettings):
     )
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     chat_provider: Literal["mock", "openai"] = "mock"
-    chat_model: str = "gpt-5.6-terra"
+    chat_model: str = "TBD"
     chat_api_key: SecretStr | None = None
     chat_timeout_seconds: float = 20
     avatar_provider: Literal["mock", "gemini"] = "mock"
-    avatar_model: str = "gemini-3.1-flash-image"
+    avatar_model: str = "TBD"
     avatar_api_key: SecretStr | None = None
     avatar_timeout_seconds: float = 45
     mistral_api_key: SecretStr | None = None
@@ -129,8 +129,12 @@ class Settings(BaseSettings):
             raise ValueError("API_PUBLIC_URL must use HTTPS in staging and production")
         if self.chat_provider == "openai" and self.chat_api_key is None:
             raise ValueError("CHAT_API_KEY is required when CHAT_PROVIDER=openai")
+        if self.chat_provider == "openai" and self.chat_model.strip().upper() == "TBD":
+            raise ValueError("CHAT_MODEL must be explicitly set when CHAT_PROVIDER=openai")
         if self.avatar_provider == "gemini" and self.avatar_api_key is None:
             raise ValueError("AVATAR_API_KEY is required when AVATAR_PROVIDER=gemini")
+        if self.avatar_provider == "gemini" and self.avatar_model.strip().upper() == "TBD":
+            raise ValueError("AVATAR_MODEL must be explicitly set when AVATAR_PROVIDER=gemini")
         return self
 
     @property

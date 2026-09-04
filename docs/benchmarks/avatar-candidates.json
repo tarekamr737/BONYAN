@@ -10,7 +10,7 @@
     {
       "model": "gemini-3.1-flash-image",
       "estimated_1k_output_usd": 0.067,
-      "role": "provisional production selection"
+      "role": "balanced candidate under test"
     },
     {
       "model": "gemini-3-pro-image",

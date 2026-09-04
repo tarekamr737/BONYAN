@@ -14,4 +14,6 @@ Weight the final score: identity 30%, facial consistency 20%, realism 15%, adher
 
 ## Status
 
-No live credentials or private fixtures were available on 2026-09-04. Scores and latency remain blocked; configured selections are provisional until the live gate passes.
+No live credentials or private fixtures were available on 2026-09-04. Scores and
+latency remain blocked; `gpt-5.6-terra` and `gemini-3.1-flash-image` are
+balanced benchmark candidates only, not final production selections.

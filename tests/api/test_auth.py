@@ -10,7 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from httpx import ASGITransport, AsyncClient
 
 from app.core.auth import CurrentUser, JwtAccessTokenVerifier, get_current_user
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 from app.main import create_app
 
@@ -117,7 +117,10 @@ def test_private_ws4_routes_reject_missing_authentication(path: str) -> None:
     assert asyncio.run(get_private_route(path)) == status.HTTP_401_UNAUTHORIZED
 
 
-def test_development_web_origin_can_call_private_api() -> None:
+def test_development_web_origin_can_call_private_api(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "")
+    get_settings.cache_clear()
+
     async def scenario() -> None:
         transport = ASGITransport(app=create_app())
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -134,4 +137,7 @@ def test_development_web_origin_can_call_private_api() -> None:
         assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"
         assert response.headers.get("access-control-allow-credentials") is None
 
-    asyncio.run(scenario())
+    try:
+        asyncio.run(scenario())
+    finally:
+        get_settings.cache_clear()

@@ -14,9 +14,9 @@ private, consented fixtures are supplied.
   publication boundaries.
 - [x] Align the Mistral OCR 4.1 and MuscleWiki clients with current provider contracts.
 - [x] Add opt-in live suites for Coach, Avatar, Mistral, MuscleWiki, and full staging.
-- [x] Document provisional decisions, rejected candidates, configuration, costs,
+- [x] Document candidate shortlist, configuration, costs,
   validation commands, blockers, and the Person 01 handoff.
-- [x] Pass backend lint, 140 offline backend tests, mobile lint/typecheck/routes/tests,
+- [x] Pass backend lint, 141 offline backend tests, mobile lint/typecheck/routes/tests,
   Expo web export, migration rendering, and API boot/health validation.
 
 ## Pending Live Evidence
@@ -26,7 +26,7 @@ private, consented fixtures are supplied.
 - [ ] Validate six real InBody formats against Mistral ground truth.
 - [ ] Validate live MuscleWiki search, filters, pagination, detail, and media behavior.
 - [ ] Run the complete deployed staging flow and outage-integrity checks.
-- [ ] Replace provisional selections and estimated latency with measured final findings.
+- [ ] Replace candidate estimates and placeholder configuration with measured final findings.
 
 ## External Inputs Required
 
