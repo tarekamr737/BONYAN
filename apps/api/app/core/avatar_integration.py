@@ -29,13 +29,17 @@ from app.domains.avatar.contracts import (
     BodyMetricsSource,
 )
 from app.domains.avatar.models import manual_body_metrics
-from app.domains.avatar.repository import SqlAlchemyAvatarRepository
+from app.domains.avatar.repository import (
+    SqlAlchemyAvatarRepository,
+    SqlAlchemyAvatarSourcePhotoRepository,
+)
 from app.domains.avatar.service import AvatarService
 from app.domains.community.contracts import CommunityActor
 from app.domains.community.repository import SqlAlchemyCommunityRepository
 from app.domains.community.service import CommunityService
 from app.domains.inbody.models import InBodyScan
 from app.integrations.avatar.mock import MockAvatarProvider
+from app.integrations.avatar.production import ProductionAvatarProvider
 
 
 class AvatarAssetSigner:
@@ -255,12 +259,25 @@ def get_avatar_service(
     storage = SharedPrivateAvatarStorage(
         object_storage, signer, settings.api_public_url
     )
+    if settings.avatar_provider == "mock":
+        provider = MockAvatarProvider(model=settings.avatar_model)
+    else:
+        api_key = settings.avatar_api_key
+        if api_key is None:
+            raise RuntimeError("AVATAR_API_KEY validation did not run")
+        provider = ProductionAvatarProvider(
+            api_key=api_key.get_secret_value(),
+            model=settings.avatar_model,
+            timeout_seconds=settings.avatar_timeout_seconds,
+        )
     return AvatarService(
         SqlAlchemyAvatarRepository(session),
-        MockAvatarProvider(model=settings.avatar_model),
+        provider,
         storage,
         metrics,
         manual_metrics_writer=metrics,
+        source_photo_repository=SqlAlchemyAvatarSourcePhotoRepository(session),
+        provider_timeout_seconds=settings.avatar_timeout_seconds,
     )
 
 

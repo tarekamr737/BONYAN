@@ -20,7 +20,13 @@ from urllib.parse import urlparse
 from app.core.errors import AppError
 
 _RANGE_PATTERN = re.compile(r"bytes=(?:\d+-\d*|\d*-\d+)$")
-_RESPONSE_HEADERS = ("Accept-Ranges", "Content-Length", "Content-Range", "Content-Type")
+_RESPONSE_HEADERS = (
+    "Accept-Ranges",
+    "Cache-Control",
+    "Content-Length",
+    "Content-Range",
+    "Content-Type",
+)
 
 
 class _ReadableResponse(Protocol):
@@ -153,12 +159,17 @@ class MediaRelayResponse:
 
 
 class MuscleWikiMediaRelay:
+    def __init__(self, api_key: str | None = None) -> None:
+        self._api_key = api_key
+
     def open(self, provider_url: str, *, range_header: str | None) -> MediaRelayResponse:
         headers: dict[str, str] = {}
         if range_header is not None:
             if not _RANGE_PATTERN.fullmatch(range_header):
                 raise AppError("invalid_media_range", "The requested media range is invalid.", 416)
             headers["Range"] = range_header
+        if self._api_key:
+            headers["X-API-Key"] = self._api_key
 
         upstream_request = request.Request(
             _validated_provider_url(provider_url), headers=headers, method="GET"
@@ -182,7 +193,7 @@ class MuscleWikiMediaRelay:
                 503,
             )
         response_headers = _copy_response_headers(response.headers)
-        response_headers["Cache-Control"] = "private, no-store"
+        response_headers.setdefault("Cache-Control", "private, no-store")
         response_headers["X-Content-Type-Options"] = "nosniff"
         return MediaRelayResponse(
             body=_iter_response(response),
@@ -217,6 +228,14 @@ def _urlsafe_decode(value: str) -> bytes:
 def _validated_provider_url(value: object) -> str:
     text = str(value).strip()
     parsed = urlparse(text)
-    if parsed.scheme != "https" or not parsed.netloc:
-        raise ValueError("media URL must be HTTPS")
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "api.musclewiki.com"
+        or parsed.port not in {None, 443}
+        or parsed.username is not None
+        or parsed.password is not None
+        or not parsed.path.startswith("/stream/")
+        or parsed.fragment
+    ):
+        raise ValueError("media URL must be a MuscleWiki HTTPS stream URL")
     return text

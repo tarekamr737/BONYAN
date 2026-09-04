@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from app.core.errors import AppError
 
 ALLOWED_GENERATED_MEDIA_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+MAX_SOURCE_IMAGE_BYTES = 10 * 1024 * 1024
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +27,25 @@ def validate_generated_image(content: bytes, media_type: str) -> ValidatedImage:
             code="invalid_generated_avatar",
             message="Avatar generation returned an invalid image.",
             status_code=502,
+        )
+    return ValidatedImage(content=content, media_type=normalized_media_type)
+
+
+def validate_source_image(content: bytes, media_type: str) -> ValidatedImage:
+    normalized_media_type = media_type.strip().lower()
+    if not content or len(content) > MAX_SOURCE_IMAGE_BYTES:
+        raise AppError(
+            code="invalid_avatar_source",
+            message="Choose a source photo smaller than 10 MB.",
+            status_code=400,
+        )
+    if normalized_media_type not in ALLOWED_GENERATED_MEDIA_TYPES or not _matches_signature(
+        content, normalized_media_type
+    ):
+        raise AppError(
+            code="invalid_avatar_source",
+            message="Choose a valid JPEG, PNG, or WebP source photo.",
+            status_code=400,
         )
     return ValidatedImage(content=content, media_type=normalized_media_type)
 

@@ -13,6 +13,11 @@ class CreateAvatarRequest(BaseModel):
 
     style: BodyAvatarStyle = BodyAvatarStyle.CINEMATIC_3D
     presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN
+    source_photo_id: UUID | None = None
+
+
+class AvatarSourcePhotoView(BaseModel):
+    id: UUID
 
 
 class AvatarPublicationRequest(BaseModel):

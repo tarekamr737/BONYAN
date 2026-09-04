@@ -7,8 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.domains.training.coach.schemas import CoachToolCall
-
 
 class TrainingGoal(StrEnum):
     STRENGTH = "strength"
@@ -172,8 +170,9 @@ class SubstituteExerciseRequest(BaseModel):
 
 
 class CoachMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     message: str = Field(min_length=1, max_length=1000)
-    tool_calls: list[CoachToolCall] = Field(default_factory=list, max_length=8)
 
 
 class CoachMessageResponse(BaseModel):
