@@ -1,0 +1,25 @@
+{
+  "as_of": "2026-09-04",
+  "provider": "openai",
+  "candidates": [
+    {
+      "model": "gpt-5.6-sol",
+      "input_usd_per_million": 4.0,
+      "output_usd_per_million": 20.0,
+      "role": "quality ceiling"
+    },
+    {
+      "model": "gpt-5.6-terra",
+      "input_usd_per_million": 2.0,
+      "output_usd_per_million": 12.0,
+      "role": "provisional production selection"
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "input_usd_per_million": 0.2,
+      "output_usd_per_million": 1.2,
+      "role": "cost floor"
+    }
+  ],
+  "source": "https://developers.openai.com/api/docs/models"
+}

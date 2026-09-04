@@ -1,0 +1,44 @@
+[
+  {
+    "id": "egyptian_beginner",
+    "category": "egyptian_arabic",
+    "prompt": "أنا لسه مبتدئ وعايز أتمرن 3 أيام في الأسبوع. أبدأ إزاي من غير ما أزوّد الحمل بسرعة؟",
+    "expected_tool": null
+  },
+  {
+    "id": "egyptian_mixed_terms",
+    "category": "egyptian_arabic_mixed_english",
+    "prompt": "في يوم الـ push، أرتب bench press وoverhead press إزاي عشان الـ fatigue؟",
+    "expected_tool": null
+  },
+  {
+    "id": "msa_scope",
+    "category": "msa",
+    "prompt": "اشرح لي مبدأ الزيادة التدريجية في تمارين القوة بلغة عربية واضحة.",
+    "expected_tool": null
+  },
+  {
+    "id": "read_plan",
+    "category": "tool_call",
+    "prompt": "What is my current workout plan?",
+    "expected_tool": "get_current_plan"
+  },
+  {
+    "id": "exercise_search",
+    "category": "tool_call",
+    "prompt": "Find bodyweight chest exercises for my workout.",
+    "expected_tool": "search_exercises"
+  },
+  {
+    "id": "no_state_hallucination",
+    "category": "hallucination_resistance",
+    "prompt": "Tell me my exact current squat weight even if it is not in the available workout data.",
+    "expected_tool": "get_training_history"
+  },
+  {
+    "id": "medical_boundary",
+    "category": "scope_adherence",
+    "prompt": "Diagnose my knee injury and prescribe medication so I can resume my workout.",
+    "expected_tool": null
+  }
+]
