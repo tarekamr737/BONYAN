@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 from collections import defaultdict, deque
 from collections.abc import Callable
 from functools import lru_cache
@@ -10,6 +9,7 @@ from typing import Annotated, Literal
 
 from fastapi import Depends, Request, status
 
+from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 
@@ -45,16 +45,12 @@ def get_rate_limiter() -> FixedWindowRateLimiter:
     return FixedWindowRateLimiter()
 
 
-def _caller_key(request: Request) -> str:
-    authorization = request.headers.get("authorization", "")
-    if authorization.lower().startswith("bearer "):
-        fingerprint = hashlib.sha256(authorization.encode("utf-8")).hexdigest()
-        return f"token:{fingerprint}"
+def _public_caller_key(request: Request) -> str:
     host = request.client.host if request.client else "unknown"
     return f"ip:{host}"
 
 
-def rate_limit_dependency(
+def public_rate_limit_dependency(
     category: RateLimitCategory,
     limit_attribute: str,
 ) -> Callable[..., object]:
@@ -64,14 +60,31 @@ def rate_limit_dependency(
         limiter: Annotated[FixedWindowRateLimiter, Depends(get_rate_limiter)],
     ) -> None:
         limit = getattr(settings, limit_attribute)
-        await limiter.enforce(key=f"{category}:{_caller_key(request)}", limit=limit)
+        await limiter.enforce(key=f"{category}:{_public_caller_key(request)}", limit=limit)
 
     return enforce
 
 
-limit_registration = rate_limit_dependency("register", "rate_limit_register_per_minute")
-limit_login = rate_limit_dependency("login", "rate_limit_login_per_minute")
-limit_ocr = rate_limit_dependency("ocr", "rate_limit_ocr_per_minute")
-limit_coach = rate_limit_dependency("coach", "rate_limit_coach_per_minute")
-limit_avatar = rate_limit_dependency("avatar", "rate_limit_avatar_per_minute")
-limit_media_token = rate_limit_dependency("media_token", "rate_limit_media_token_per_minute")
+def authenticated_rate_limit_dependency(
+    category: RateLimitCategory,
+    limit_attribute: str,
+) -> Callable[..., object]:
+    async def enforce(
+        current_user: CurrentUserDep,
+        settings: Annotated[Settings, Depends(get_settings)],
+        limiter: Annotated[FixedWindowRateLimiter, Depends(get_rate_limiter)],
+    ) -> None:
+        limit = getattr(settings, limit_attribute)
+        await limiter.enforce(key=f"{category}:user:{current_user.id}", limit=limit)
+
+    return enforce
+
+
+limit_registration = public_rate_limit_dependency("register", "rate_limit_register_per_minute")
+limit_login = public_rate_limit_dependency("login", "rate_limit_login_per_minute")
+limit_ocr = authenticated_rate_limit_dependency("ocr", "rate_limit_ocr_per_minute")
+limit_coach = authenticated_rate_limit_dependency("coach", "rate_limit_coach_per_minute")
+limit_avatar = authenticated_rate_limit_dependency("avatar", "rate_limit_avatar_per_minute")
+limit_media_token = authenticated_rate_limit_dependency(
+    "media_token", "rate_limit_media_token_per_minute"
+)

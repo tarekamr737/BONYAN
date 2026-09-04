@@ -4,10 +4,6 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.core.logging import get_logger
-
-logger = get_logger("errors")
-
 
 class AppError(Exception):
     def __init__(self, code: str, message: str, status_code: int) -> None:
@@ -26,7 +22,9 @@ def error_response(*, code: str, message: str, status_code: int) -> JSONResponse
 
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
-    async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
+    async def handle_app_error(request: Request, exc: AppError) -> JSONResponse:
+        if exc.status_code >= 500:
+            request.state.safe_error_code = exc.code
         return error_response(
             code=exc.code,
             message=exc.message,
@@ -43,10 +41,7 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, _: Exception) -> JSONResponse:
-        logger.error(
-            "unhandled_request_error",
-            extra={"method": request.method, "path": request.url.path},
-        )
+        request.state.safe_error_code = "internal_error"
         return error_response(
             code="internal_error",
             message="An unexpected error occurred.",
