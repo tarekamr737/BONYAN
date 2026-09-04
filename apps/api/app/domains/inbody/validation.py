@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import PurePosixPath
+
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 from app.domains.inbody.schemas import InBodyMeasurement, InBodyMetricKey
 
@@ -78,8 +81,7 @@ def is_supported_upload(content_type: str, byte_size: int, content: bytes) -> bo
     if byte_size <= 0 or byte_size > byte_limit:
         return False
     if content_type == "application/pdf":
-        page_count = len(re.findall(rb"/Type\s*/Page\b", content))
-        return content.startswith(b"%PDF") and page_count <= MAX_PDF_PAGES
+        return _has_valid_pdf_page_count(content)
     if content_type == "image/png":
         return content.startswith(b"\x89PNG\r\n\x1a\n")
     if content_type == "image/jpeg":
@@ -87,6 +89,19 @@ def is_supported_upload(content_type: str, byte_size: int, content: bytes) -> bo
     if content_type == "image/webp":
         return content.startswith(b"RIFF") and content[8:12] == b"WEBP"
     return False
+
+
+def _has_valid_pdf_page_count(content: bytes) -> bool:
+    if not content.startswith(b"%PDF"):
+        return False
+    try:
+        reader = PdfReader(BytesIO(content), strict=True)
+        if reader.is_encrypted:
+            return False
+        page_count = len(reader.pages)
+    except (PdfReadError, OSError, TypeError, ValueError):
+        return False
+    return 1 <= page_count <= MAX_PDF_PAGES
 
 
 def normalize_upload_filename(filename: str) -> str:

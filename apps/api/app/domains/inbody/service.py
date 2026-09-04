@@ -91,8 +91,7 @@ class InBodyService:
                 content_type=content_type,
             )
         except Exception as exc:
-            await self.storage.delete(key=storage_key)
-            await self.repository.delete(scan)
+            await self._cleanup_failed_upload(scan, storage_key)
             raise AppError(
                 "private_upload_failed",
                 "The report could not be stored. Please try again.",
@@ -133,6 +132,22 @@ class InBodyService:
             )
 
         return UploadResponse(scan=self._to_response(scan), duplicate=False)
+
+    async def _cleanup_failed_upload(self, scan: InBodyScan, storage_key: str) -> None:
+        try:
+            await self.storage.delete(key=storage_key)
+        except Exception:
+            logger.warning(
+                "private_upload_cleanup_failed",
+                extra={"error_code": "storage_delete_failed", "provider": "private_storage"},
+            )
+        try:
+            await self.repository.delete(scan)
+        except Exception:
+            logger.warning(
+                "private_upload_cleanup_failed",
+                extra={"error_code": "database_cleanup_failed", "provider": "database"},
+            )
 
     async def get_scan(self, *, user_id: str, scan_id: UUID) -> InBodyScanResponse:
         return self._to_response(await self._get_owned_or_404(user_id=user_id, scan_id=scan_id))

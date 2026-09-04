@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from uuid import uuid4
 
 import pytest
 
@@ -23,14 +22,17 @@ class FakeSession:
         self.flushed = False
 
     async def scalars(self, statement: object) -> list[str]:
-        self.statements.append(str(statement))
-        return ["inbody/private-object"]
+        rendered = str(statement)
+        self.statements.append(rendered)
+        if "inbody_scans.storage_key" in rendered:
+            return ["inbody/private-object"]
+        if "avatars.generated_object_key" in rendered:
+            return ["avatars/private-object"]
+        return []
 
     async def execute(self, statement: object) -> FakeResult:
         rendered = str(statement)
         self.statements.append(rendered)
-        if rendered.startswith("SELECT avatars"):
-            return FakeResult([(uuid4(), "avatars/private-object")])
         return FakeResult([])
 
     async def flush(self) -> None:
@@ -63,6 +65,7 @@ def test_account_deletion_removes_private_objects_and_all_owned_domains() -> Non
             "training_workout_sessions",
             "training_workout_plans",
             "avatars",
+            "avatar_manual_body_metrics",
             "inbody_scans",
             "user_profiles",
             "user_accounts",

@@ -13,6 +13,8 @@ Workstream 06 is ready for integration review on `feat/06-release-hardening`, ba
   required production reviewers.
 - Supply the Expo/EAS project association and externally managed Android/iOS signing credentials.
 - Coordinate the final sync after Person 05's production Coach/Avatar provider work reaches main.
+  Re-run migrations and account-deletion coverage for its expected `20260904_0007` source-photo
+  persistence, and resolve shared-file conflicts without dropping either workstream's hardening.
 
 ## Evidence and remaining gates
 

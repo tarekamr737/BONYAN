@@ -3,10 +3,13 @@ from __future__ import annotations
 import asyncio
 import uuid
 from datetime import UTC, datetime
+from io import BytesIO
 from types import SimpleNamespace
+from unittest.mock import Mock
 from uuid import UUID
 
 import pytest
+from pypdf import PdfWriter
 
 from app.core.errors import AppError
 from app.domains.inbody.schemas import (
@@ -49,6 +52,11 @@ class FailingStorage(FakeStorage):
     async def put(self, *, key: str, content: bytes, content_type: str) -> None:
         self.objects[key] = (content, content_type)
         raise OSError("storage unavailable")
+
+
+class DoubleFailureStorage(FailingStorage):
+    async def delete(self, *, key: str) -> None:
+        raise OSError("storage cleanup unavailable")
 
 
 class FakeRepository:
@@ -144,6 +152,14 @@ def run(coro):
     return asyncio.run(coro)
 
 
+def valid_pdf() -> bytes:
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    stream = BytesIO()
+    writer.write(stream)
+    return stream.getvalue()
+
+
 def service_with(
     result: InBodyResult | Exception,
 ) -> tuple[InBodyService, FakeRepository, FakeStorage]:
@@ -181,7 +197,7 @@ def test_duplicate_upload_returns_existing_scan() -> None:
         "user_id": "user-1",
         "filename": "scan.pdf",
         "content_type": "application/pdf",
-        "content": b"%PDF-1.7",
+        "content": valid_pdf(),
     }
 
     first = run(service.upload_scan(**payload))
@@ -202,13 +218,41 @@ def test_failed_private_upload_is_cleaned_up_before_ocr() -> None:
                 user_id="user-1",
                 filename="../../scan.pdf",
                 content_type="application/pdf",
-                content=b"%PDF-1.7",
+                content=valid_pdf(),
             )
         )
 
     assert raised.value.code == "private_upload_failed"
     assert storage.objects == {}
     assert all(scan.status == InBodyScanStatus.DELETED for scan in repository.scans.values())
+
+
+def test_failed_upload_cleanup_does_not_mask_original_safe_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = FakeRepository()
+    storage = DoubleFailureStorage()
+    service = InBodyService(repository, storage, FakeOcrProvider(InBodyResult(measurements=[])))
+    warning = Mock()
+    monkeypatch.setattr("app.domains.inbody.service.logger.warning", warning)
+
+    with pytest.raises(AppError) as raised:
+        run(
+            service.upload_scan(
+                user_id="user-1",
+                filename="scan.pdf",
+                content_type="application/pdf",
+                content=valid_pdf(),
+            )
+        )
+
+    assert raised.value.code == "private_upload_failed"
+    assert raised.value.message == "The report could not be stored. Please try again."
+    assert all(scan.status == InBodyScanStatus.DELETED for scan in repository.scans.values())
+    warning.assert_called_once_with(
+        "private_upload_cleanup_failed",
+        extra={"error_code": "storage_delete_failed", "provider": "private_storage"},
+    )
 
 
 def test_provider_timeout_and_failure_are_safe_states() -> None:
@@ -218,7 +262,7 @@ def test_provider_timeout_and_failure_are_safe_states() -> None:
             user_id="user-1",
             filename="scan.pdf",
             content_type="application/pdf",
-            content=b"%PDF-1.7",
+            content=valid_pdf(),
         )
     )
 
@@ -228,7 +272,7 @@ def test_provider_timeout_and_failure_are_safe_states() -> None:
             user_id="user-1",
             filename="scan.pdf",
             content_type="application/pdf",
-            content=b"%PDF-1.7",
+            content=valid_pdf(),
         )
     )
 
