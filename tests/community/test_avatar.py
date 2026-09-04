@@ -18,7 +18,7 @@ from app.domains.avatar.contracts import (
     BodyMetricsSnapshot,
     BodyMetricsSource,
 )
-from app.domains.avatar.models import AvatarRecord
+from app.domains.avatar.models import AvatarRecord, AvatarSourcePhotoRecord
 from app.domains.avatar.schemas import (
     CreateAvatarRequest,
     ManualBodyMeasurementsRequest,
@@ -92,6 +92,23 @@ class FakePrivateStorage:
     async def delete_private(self, object_key: str) -> None:
         self.items.pop(object_key, None)
         self.deleted.append(object_key)
+
+
+class FakeSourcePhotoRepository:
+    def __init__(self) -> None:
+        self.items: dict[UUID, AvatarSourcePhotoRecord] = {}
+
+    async def add(self, source_photo: AvatarSourcePhotoRecord) -> None:
+        self.items[source_photo.id] = source_photo
+
+    async def get_for_owner(
+        self, source_photo_id: UUID, owner_id: str
+    ) -> AvatarSourcePhotoRecord | None:
+        source = self.items.get(source_photo_id)
+        return source if source and source.owner_id == owner_id else None
+
+    async def delete(self, source_photo: AvatarSourcePhotoRecord) -> None:
+        self.items.pop(source_photo.id, None)
 
 
 class FakeBodyMetricsReader:
@@ -491,6 +508,59 @@ def test_delete_removes_only_generated_asset_and_record() -> None:
         assert created.id not in repository.items
         assert storage.deleted == [generated_key]
         assert not storage.items
+
+    asyncio.run(scenario())
+
+
+def test_private_source_photo_is_owner_scoped_and_never_exposed() -> None:
+    class SourceAwareProvider:
+        async def generate(
+            self, request: AvatarGenerationRequest
+        ) -> AvatarGenerationResult:
+            assert request.source_image is not None
+            assert request.source_image.content == b"\x89PNG\r\n\x1a\nsource"
+            return AvatarGenerationResult(
+                content=b"\x89PNG\r\n\x1a\ngenerated",
+                media_type="image/png",
+                model="gemini-3.1-flash-image",
+            )
+
+    async def scenario() -> None:
+        repository = FakeAvatarRepository()
+        storage = FakePrivateStorage()
+        source_repository = FakeSourcePhotoRepository()
+        reader = FakeBodyMetricsReader()
+        service = AvatarService(
+            repository,
+            SourceAwareProvider(),
+            storage,
+            reader,
+            source_photo_repository=source_repository,
+        )
+        source = await service.save_source_photo(
+            "owner", b"\x89PNG\r\n\x1a\nsource", "image/png"
+        )
+
+        with pytest.raises(AppError) as cross_user:
+            await service.create(
+                "other",
+                CreateAvatarRequest(source_photo_id=source.id),
+            )
+        assert cross_user.value.code == "avatar_source_not_found"
+
+        view = await service.create(
+            "owner", CreateAvatarRequest(source_photo_id=source.id)
+        )
+        serialized = view.model_dump(mode="json")
+        assert view.public_in_community is False
+        assert "source_photo_id" not in serialized
+        assert "source_photo" not in str(serialized).lower()
+        assert repository.items[view.id].source_photo_id == source.id
+        assert len(storage.items) == 2
+
+        await service.delete_source_photo("owner", source.id)
+        assert source.id not in source_repository.items
+        assert len(storage.items) == 1
 
     asyncio.run(scenario())
 

@@ -12,6 +12,7 @@ from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.errors import AppError
+from app.core.providers.contracts import LLMProvider
 from app.core.providers.mocks import MockLLMProvider
 from app.domains.inbody.contracts import InBodyTrainingAdapter
 from app.domains.inbody.repository import InBodyRepository
@@ -29,6 +30,7 @@ from app.domains.training.schemas import (
     WorkoutSessionResponse,
 )
 from app.domains.training.service import TrainingService
+from app.integrations.llm.production import ProductionLLMProvider
 from app.integrations.musclewiki.client import MuscleWikiClient
 from app.integrations.musclewiki.media import MuscleWikiMediaRelay, MuscleWikiMediaSigner
 
@@ -60,8 +62,24 @@ def get_musclewiki_media_signer(
     return MuscleWikiMediaSigner(secret)
 
 
-def get_musclewiki_media_relay() -> MuscleWikiMediaRelay:
-    return MuscleWikiMediaRelay()
+def get_musclewiki_media_relay(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> MuscleWikiMediaRelay:
+    api_key = settings.musclewiki_api_key
+    return MuscleWikiMediaRelay(api_key.get_secret_value() if api_key else None)
+
+
+def get_llm_provider(settings: Settings) -> LLMProvider:
+    if settings.chat_provider == "mock":
+        return MockLLMProvider(settings.chat_model)
+    api_key = settings.chat_api_key
+    if api_key is None:
+        raise RuntimeError("CHAT_API_KEY validation did not run")
+    return ProductionLLMProvider(
+        api_key=api_key.get_secret_value(),
+        model=settings.chat_model,
+        timeout_seconds=settings.chat_timeout_seconds,
+    )
 
 
 @router.post("/plans", response_model=WorkoutPlan, status_code=status.HTTP_201_CREATED)
@@ -177,9 +195,7 @@ async def coach_message(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> CoachMessageResponse:
     coach = CoachService(
-        llm_provider=MockLLMProvider(settings.chat_model),
+        llm_provider=get_llm_provider(settings),
         tool_executor=CoachToolExecutor(service),
     )
-    return await coach.respond(
-        user_id=current_user.id, message=request.message, tool_calls=request.tool_calls
-    )
+    return await coach.respond(user_id=current_user.id, message=request.message)

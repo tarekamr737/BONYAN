@@ -22,8 +22,14 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan"
     )
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    chat_model: str = "TBD"
-    avatar_model: str = "TBD"
+    chat_provider: Literal["mock", "openai"] = "mock"
+    chat_model: str = "gpt-5.6-terra"
+    chat_api_key: SecretStr | None = None
+    chat_timeout_seconds: float = 20
+    avatar_provider: Literal["mock", "gemini"] = "mock"
+    avatar_model: str = "gemini-3.1-flash-image"
+    avatar_api_key: SecretStr | None = None
+    avatar_timeout_seconds: float = 45
     mistral_api_key: SecretStr | None = None
     musclewiki_api_key: SecretStr | None = None
     auth_jwt_secret: SecretStr | None = None
@@ -47,6 +53,13 @@ class Settings(BaseSettings):
     def require_non_empty_model_marker(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("provider model markers cannot be empty")
+        return value
+
+    @field_validator("chat_timeout_seconds", "avatar_timeout_seconds")
+    @classmethod
+    def validate_provider_timeout(cls, value: float) -> float:
+        if not 1 <= value <= 120:
+            raise ValueError("provider timeouts must be between 1 and 120 seconds")
         return value
 
     @field_validator("auth_jwt_issuer", "auth_jwt_audience")
@@ -92,6 +105,10 @@ class Settings(BaseSettings):
             raise ValueError("AUTH_JWT_SECRET is required in production")
         if self.api_env == "production" and not self.api_public_url.startswith("https://"):
             raise ValueError("API_PUBLIC_URL must use HTTPS in production")
+        if self.chat_provider == "openai" and self.chat_api_key is None:
+            raise ValueError("CHAT_API_KEY is required when CHAT_PROVIDER=openai")
+        if self.avatar_provider == "gemini" and self.avatar_api_key is None:
+            raise ValueError("AVATAR_API_KEY is required when AVATAR_PROVIDER=gemini")
         return self
 
     @property

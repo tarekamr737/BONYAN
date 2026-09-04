@@ -82,6 +82,13 @@ class AvatarGenerationRequest:
     metrics: BodyMetricsSnapshot = field(repr=False)
     style: BodyAvatarStyle
     presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN
+    source_image: AvatarSourceImage | None = field(default=None, repr=False)
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class AvatarSourceImage:
+    content: bytes = field(repr=False)
+    media_type: str
 
 
 AvatarGenerationResult = AvatarResult
@@ -105,6 +112,23 @@ class PrivateAvatarStorage(Protocol):
     async def create_read_url(self, object_key: str, *, expires_in_seconds: int) -> str: ...
 
     async def delete_private(self, object_key: str) -> None: ...
+
+
+class AvatarSourcePhoto(Protocol):
+    id: UUID
+    owner_id: str
+    object_key: str
+    media_type: str
+
+
+class AvatarSourcePhotoRepository(Protocol):
+    async def add(self, source_photo: AvatarSourcePhoto) -> None: ...
+
+    async def get_for_owner(
+        self, source_photo_id: UUID, owner_id: str
+    ) -> AvatarSourcePhoto | None: ...
+
+    async def delete(self, source_photo: AvatarSourcePhoto) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)

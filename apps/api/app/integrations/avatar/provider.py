@@ -5,6 +5,7 @@ from app.domains.avatar.contracts import (
     AvatarGenerationResult,
     AvatarProvider,
     AvatarProviderError,
+    AvatarSourceImage,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "AvatarGenerationResult",
     "AvatarProvider",
     "AvatarProviderError",
+    "AvatarSourceImage",
 ]

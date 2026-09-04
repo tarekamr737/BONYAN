@@ -10,6 +10,8 @@ from app.domains.avatar.contracts import (
     AvatarGenerationRequest,
     AvatarProvider,
     AvatarProviderError,
+    AvatarSourceImage,
+    AvatarSourcePhotoRepository,
     AvatarState,
     BodyAvatarPresentation,
     BodyAvatarStyle,
@@ -19,17 +21,18 @@ from app.domains.avatar.contracts import (
     ManualBodyMetricsWriter,
     PrivateAvatarStorage,
 )
-from app.domains.avatar.models import AvatarRecord
+from app.domains.avatar.models import AvatarRecord, AvatarSourcePhotoRecord
 from app.domains.avatar.repository import AvatarRepository
 from app.domains.avatar.schemas import (
     AvatarListView,
     AvatarMeasurementStatusView,
+    AvatarSourcePhotoView,
     AvatarView,
     CreateAvatarRequest,
     ManualBodyMeasurementsRequest,
 )
 from app.domains.avatar.shape import classify_body_shape
-from app.domains.avatar.validation import validate_generated_image
+from app.domains.avatar.validation import validate_generated_image, validate_source_image
 
 
 class AvatarService:
@@ -40,6 +43,7 @@ class AvatarService:
         storage: PrivateAvatarStorage,
         body_metrics_reader: BodyMetricsReader,
         manual_metrics_writer: ManualBodyMetricsWriter | None = None,
+        source_photo_repository: AvatarSourcePhotoRepository | None = None,
         *,
         provider_timeout_seconds: float = 30,
     ) -> None:
@@ -48,14 +52,18 @@ class AvatarService:
         self._storage = storage
         self._body_metrics_reader = body_metrics_reader
         self._manual_metrics_writer = manual_metrics_writer
+        self._source_photo_repository = source_photo_repository
         self._provider_timeout_seconds = provider_timeout_seconds
 
     async def create(self, owner_id: str, request: CreateAvatarRequest) -> AvatarView:
         metrics = await self._require_body_metrics(owner_id)
+        if request.source_photo_id is not None:
+            await self._require_source_photo(owner_id, request.source_photo_id)
         now = datetime.now(UTC)
         avatar = AvatarRecord(
             id=uuid4(),
             owner_id=owner_id,
+            source_photo_id=request.source_photo_id,
             generated_object_key=None,
             generated_media_type=None,
             state=AvatarState.REQUESTED,
@@ -73,6 +81,45 @@ class AvatarService:
         await self._repository.add(avatar)
         await self._generate(avatar, metrics)
         return await self._to_view(avatar)
+
+    async def save_source_photo(
+        self, owner_id: str, content: bytes, media_type: str
+    ) -> AvatarSourcePhotoView:
+        if self._source_photo_repository is None:
+            raise AppError(
+                code="avatar_source_unavailable",
+                message="Source photo uploads are unavailable right now.",
+                status_code=503,
+            )
+        source = validate_source_image(content, media_type)
+        object_key = await self._storage.put_private(source.content, source.media_type)
+        record = AvatarSourcePhotoRecord(
+            id=uuid4(),
+            owner_id=owner_id,
+            object_key=object_key,
+            media_type=source.media_type,
+            created_at=datetime.now(UTC),
+        )
+        try:
+            await self._source_photo_repository.add(record)
+        except Exception:
+            await self._storage.delete_private(object_key)
+            raise
+        return AvatarSourcePhotoView(id=record.id)
+
+    async def delete_source_photo(self, owner_id: str, source_photo_id: UUID) -> None:
+        source_photo = await self._require_source_photo(owner_id, source_photo_id)
+        try:
+            await self._storage.delete_private(source_photo.object_key)
+        except Exception as exc:
+            raise AppError(
+                code="avatar_source_delete_incomplete",
+                message="The source photo could not be deleted. Try again.",
+                status_code=503,
+            ) from exc
+        if self._source_photo_repository is None:
+            raise RuntimeError("source photo repository validation did not run")
+        await self._source_photo_repository.delete(source_photo)
 
     async def measurement_status(
         self,
@@ -215,12 +262,14 @@ class AvatarService:
         self._touch(avatar)
         await self._repository.save(avatar)
         try:
+            source_image = await self._read_source_image(avatar)
             result = await asyncio.wait_for(
                 self._provider.generate(
                     AvatarGenerationRequest(
                         metrics=metrics,
                         style=BodyAvatarStyle(avatar.style),
                         presentation=BodyAvatarPresentation(avatar.presentation),
+                        source_image=source_image,
                     )
                 ),
                 timeout=self._provider_timeout_seconds,
@@ -314,3 +363,29 @@ class AvatarService:
                 status_code=409,
             )
         return metrics
+
+    async def _require_source_photo(self, owner_id: str, source_photo_id: UUID):
+        if self._source_photo_repository is None:
+            raise AppError(
+                code="avatar_source_unavailable",
+                message="Source photo uploads are unavailable right now.",
+                status_code=503,
+            )
+        source_photo = await self._source_photo_repository.get_for_owner(
+            source_photo_id, owner_id
+        )
+        if source_photo is None:
+            raise AppError(
+                code="avatar_source_not_found",
+                message="Source photo not found.",
+                status_code=404,
+            )
+        return source_photo
+
+    async def _read_source_image(self, avatar: AvatarRecord) -> AvatarSourceImage | None:
+        if avatar.source_photo_id is None:
+            return None
+        source_photo = await self._require_source_photo(avatar.owner_id, avatar.source_photo_id)
+        content = await self._storage.get_private(source_photo.object_key)
+        source = validate_source_image(content, source_photo.media_type)
+        return AvatarSourceImage(content=source.content, media_type=source.media_type)

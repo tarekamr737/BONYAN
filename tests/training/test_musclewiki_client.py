@@ -8,7 +8,7 @@ import time
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 
 import jwt
 import pytest
@@ -24,7 +24,9 @@ from app.domains.training.router import (
 from app.integrations.musclewiki.cache import MetadataCache
 from app.integrations.musclewiki.client import MuscleWikiClient
 from app.integrations.musclewiki.errors import (
+    MuscleWikiAuthenticationError,
     MuscleWikiInvalidResponseError,
+    MuscleWikiRateLimitError,
     MuscleWikiUnavailableError,
 )
 from app.integrations.musclewiki.media import (
@@ -85,7 +87,7 @@ def exercise_payload(exercise_id: str = "push-up") -> dict[str, object]:
         "id": exercise_id,
         "muscles": ["chest"],
         "name": "Push Up",
-        "video_url": "https://media.musclewiki.test/push-up.mp4",
+        "video_url": "https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
     }
 
 
@@ -120,13 +122,14 @@ def test_filters_pagination_and_authorization_header_are_sent() -> None:
         )
 
     request = requests[0][0]
-    assert "page=2" in request.full_url
-    assert "page_size=7" in request.full_url
-    assert "search=press" in request.full_url
+    assert "/search?" in request.full_url
+    assert "limit=7" in request.full_url
+    assert "offset=7" in request.full_url
+    assert "q=press" in request.full_url
     assert "muscles=chest" in request.full_url
-    assert "equipment=dumbbell" in request.full_url
+    assert "category=dumbbell" in request.full_url
     assert "difficulty=beginner" in request.full_url
-    assert request.get_header("Authorization") == "Bearer secret-key"
+    assert request.get_header("X-api-key") == "secret-key"
     assert page.total == 12
     assert page.next_page == 3
     assert page.page == 2
@@ -147,7 +150,83 @@ def test_authorization_header_is_absent_without_key() -> None:
             )
         )
 
-    assert requests[0].get_header("Authorization") is None
+    assert requests[0].get_header("X-api-key") is None
+
+
+def test_official_response_shape_maps_category_videos_and_offset_pagination() -> None:
+    payload = {
+        "total": 8,
+        "results": [
+            {
+                "id": 1,
+                "name": "Barbell Curl",
+                "primary_muscles": ["biceps"],
+                "category": "barbell",
+                "difficulty": "beginner",
+                "steps": ["Curl the bar."],
+                "videos": [
+                    {
+                        "url": "https://api.musclewiki.com/stream/videos/branded/curl.mp4"
+                    }
+                ],
+            }
+        ],
+    }
+    with patch(
+        "app.integrations.musclewiki.client.request.urlopen",
+        return_value=FakeResponse(payload),
+    ):
+        page = run(
+            MuscleWikiClient(settings=settings()).search_exercises(
+                ExerciseSearchFilters(), page=2, page_size=3
+            )
+        )
+
+    assert page.total == 8
+    assert page.next_page == 3
+    assert page.items[0].equipment == ("barbell",)
+    assert (
+        page.items[0].video_url
+        == "https://api.musclewiki.com/stream/videos/branded/curl.mp4"
+    )
+
+
+def test_rate_limit_retries_with_a_hard_bound() -> None:
+    attempts = 0
+
+    def rate_limited(req, timeout):
+        nonlocal attempts
+        attempts += 1
+        raise HTTPError(req.full_url, 429, "limited", hdrs=None, fp=None)
+
+    with patch("app.integrations.musclewiki.client.request.urlopen", rate_limited):
+        with pytest.raises(MuscleWikiRateLimitError):
+            run(
+                MuscleWikiClient(
+                    settings=settings(), max_attempts=2, retry_delay_seconds=0
+                ).search_exercises(ExerciseSearchFilters())
+            )
+
+    assert attempts == 2
+
+
+def test_authentication_failure_is_not_retried() -> None:
+    attempts = 0
+
+    def forbidden(req, timeout):
+        nonlocal attempts
+        attempts += 1
+        raise HTTPError(req.full_url, 403, "forbidden", hdrs=None, fp=None)
+
+    with patch("app.integrations.musclewiki.client.request.urlopen", forbidden):
+        with pytest.raises(MuscleWikiAuthenticationError):
+            run(
+                MuscleWikiClient(
+                    settings=settings("bad-key"), max_attempts=3, retry_delay_seconds=0
+                ).search_exercises(ExerciseSearchFilters())
+            )
+
+    assert attempts == 1
 
 
 def test_cache_maximum_size_eviction_and_expiry() -> None:
@@ -180,20 +259,23 @@ def test_media_access_uses_server_token_and_enforces_expiry() -> None:
 
     assert access is not None
     assert access.url.startswith("https://api.bonyan.test/api/v1/training/media?token=")
-    assert "media.musclewiki.test" not in access.url
+    assert "api.musclewiki.com" not in access.url
     token = access.url.split("token=", 1)[1]
     encoded_payload = token.split(".", 1)[0]
     payload = json.loads(
         base64.urlsafe_b64decode(encoded_payload + "=" * (-len(encoded_payload) % 4))
     )
     assert "url" not in payload
-    assert "media.musclewiki.test" not in json.dumps(payload)
+    assert "api.musclewiki.com" not in json.dumps(payload)
     verified = signer.verify(token, user_id="user-1")
-    assert verified.provider_url == "https://media.musclewiki.test/push-up.mp4"
+    assert (
+        verified.provider_url
+        == "https://api.musclewiki.com/stream/videos/branded/push-up.mp4"
+    )
     with pytest.raises(AppError):
         signer.verify(token, user_id="user-2")
     expired = signer.sign(
-        provider_url="https://media.musclewiki.test/push-up.mp4",
+        provider_url="https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
         user_id="user-1",
         expires_in_seconds=-1,
     )
@@ -209,14 +291,17 @@ def test_default_media_registry_is_shared_between_client_and_route_signers() -> 
     issuer = MuscleWikiMediaSigner(b"shared-secret" * 3)
     verifier = MuscleWikiMediaSigner(b"shared-secret" * 3)
     token = issuer.sign(
-        provider_url="https://media.musclewiki.test/push-up.mp4",
+        provider_url="https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
         user_id="user-1",
         expires_in_seconds=60,
     )
 
     verified = verifier.verify(token, user_id="user-1")
 
-    assert verified.provider_url == "https://media.musclewiki.test/push-up.mp4"
+    assert (
+        verified.provider_url
+        == "https://api.musclewiki.com/stream/videos/branded/push-up.mp4"
+    )
 
 
 def test_training_media_endpoint_requires_auth_and_enforces_token_expiry(
@@ -255,12 +340,12 @@ def test_training_media_endpoint_requires_auth_and_enforces_token_expiry(
         app.dependency_overrides[get_musclewiki_media_signer] = lambda: signer
         app.dependency_overrides[get_musclewiki_media_relay] = lambda: relay
         token = signer.sign(
-            provider_url="https://media.musclewiki.test/push-up.mp4",
+            provider_url="https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
             user_id="user-1",
             expires_in_seconds=300,
         )
         expired = signer.sign(
-            provider_url="https://media.musclewiki.test/push-up.mp4",
+            provider_url="https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
             user_id="user-1",
             expires_in_seconds=-1,
         )
@@ -285,12 +370,15 @@ def test_training_media_endpoint_requires_auth_and_enforces_token_expiry(
         assert valid.status_code == 206
         assert valid.content == b"video-bytes"
         assert "location" not in valid.headers
-        assert "media.musclewiki.test" not in valid.text
+        assert "api.musclewiki.com" not in valid.text
         assert valid.headers["cache-control"] == "private, no-store"
         assert valid.headers["content-range"] == "bytes 0-10/11"
         assert expired_response.status_code == 404
         assert relay.calls == [
-            ("https://media.musclewiki.test/push-up.mp4", "bytes=0-10")
+            (
+                "https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
+                "bytes=0-10",
+            )
         ]
         app.dependency_overrides.clear()
         get_settings.cache_clear()
@@ -298,7 +386,7 @@ def test_training_media_endpoint_requires_auth_and_enforces_token_expiry(
     asyncio.run(scenario())
 
 
-def test_media_relay_streams_ranges_without_forwarding_credentials() -> None:
+def test_media_relay_streams_ranges_with_backend_only_provider_key() -> None:
     class FakeMediaResponse:
         status = 206
         headers = {
@@ -326,14 +414,14 @@ def test_media_relay_streams_ranges_without_forwarding_credentials() -> None:
         return upstream
 
     with patch("app.integrations.musclewiki.media.request.urlopen", fake_urlopen):
-        response = MuscleWikiMediaRelay().open(
-            "https://media.musclewiki.test/push-up.mp4",
+        response = MuscleWikiMediaRelay("secret-key").open(
+            "https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
             range_header="bytes=0-4",
         )
         assert b"".join(response.body) == b"video"
 
     assert requests[0][0].get_header("Range") == "bytes=0-4"
-    assert requests[0][0].get_header("Authorization") is None
+    assert requests[0][0].get_header("X-api-key") == "secret-key"
     assert response.status_code == 206
     assert response.headers["Content-Range"] == "bytes 0-4/5"
     assert response.headers["Cache-Control"] == "private, no-store"
@@ -346,10 +434,28 @@ def test_media_relay_rejects_invalid_range_before_provider_call() -> None:
     with patch("app.integrations.musclewiki.media.request.urlopen") as urlopen:
         with pytest.raises(AppError):
             MuscleWikiMediaRelay().open(
-                "https://media.musclewiki.test/push-up.mp4",
+                "https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
                 range_header="bytes=0-4,8-12",
             )
     urlopen.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "provider_url",
+    [
+        "https://example.com/stream/video.mp4",
+        "https://api.musclewiki.com.evil.test/stream/video.mp4",
+        "https://api.musclewiki.com/exercises/1",
+        "https://api.musclewiki.com:8443/stream/video.mp4",
+    ],
+)
+def test_media_signer_rejects_non_musclewiki_stream_urls(provider_url: str) -> None:
+    with pytest.raises(ValueError, match="MuscleWiki HTTPS stream URL"):
+        MuscleWikiMediaSigner(b"secret" * 6).sign(
+            provider_url=provider_url,
+            user_id="user-1",
+            expires_in_seconds=60,
+        )
 
 
 def test_media_relay_provider_outage_maps_to_safe_error() -> None:
@@ -359,7 +465,8 @@ def test_media_relay_provider_outage_maps_to_safe_error() -> None:
     ):
         with pytest.raises(AppError) as exc_info:
             MuscleWikiMediaRelay().open(
-                "https://media.musclewiki.test/push-up.mp4", range_header=None
+                "https://api.musclewiki.com/stream/videos/branded/push-up.mp4",
+                range_header=None,
             )
     assert exc_info.value.status_code == 503
 
@@ -384,7 +491,8 @@ def test_media_relay_rejects_non_video_content() -> None:
     ):
         with pytest.raises(AppError) as exc_info:
             MuscleWikiMediaRelay().open(
-                "https://media.musclewiki.test/not-video", range_header=None
+                "https://api.musclewiki.com/stream/videos/branded/not-video",
+                range_header=None,
             )
 
     assert exc_info.value.status_code == 503

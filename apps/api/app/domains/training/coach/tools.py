@@ -6,6 +6,7 @@ from fastapi import status
 from pydantic import BaseModel, Field, ValidationError
 
 from app.core.errors import AppError
+from app.core.providers.contracts import LLMToolDefinition
 from app.domains.training.coach.schemas import CoachToolCall, CoachToolName, CoachToolResult
 from app.domains.training.schemas import GeneratePlanRequest, LoggedSetInput
 from app.domains.training.service import TrainingService
@@ -29,6 +30,48 @@ class LogWorkoutArgs(LoggedSetInput):
 class CoachToolExecutor:
     def __init__(self, training_service: TrainingService) -> None:
         self.training_service = training_service
+
+    @staticmethod
+    def definitions() -> tuple[LLMToolDefinition, ...]:
+        empty_parameters = {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": False,
+        }
+        models = {
+            CoachToolName.GET_CURRENT_PLAN: (
+                "Read the user's current workout plan summary.",
+                empty_parameters,
+            ),
+            CoachToolName.GET_TRAINING_HISTORY: (
+                "Read the user's five most recent workout sessions.",
+                empty_parameters,
+            ),
+            CoachToolName.SEARCH_EXERCISES: (
+                "Search exercises by optional query, muscle, and equipment filters.",
+                SearchExercisesArgs.model_json_schema(),
+            ),
+            CoachToolName.GET_EXERCISE_DETAILS: (
+                "Read details for one exercise returned by the catalog.",
+                ExerciseDetailsArgs.model_json_schema(),
+            ),
+            CoachToolName.GENERATE_WORKOUT_PLAN: (
+                "Generate a deterministic BONYAN workout plan from validated preferences.",
+                GeneratePlanRequest.model_json_schema(),
+            ),
+            CoachToolName.LOG_WORKOUT: (
+                "Log one set in an active workout session.",
+                LogWorkoutArgs.model_json_schema(),
+            ),
+        }
+        return tuple(
+            LLMToolDefinition(
+                name=name.value,
+                description=description,
+                parameters=_strict_schema(parameters),
+            )
+            for name, (description, parameters) in models.items()
+        )
 
     async def execute(self, *, user_id: str, call: CoachToolCall) -> CoachToolResult:
         try:
@@ -110,3 +153,26 @@ def _session_summary(session) -> dict[str, object]:
         "logged_set_count": len(session.logged_sets),
         "summary": session.summary,
     }
+
+
+def _strict_schema(schema: dict[str, object]) -> dict[str, object]:
+    return _normalize_schema_node(schema)
+
+
+def _normalize_schema_node(value):
+    if isinstance(value, list):
+        return [_normalize_schema_node(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+
+    normalized = {
+        key: _normalize_schema_node(item)
+        for key, item in value.items()
+        if key not in {"default", "title"}
+    }
+    if normalized.get("type") == "object":
+        normalized["additionalProperties"] = False
+        properties = normalized.get("properties")
+        if isinstance(properties, dict):
+            normalized["required"] = list(properties)
+    return normalized

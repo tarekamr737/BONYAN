@@ -9,7 +9,13 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.errors import AppError
-from app.core.providers.contracts import LLMRequest
+from app.core.providers.contracts import (
+    LLMRequest,
+    LLMResponse,
+)
+from app.core.providers.contracts import (
+    LLMToolCall as ProviderToolCall,
+)
 from app.domains.training.coach.schemas import CoachToolCall, CoachToolName
 from app.domains.training.coach.service import CoachService
 from app.domains.training.coach.tools import CoachToolExecutor
@@ -67,6 +73,26 @@ class FakeProvider:
 
     async def get_media_access(self, exercise_id: str, *, user_id: str):
         return None
+
+
+def test_coach_tool_definitions_use_recursive_strict_schemas() -> None:
+    def assert_strict(value: object) -> None:
+        if isinstance(value, list):
+            for item in value:
+                assert_strict(item)
+            return
+        if not isinstance(value, dict):
+            return
+        assert "default" not in value
+        assert "title" not in value
+        if value.get("type") == "object":
+            assert value["additionalProperties"] is False
+            assert value["required"] == list(value.get("properties", {}))
+        for item in value.values():
+            assert_strict(item)
+
+    for definition in CoachToolExecutor.definitions():
+        assert_strict(definition.parameters)
 
 
 class FakeInBodyProvider:
@@ -146,7 +172,28 @@ class FailingLLM:
 
 class EchoLLM:
     async def complete(self, request: LLMRequest):
-        return SimpleNamespace(text=f"ok {request.prompt[:8]}", model="TBD")
+        return LLMResponse(text=f"ok {request.prompt[:8]}", model="TBD")
+
+
+class ToolCallingLLM:
+    def __init__(self) -> None:
+        self.requests: list[LLMRequest] = []
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        self.requests.append(request)
+        if not request.tool_results:
+            return LLMResponse(
+                text="",
+                model="gpt-5.6-terra",
+                tool_calls=(
+                    ProviderToolCall(
+                        call_id="call-plan",
+                        name=CoachToolName.GENERATE_WORKOUT_PLAN.value,
+                        arguments={"days_per_week": 2, "equipment": ["bodyweight"]},
+                    ),
+                ),
+            )
+        return LLMResponse(text="Your validated plan is ready.", model="gpt-5.6-terra")
 
 
 def run(coro):
@@ -361,26 +408,34 @@ def test_invalid_coach_tool_call_is_rejected() -> None:
 
 def test_coach_uses_mock_llm_and_validated_tool_results() -> None:
     service, _ = make_service()
-    coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
+    provider = ToolCallingLLM()
+    coach = CoachService(llm_provider=provider, tool_executor=CoachToolExecutor(service))
 
     response = run(
         coach.respond(
             user_id="user-1",
             message="generate my workout plan",
-            tool_calls=[
-                CoachToolCall(
-                    name=CoachToolName.GENERATE_WORKOUT_PLAN,
-                    arguments={"days_per_week": 2, "equipment": ["bodyweight"]},
-                )
-            ],
         )
     )
 
-    assert response.model == "TBD"
+    assert response.model == "gpt-5.6-terra"
+    assert response.response == "Your validated plan is ready."
     assert response.tool_results[0]["name"] == CoachToolName.GENERATE_WORKOUT_PLAN
     plan_result = response.tool_results[0]["result"]["plan"]
     assert plan_result["days"][0]["exercise_count"] > 0
     assert "prescriptions" not in str(plan_result)
+    assert len(provider.requests) == 2
+    assert provider.requests[0].tools
+    assert provider.requests[1].tool_results[0].call_id == "call-plan"
+
+
+def test_coach_accepts_egyptian_arabic_training_scope() -> None:
+    service, _ = make_service()
+    coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
+
+    response = run(coach.respond(user_id="user-1", message="عايز خطة تمرين للجيم"))
+
+    assert response.model == "TBD"
 
 
 def test_coach_llm_outage_does_not_mutate_without_valid_tool() -> None:

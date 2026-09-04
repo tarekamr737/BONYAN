@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Enum, String, Uuid
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -15,6 +15,12 @@ class AvatarRecord(Base):
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
     owner_id: Mapped[str] = mapped_column(String(128), index=True)
+    source_photo_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("avatar_source_photos.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
+    )
     generated_object_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     generated_media_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     state: Mapped[AvatarState] = mapped_column(
@@ -30,3 +36,13 @@ class AvatarRecord(Base):
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AvatarSourcePhotoRecord(Base):
+    __tablename__ = "avatar_source_photos"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(128), index=True)
+    object_key: Mapped[str] = mapped_column(String(512), unique=True)
+    media_type: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

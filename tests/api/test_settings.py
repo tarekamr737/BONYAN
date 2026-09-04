@@ -46,3 +46,22 @@ def test_cors_origins_are_explicit_and_production_fails_closed() -> None:
     assert "http://127.0.0.1:4173" in development.cors_origins
     assert production.cors_origins == []
     assert configured.cors_origins == ["https://app.bonyan.example"]
+
+
+def test_selected_providers_require_backend_credentials() -> None:
+    with pytest.raises(ValidationError, match="CHAT_API_KEY"):
+        Settings(chat_provider="openai", chat_api_key=None)
+    with pytest.raises(ValidationError, match="AVATAR_API_KEY"):
+        Settings(avatar_provider="gemini", avatar_api_key=None)
+
+
+def test_provider_secrets_are_redacted() -> None:
+    settings = Settings(
+        chat_provider="openai",
+        chat_api_key="chat-secret",
+        avatar_provider="gemini",
+        avatar_api_key="avatar-secret",
+    )
+
+    assert "chat-secret" not in repr(settings)
+    assert "avatar-secret" not in repr(settings)
