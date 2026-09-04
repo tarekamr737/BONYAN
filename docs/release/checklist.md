@@ -30,7 +30,7 @@ python -m alembic -c apps/api/alembic.ini upgrade head --sql
 ## 2. Environment, secrets, and providers
 
 - [ ] `API_ENV`, `API_PUBLIC_URL`, `DATABASE_URL`, `PRIVATE_STORAGE_ROOT`, and mobile
-  `EXPO_PUBLIC_API_BASE_URL` identify the same isolated environment.
+  `EXPO_PUBLIC_API_URL` identify the same isolated environment.
 - [ ] API and mobile URLs use HTTPS; CORS contains only approved origins.
 - [ ] JWT, database, OCR, exercise, Coach, Avatar, storage, and signing secrets come from the
   environment secret store and are absent from Git and build logs.

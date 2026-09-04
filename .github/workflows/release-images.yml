@@ -23,6 +23,12 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_API_URL: https://api.ci.bonyan.invalid
+      API_ENV: test
+      DATABASE_URL: postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan
+      CHAT_MODEL: TBD
+      AVATAR_MODEL: TBD
     services:
       postgres:
         image: postgres:17-alpine
@@ -37,11 +43,6 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 15
-    env:
-      API_ENV: test
-      DATABASE_URL: postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan
-      CHAT_MODEL: TBD
-      AVATAR_MODEL: TBD
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

@@ -1,17 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppButton, ScreenState } from "../../../core/components";
 import { useAuthSession } from "../../../core/auth/session";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
+import {
+  accountDeletionConfirmationActions,
+  usesInlineAccountDeletionConfirmation,
+} from "../accountDeletionConfirmation";
 import { deleteMyAccount, getMyProfile, updateMyProfile } from "../api/profileApi";
 import { ProfileForm } from "../components/ProfileForm";
 import type { ProfileUpdate } from "../types";
 
 export function ProfileScreen() {
   const { signOut } = useAuthSession();
+  const [showWebDeletionConfirmation, setShowWebDeletionConfirmation] = useState(false);
   const queryClient = useQueryClient();
   const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
   const mutation = useMutation({
@@ -31,6 +37,10 @@ export function ProfileScreen() {
 
   const confirmAccountDeletion = () => {
     if (deletion.isPending) return;
+    if (usesInlineAccountDeletionConfirmation(Platform.OS)) {
+      setShowWebDeletionConfirmation(true);
+      return;
+    }
     Alert.alert(
       "Delete your BONYAN account?",
       "This permanently deletes your profile, InBody reports, workouts, avatars, posts, and private files. This cannot be undone.",
@@ -44,6 +54,10 @@ export function ProfileScreen() {
       ],
     );
   };
+  const webConfirmation = accountDeletionConfirmationActions({
+    dismiss: () => setShowWebDeletionConfirmation(false),
+    removeAccount: () => deletion.mutate(),
+  });
 
   if (profile.isPending) {
     return (
@@ -123,6 +137,32 @@ export function ProfileScreen() {
             onPress={confirmAccountDeletion}
             variant="danger"
           />
+          {showWebDeletionConfirmation ? (
+            <View accessibilityRole="alert" style={styles.deletionConfirmation}>
+              <Text accessibilityRole="header" style={styles.confirmationTitle}>
+                Permanently delete this account?
+              </Text>
+              <Text style={styles.dangerCopy}>
+                This action cannot be undone. Your private reports, workouts, avatars, and posts
+                will be removed.
+              </Text>
+              <View style={styles.confirmationActions}>
+                <AppButton
+                  accessibilityLabel="Cancel account deletion"
+                  label="Keep account"
+                  onPress={webConfirmation.cancel}
+                  variant="secondary"
+                />
+                <AppButton
+                  accessibilityLabel="Confirm permanent account deletion"
+                  label="Delete permanently"
+                  loading={deletion.isPending}
+                  onPress={webConfirmation.confirm}
+                  variant="danger"
+                />
+              </View>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -189,5 +229,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     lineHeight: 21,
+  },
+  deletionConfirmation: {
+    backgroundColor: colors.surface,
+    borderColor: colors.error,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  confirmationTitle: {
+    color: colors.text,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+  },
+  confirmationActions: {
+    gap: spacing.sm,
   },
 });

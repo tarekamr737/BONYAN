@@ -41,7 +41,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web",
-    "export:release": "expo export --platform all",
+    "export:release": "node scripts/export-release.cjs",
     "routes:check": "node ../../scripts/generate-mobile-routes.cjs",
     "lint": "eslint app src tests --max-warnings=0",
     "typecheck": "tsc --noEmit",
