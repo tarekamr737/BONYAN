@@ -9,7 +9,16 @@ from app.core.config import Settings
 from app.core.providers.contracts import LLMRequest, LLMToolDefinition, LLMToolResult
 from app.domains.training.router import get_llm_provider
 from app.integrations.llm.errors import LLMProviderError
-from app.integrations.llm.production import PUTER_CHAT_URL, ProductionLLMProvider
+from app.integrations.llm.production import (
+    OPENROUTER_CHAT_URL,
+    PUTER_CHAT_URL,
+    ProductionLLMProvider,
+)
+
+
+@pytest.fixture(params=["puter", "openrouter"])
+def gateway(request):
+    return request.param
 
 
 def response(message, finish="stop"):
@@ -19,7 +28,7 @@ def response(message, finish="stop"):
     }
 
 
-def test_puter_wiring_transport_and_usage(monkeypatch):
+def test_gateway_wiring_transport_and_usage(monkeypatch, gateway):
     class Reply:
         def __enter__(self):
             return self
@@ -31,7 +40,14 @@ def test_puter_wiring_transport_and_usage(monkeypatch):
             return json.dumps(response({"content": "Hello"})).encode()
 
     def urlopen(outbound, timeout):
-        assert outbound.full_url == PUTER_CHAT_URL
+        assert outbound.full_url == (
+            PUTER_CHAT_URL if gateway == "puter" else OPENROUTER_CHAT_URL
+        )
+        if gateway == "openrouter":
+            payload = json.loads(outbound.data)
+            assert payload["max_tokens"] == 800
+            assert payload["provider"] == {"require_parameters": True}
+            assert "max_completion_tokens" not in payload
         assert outbound.get_header("Authorization") == "Bearer puter-secret"
         payload = json.loads(outbound.data)
         assert payload["messages"] == [{"role": "user", "content": "Hi"}]
@@ -43,7 +59,7 @@ def test_puter_wiring_transport_and_usage(monkeypatch):
     provider = get_llm_provider(
         Settings(
             _env_file=None,
-            chat_provider="puter",
+            chat_provider=gateway,
             chat_api_key="puter-secret",
             chat_model="gpt-4.1",
         )
@@ -55,17 +71,17 @@ def test_puter_wiring_transport_and_usage(monkeypatch):
 
 
 @pytest.mark.parametrize("key", [None, "", "   "])
-def test_puter_requires_token(key):
+def test_gateway_requires_token(key, gateway):
     with pytest.raises(ValidationError, match="CHAT_API_KEY"):
         Settings(
             _env_file=None,
-            chat_provider="puter",
+            chat_provider=gateway,
             chat_model="gpt-4.1",
             chat_api_key=key,
         )
 
 
-def test_puter_tools_and_followup():
+def test_gateway_tools_and_followup(gateway):
     tool = LLMToolDefinition(
         name="get_current_plan", description="Read plan", parameters={}
     )
@@ -89,11 +105,13 @@ def test_puter_tools_and_followup():
         return response({"content": "Your plan"})
 
     provider = ProductionLLMProvider(
-        api_key="secret", model="gpt-4.1", provider="puter", post_json=post
+        api_key="secret", model="gpt-4.1", provider=gateway, post_json=post
     )
     result = asyncio.run(provider.complete(LLMRequest(prompt="Plan", tools=(tool,))))
     assert result.tool_calls[0].arguments == {}
     assert payloads[0]["tools"][0]["function"]["name"] == tool.name
+    if gateway == "openrouter":
+        assert "parallel_tool_calls" not in payloads[0]
     asyncio.run(
         provider.complete(
             LLMRequest(
@@ -129,9 +147,9 @@ def test_puter_tools_and_followup():
         ),
     ],
 )
-def test_puter_rejects_invalid_output(raw):
+def test_gateway_rejects_invalid_output(raw, gateway):
     provider = ProductionLLMProvider(
-        api_key="secret", model="gpt-4.1", provider="puter", post_json=lambda _: raw
+        api_key="secret", model="gpt-4.1", provider=gateway, post_json=lambda _: raw
     )
     with pytest.raises(LLMProviderError):
         asyncio.run(provider.complete(LLMRequest(prompt="Hi")))

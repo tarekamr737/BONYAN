@@ -15,8 +15,17 @@ ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = json.loads(
     (ROOT / "docs/benchmarks/coach-candidates.json").read_text(encoding="utf-8")
 )["candidates"]
-if os.getenv("CHAT_PROVIDER") == "puter":
-    CANDIDATES = [{"model": os.getenv("CHAT_MODEL") or "gpt-4.1"}]
+if os.getenv("CHAT_PROVIDER") in {"puter", "openrouter"}:
+    CANDIDATES = [
+        {
+            "model": os.getenv("CHAT_MODEL")
+            or (
+                "minimax/minimax-m3:free"
+                if os.getenv("CHAT_PROVIDER") == "openrouter"
+                else "gpt-4.1"
+            )
+        }
+    ]
 CASES = json.loads(
     (ROOT / "docs/benchmarks/coach-test-set.json").read_text(encoding="utf-8")
 )
@@ -27,8 +36,10 @@ CASES = json.loads(
 @pytest.mark.parametrize("case", CASES, ids=lambda item: item["id"])
 def test_coach_candidate_live(candidate, case, record_property) -> None:
     provider_name = os.getenv("CHAT_PROVIDER", "mock")
-    if provider_name not in {"openai", "puter"}:
-        pytest.skip("Explicit CHAT_PROVIDER=openai or puter is required for live calls")
+    if provider_name not in {"openai", "puter", "openrouter"}:
+        pytest.skip(
+            "Explicit CHAT_PROVIDER=openai, puter, or openrouter is required for live calls"
+        )
     api_key = os.getenv("CHAT_API_KEY")
     if provider_name == "openai":
         api_key = api_key or os.getenv("OPENAI_API_KEY")

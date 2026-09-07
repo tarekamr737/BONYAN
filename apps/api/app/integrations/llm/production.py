@@ -15,6 +15,7 @@ from app.core.providers.contracts import (
 from app.integrations.llm.errors import LLMProviderError
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
+OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 PUTER_CHAT_URL = "https://api.puter.com/puterai/openai/v1/chat/completions"
 _TRANSIENT_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
 _MODEL_PRICES_PER_MILLION = {
@@ -31,7 +32,7 @@ class ProductionLLMProvider:
         *,
         api_key: str,
         model: str,
-        provider: Literal["openai", "puter"] = "openai",
+        provider: Literal["openai", "puter", "openrouter"] = "openai",
         timeout_seconds: float = 20,
         max_attempts: int = 2,
         retry_delay_seconds: float = 0.25,
@@ -85,7 +86,7 @@ class ProductionLLMProvider:
                 for item in llm_request.tools
             ]
             payload["tool_choice"] = "auto"
-        if self._provider == "puter":
+        if self._provider in {"puter", "openrouter"}:
             chat_payload: dict[str, Any] = {
                 "model": self._model,
                 "messages": [{"role": "user", "content": prompt}],
@@ -102,6 +103,10 @@ class ProductionLLMProvider:
                 ]
                 chat_payload["tool_choice"] = "auto"
                 chat_payload["parallel_tool_calls"] = False
+            if self._provider == "openrouter":
+                chat_payload.pop("parallel_tool_calls", None)
+                chat_payload["max_tokens"] = chat_payload.pop("max_completion_tokens")
+                chat_payload["provider"] = {"require_parameters": True}
             return chat_payload
         return payload
 
@@ -124,7 +129,11 @@ class ProductionLLMProvider:
     def _post_json(self, payload: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")
         outbound = request.Request(
-            PUTER_CHAT_URL if self._provider == "puter" else OPENAI_RESPONSES_URL,
+            {
+                "puter": PUTER_CHAT_URL,
+                "openrouter": OPENROUTER_CHAT_URL,
+                "openai": OPENAI_RESPONSES_URL,
+            }[self._provider],
             data=body,
             headers={
                 "Authorization": f"Bearer {self._api_key}",
@@ -157,7 +166,7 @@ class ProductionLLMProvider:
         return raw
 
     def _parse_response(self, raw: dict[str, Any], llm_request: LLMRequest) -> LLMResponse:
-        if self._provider == "puter":
+        if self._provider in {"puter", "openrouter"}:
             raw = _normalize_chat_response(raw)
         output = raw.get("output")
         if not isinstance(output, list):
@@ -272,6 +281,12 @@ def _parse_tool_call(raw: dict[str, Any], allowed_tools: set[str]) -> LLMToolCal
 
 
 def _http_error(status_code: int) -> LLMProviderError:
+    if status_code == 402:
+        return LLMProviderError(
+            "provider_payment_required",
+            "The AI service requires credits or billing setup. Contact BONYAN support.",
+            retryable=False,
+        )
     if status_code in {401, 403}:
         return LLMProviderError(
             "provider_auth_error", "The Coach provider is not configured.", retryable=False

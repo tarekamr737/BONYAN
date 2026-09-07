@@ -1,7 +1,6 @@
 import { apiRequest } from "../../../core/api/client";
 import type {
   CoachMessageResponse,
-  CoachToolCall,
   GeneratePlanRequest,
   LoggedSetInput,
   WorkoutPlan,
@@ -61,10 +60,9 @@ export function removeWorkoutSet(
 
 export function sendCoachMessage(
   message: string,
-  toolCalls: CoachToolCall[] = [],
 ): Promise<CoachMessageResponse> {
   return apiRequest<CoachMessageResponse>("/api/v1/training/coach", {
-    body: { message, tool_calls: toolCalls },
+    body: { message },
     method: "POST",
   });
 }

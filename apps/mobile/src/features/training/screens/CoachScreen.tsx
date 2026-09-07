@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ApiError } from "../../../core/api/errors";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { sendCoachMessage } from "../api/trainingApi";
@@ -13,11 +14,11 @@ const prompts = ["Explain today's plan", "Find a swap", "Why hold this weight?"]
 export function CoachScreen() {
   const [message, setMessage] = useState("Explain today's workout plan");
   const [reply, setReply] = useState<string | null>(null);
-  const [model, setModel] = useState("TBD");
+  const [model, setModel] = useState<string | null>(null);
   const [toolCount, setToolCount] = useState(0);
 
   const sendMutation = useMutation({
-    mutationFn: () => sendCoachMessage(message, [{ name: "get_current_plan" }]),
+    mutationFn: () => sendCoachMessage(message),
     onSuccess: (response) => {
       setReply(response.response);
       setModel(response.model);
@@ -34,7 +35,7 @@ export function CoachScreen() {
         />
 
         <SurfaceCard>
-          <Text style={styles.coachLabel}>MOCK MODEL / {model}</Text>
+          <Text style={styles.coachLabel}>{model ? `MODEL / ${model}` : "BONYAN COACH"}</Text>
           <Text style={styles.coachText}>
             {reply ??
               "I can explain your active plan, search exercises, or log workout details through validated tools."}
@@ -44,8 +45,12 @@ export function CoachScreen() {
 
         {sendMutation.isError ? (
           <SurfaceCard>
-            <Text style={styles.errorTitle}>Coach unavailable</Text>
-            <Text style={styles.errorText}>The coach could not respond. Check the message and retry.</Text>
+            <Text style={styles.errorTitle}>Message not sent</Text>
+            <Text style={styles.errorText}>
+              {sendMutation.error instanceof ApiError
+                ? sendMutation.error.message
+                : "Could not connect to BONYAN. Check your connection and try again."}
+            </Text>
           </SurfaceCard>
         ) : null}
 

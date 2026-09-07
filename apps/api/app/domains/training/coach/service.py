@@ -150,6 +150,7 @@ class CoachService:
 
 def _provider_app_error(exc: LLMProviderError) -> AppError:
     status_code = {
+        "provider_payment_required": status.HTTP_503_SERVICE_UNAVAILABLE,
         "rate_limited": status.HTTP_429_TOO_MANY_REQUESTS,
         "provider_auth_error": status.HTTP_503_SERVICE_UNAVAILABLE,
         "provider_timeout": status.HTTP_503_SERVICE_UNAVAILABLE,
