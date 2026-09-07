@@ -22,7 +22,7 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan"
     )
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    chat_provider: Literal["mock", "openai"] = "mock"
+    chat_provider: Literal["mock", "openai", "puter"] = "mock"
     chat_model: str = "TBD"
     chat_api_key: SecretStr | None = None
     chat_timeout_seconds: float = 20
@@ -127,10 +127,15 @@ class Settings(BaseSettings):
             "https://"
         ):
             raise ValueError("API_PUBLIC_URL must use HTTPS in staging and production")
-        if self.chat_provider == "openai" and self.chat_api_key is None:
-            raise ValueError("CHAT_API_KEY is required when CHAT_PROVIDER=openai")
-        if self.chat_provider == "openai" and self.chat_model.strip().upper() == "TBD":
-            raise ValueError("CHAT_MODEL must be explicitly set when CHAT_PROVIDER=openai")
+        if self.chat_provider != "mock":
+            if self.chat_api_key is None or not self.chat_api_key.get_secret_value().strip():
+                raise ValueError(
+                    f"CHAT_API_KEY is required when CHAT_PROVIDER={self.chat_provider}"
+                )
+            if self.chat_model.strip().upper() == "TBD":
+                raise ValueError(
+                    f"CHAT_MODEL must be explicitly set when CHAT_PROVIDER={self.chat_provider}"
+                )
         if self.avatar_provider == "gemini" and self.avatar_api_key is None:
             raise ValueError("AVATAR_API_KEY is required when AVATAR_PROVIDER=gemini")
         if self.avatar_provider == "gemini" and self.avatar_model.strip().upper() == "TBD":

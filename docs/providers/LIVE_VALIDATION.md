@@ -3,6 +3,7 @@
 Live tests are opt-in and never run provider calls during normal CI.
 
 ```powershell
+$env:CHAT_PROVIDER = "openai" # Use "puter" for the Puter gateway.
 $env:CHAT_API_KEY = "..."
 $env:AVATAR_API_KEY = "..."
 $env:MISTRAL_API_KEY = "..."
@@ -11,6 +12,12 @@ $env:BONYAN_LIVE_AVATAR_MANIFEST = "C:\private\avatar-manifest.json"
 $env:BONYAN_LIVE_OCR_MANIFEST = "C:\private\ocr-manifest.json"
 npm run api:test:live -- --junitxml=.live-results/providers.xml
 ```
+
+For Puter Coach only, set `CHAT_PROVIDER=puter`, `CHAT_MODEL=gpt-4.1`, and
+`CHAT_API_KEY` to your Puter auth token in the process environment, then run
+`npm run api:test:live -- -k coach`. The live runner reads these process variables,
+not the backend `.env`. Puter tests use the configured model; direct OpenAI tests
+use the benchmark shortlist. Missing provider selection skips Coach calls.
 
 Use the example manifests under `docs/benchmarks/` as schemas, but keep real manifests, reports, source photos, generated images, and JUnit output outside Git. Avatar tests require `consent_confirmed: true`. The tests record only model IDs, latency, token counts, cost estimates, and pass/fail metrics; they do not print prompts or image/report content.
 

@@ -1,5 +1,29 @@
 # Provider Configuration
 
+## Puter Coach
+
+Puter is supported through its backend chat-completions gateway. Create an auth
+token at https://puter.com/dashboard and configure `apps/api/.env`:
+
+```dotenv
+CHAT_PROVIDER=puter
+CHAT_MODEL=gpt-4.1
+CHAT_API_KEY=<Puter auth token>
+```
+
+`gpt-4.1` is an initial integration candidate, not a benchmark winner. Keep the
+provider mocked until the token is available. Restart the API after configuration.
+The token stays on the backend; all calls consume its owner's Puter allowance.
+Puter offers an allowance, not unlimited free usage. This integration does not
+sign each BONYAN user into Puter. Puter billing is not estimated from direct-model
+prices, so estimated cost remains unknown. Avatar, Mistral OCR, and MuscleWiki
+configuration remain separate. Live quality and tool compatibility require testing.
+
+References: https://developer.puter.com/tutorials/use-openai-sdk-with-puter/
+and https://docs.puter.com/user-pays-model/.
+
+## Other providers and local development
+
 Normal development and CI keep both undecided providers mocked:
 
 ```dotenv

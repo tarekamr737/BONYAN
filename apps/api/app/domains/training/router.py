@@ -77,6 +77,7 @@ def get_llm_provider(settings: Settings) -> LLMProvider:
     if api_key is None:
         raise RuntimeError("CHAT_API_KEY validation did not run")
     return ProductionLLMProvider(
+        provider=settings.chat_provider,
         api_key=api_key.get_secret_value(),
         model=settings.chat_model,
         timeout_seconds=settings.chat_timeout_seconds,

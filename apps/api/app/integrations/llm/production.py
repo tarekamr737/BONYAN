@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 from urllib import error, request
 
 from app.core.providers.contracts import (
@@ -15,6 +15,7 @@ from app.core.providers.contracts import (
 from app.integrations.llm.errors import LLMProviderError
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
+PUTER_CHAT_URL = "https://api.puter.com/puterai/openai/v1/chat/completions"
 _TRANSIENT_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
 _MODEL_PRICES_PER_MILLION = {
     "gpt-5.6-sol": (4.0, 20.0),
@@ -30,13 +31,15 @@ class ProductionLLMProvider:
         *,
         api_key: str,
         model: str,
+        provider: Literal["openai", "puter"] = "openai",
         timeout_seconds: float = 20,
         max_attempts: int = 2,
         retry_delay_seconds: float = 0.25,
         post_json: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     ) -> None:
         if not api_key.strip():
-            raise ValueError("CHAT_API_KEY is required for the OpenAI chat provider")
+            raise ValueError("CHAT_API_KEY is required for the chat provider")
+        self._provider = provider
         self._api_key = api_key
         self._model = model
         self._timeout_seconds = timeout_seconds
@@ -82,6 +85,24 @@ class ProductionLLMProvider:
                 for item in llm_request.tools
             ]
             payload["tool_choice"] = "auto"
+        if self._provider == "puter":
+            chat_payload: dict[str, Any] = {
+                "model": self._model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_completion_tokens": 800,
+                "stream": False,
+            }
+            if "tools" in payload:
+                chat_payload["tools"] = [
+                    {
+                        "type": "function",
+                        "function": {key: value for key, value in tool.items() if key != "type"},
+                    }
+                    for tool in payload["tools"]
+                ]
+                chat_payload["tool_choice"] = "auto"
+                chat_payload["parallel_tool_calls"] = False
+            return chat_payload
         return payload
 
     async def _request_with_retry(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -103,7 +124,7 @@ class ProductionLLMProvider:
     def _post_json(self, payload: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")
         outbound = request.Request(
-            OPENAI_RESPONSES_URL,
+            PUTER_CHAT_URL if self._provider == "puter" else OPENAI_RESPONSES_URL,
             data=body,
             headers={
                 "Authorization": f"Bearer {self._api_key}",
@@ -136,6 +157,8 @@ class ProductionLLMProvider:
         return raw
 
     def _parse_response(self, raw: dict[str, Any], llm_request: LLMRequest) -> LLMResponse:
+        if self._provider == "puter":
+            raw = _normalize_chat_response(raw)
         output = raw.get("output")
         if not isinstance(output, list):
             raise LLMProviderError(
@@ -175,9 +198,56 @@ class ProductionLLMProvider:
             usage=LLMUsage(
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
-                estimated_cost_usd=_estimate_cost(model, input_tokens, output_tokens),
+                estimated_cost_usd=(
+                    _estimate_cost(model, input_tokens, output_tokens)
+                    if self._provider == "openai"
+                    else None
+                ),
             ),
         )
+
+
+def _normalize_chat_response(raw: dict[str, Any]) -> dict[str, Any]:
+    try:
+        choice = raw["choices"][0]
+        if choice.get("finish_reason") not in {"stop", "tool_calls"}:
+            raise ValueError("Incomplete response")
+        message = choice["message"]
+        output: list[dict[str, Any]] = []
+        if isinstance(message.get("content"), str):
+            output.append(
+                {
+                    "type": "message",
+                    "content": [{"type": "output_text", "text": message["content"]}],
+                }
+            )
+        calls = message.get("tool_calls") or []
+        if not isinstance(calls, list):
+            raise ValueError("Invalid tool calls")
+        for call in calls:
+            if call["type"] != "function":
+                raise ValueError("Invalid tool type")
+            output.append(
+                {
+                    "type": "function_call",
+                    "call_id": call["id"],
+                    "name": call["function"]["name"],
+                    "arguments": call["function"]["arguments"],
+                }
+            )
+        usage = raw.get("usage") or {}
+        return {
+            "output": output,
+            "model": raw.get("model"),
+            "usage": {
+                "input_tokens": usage.get("prompt_tokens"),
+                "output_tokens": usage.get("completion_tokens"),
+            },
+        }
+    except (KeyError, IndexError, TypeError, AttributeError, ValueError) as exc:
+        raise LLMProviderError(
+            "malformed_output", "The Coach provider returned invalid data.", retryable=False
+        ) from exc
 
 
 def _parse_tool_call(raw: dict[str, Any], allowed_tools: set[str]) -> LLMToolCall:
