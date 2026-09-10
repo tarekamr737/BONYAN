@@ -26,13 +26,16 @@ requires live provider evidence, deployed staging E2E, staging backup/restore, a
 
 ## Provider evidence
 
-- Mistral OCR remains locked to `mistral-ocr-4-1`; its six-case private fixture manifest is absent.
-- MuscleWiki live access still returns HTTP 403, consistent with an invalid key or insufficient tier.
+- Mistral OCR remains locked to `mistral-ocr-4-1`; updated-key connectivity passed for a synthetic
+  PDF and repository-owned image, while its six-case private fixture manifest remains absent.
+- MuscleWiki live access still returns HTTP 403. The provider identifies the updated key as BASIC
+  tier, which is playground-only; direct API calls require TESTING tier or higher.
 - OpenRouter `minimax/minimax-m3:free` is not a valid current endpoint. The available MiniMax model
   does not support required tools. `openai/gpt-oss-120b` reached the API but passed only 3 of 7
   automated Coach cases and is not selected.
-- Avatar remains on the mock provider; the provider key and consented private fixture manifest are
-  absent. No Avatar model is selected.
+- Gemini `gemini-3.1-flash-image` accepted the updated key/model after removal of an obsolete request
+  field, then returned HTTP 429 because the key has zero quota for that model. The consented private
+  fixture manifest is also absent. Avatar remains mocked and no model is selected.
 
 ## Blocking release gates
 

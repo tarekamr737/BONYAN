@@ -40,10 +40,21 @@ same consented private fixtures and human scoring covers identity, facial
 consistency, body realism, prompt adherence, regeneration consistency,
 privacy/safety behavior, latency, cost, and reliability.
 
+The configured key and `gemini-3.1-flash-image` model reached Google's API after
+removing the obsolete Interactions API `delivery` field. Google then returned
+HTTP 429 with zero free-tier quota for this model. This proves configuration
+connectivity but is not a successful generation or benchmark, so the model is
+not selected and local development remains on the mock provider.
+
 Sources: https://ai.google.dev/gemini-api/docs/image-generation and https://ai.google.dev/gemini-api/docs/pricing
 
 ## Locked Integrations
 
-Mistral OCR remains `mistral-ocr-4-1`, currently GA at $4 per 1,000 pages. MuscleWiki remains the exercise/media provider. Its API uses `X-API-Key`, `/search?q=...`, and `limit`/`offset`; permanent keys stay in the backend and media reaches clients only through BONYAN's user-bound short-lived relay token.
+Mistral OCR remains `mistral-ocr-4-1`, currently GA at $4 per 1,000 pages.
+MuscleWiki remains the exercise/media provider. Its API uses `X-API-Key`,
+`/search?q=...`, and `limit`/`offset`; permanent keys stay in the backend and
+media reaches clients only through BONYAN's user-bound short-lived relay token.
+Direct API access requires the provider's TESTING tier or higher; BASIC keys are
+playground-only.
 
 Sources: https://docs.mistral.ai/models/ocr-4-1 and https://api.musclewiki.com/documentation

@@ -97,5 +97,7 @@ Candidate branch `feat/release-candidate` started from merged main
 `2b379fa568479505583b25eba4e3e94e1af8cce9`. Normal backend/mobile/export gates and a fresh
 PostgreSQL 17 migration cycle pass. A local isolated database backup/restore and restored-app login
 pass, but staging restore is not claimed. Live Coach produced no eligible model, MuscleWiki remains
-HTTP 403, Avatar/OCR fixtures and staging are absent, and native Android/iOS QA is unavailable.
+HTTP 403 because the updated key is playground-only BASIC tier, Mistral connectivity passed but its
+full fixture run remains gated, Gemini Avatar has zero model quota, and native Android/iOS QA is
+unavailable.
 Release sign-off remains blocked; see [release-candidate-status.md](release-candidate-status.md).

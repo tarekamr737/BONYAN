@@ -77,4 +77,7 @@ in memory, sends a shape category instead of exact body measurements, and return
 normalized private image bytes. MuscleWiki keys are sent upstream as `X-API-Key`
 and never appear in mobile URLs.
 
+MuscleWiki BASIC keys work only in the provider playground. BONYAN's direct backend integration
+requires TESTING tier or higher, including media-token access.
+
 Run Alembic revision `20260904_0007` before enabling source-photo uploads. Source photos and generated avatars use private object storage. Uploading, generation, approval, and community publication remain separate actions.

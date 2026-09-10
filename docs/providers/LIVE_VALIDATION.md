@@ -35,16 +35,22 @@ The staging test uploads and confirms an InBody report, generates a deterministi
 Current integration result on 2026-09-10:
 
 - The seven Coach cases were attempted through the locally configured OpenRouter candidate. The
-  configured `minimax/minimax-m3:free` slug returned HTTP 404. The current paid MiniMax endpoint
-  does not support the required tool parameter. A current tool-capable paid candidate,
+  configured `minimax/minimax-m3:free` slug returned HTTP 404 with both supplied keys. The current
+  paid MiniMax endpoint does not support the required tool parameter. A current tool-capable paid candidate,
   `openai/gpt-oss-120b`, passed 3 of 7 automated cases; its withdrawn free variant returned HTTP
   404. The paid candidate failed two output-completion cases and two tool-choice cases, so it is
   not eligible and no Coach model is selected. Human Arabic scoring was not promoted from this
   failed run.
-- MuscleWiki live search was attempted with the local backend credential. The provider returned
-  HTTP 403, so the credential or subscription tier must be corrected before validation can pass.
-- Avatar and Mistral remain gated by consented private fixture manifests. Avatar is also configured
-  to use the mock adapter locally, so a model name alone does not enable live generation.
+- MuscleWiki live search was attempted with the updated local backend credential. The provider
+  returned HTTP 403 and explicitly identified the key as BASIC tier, which is restricted to the
+  playground. Direct API validation requires TESTING tier or higher.
+- Mistral authentication and model connectivity passed using a synthetic blank PDF and a
+  repository-owned image. The representative six-case accuracy benchmark remains gated by the
+  private fixture manifest.
+- The Gemini key and `gemini-3.1-flash-image` reached the live API after removing the obsolete
+  `delivery` request field. Google then returned HTTP 429 because the key has zero free-tier quota
+  for this model. No image was generated, and the consented private fixture benchmark remains
+  gated. Local Avatar configuration therefore remains on the mock adapter.
 - Full staging remains gated by a deployed staging URL, disposable user token, provider access,
   and both private fixture manifests.
 
