@@ -4,7 +4,11 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import PrivateObjectStorage
-from app.domains.avatar.models import AvatarRecord, manual_body_metrics
+from app.domains.avatar.models import (
+    AvatarRecord,
+    AvatarSourcePhotoRecord,
+    manual_body_metrics,
+)
 
 
 async def delete_avatar_account_data(
@@ -12,7 +16,7 @@ async def delete_avatar_account_data(
     storage: PrivateObjectStorage,
     user_id: str,
 ) -> None:
-    object_keys = list(
+    generated_object_keys = list(
         await session.scalars(
             select(AvatarRecord.generated_object_key).where(
                 AvatarRecord.owner_id == user_id,
@@ -20,9 +24,19 @@ async def delete_avatar_account_data(
             )
         )
     )
-    for key in object_keys:
+    source_object_keys = list(
+        await session.scalars(
+            select(AvatarSourcePhotoRecord.object_key).where(
+                AvatarSourcePhotoRecord.owner_id == user_id
+            )
+        )
+    )
+    for key in dict.fromkeys([*generated_object_keys, *source_object_keys]):
         await storage.delete(key=key)
     await session.execute(delete(AvatarRecord).where(AvatarRecord.owner_id == user_id))
     await session.execute(
         delete(manual_body_metrics).where(manual_body_metrics.c.owner_id == user_id)
+    )
+    await session.execute(
+        delete(AvatarSourcePhotoRecord).where(AvatarSourcePhotoRecord.owner_id == user_id)
     )

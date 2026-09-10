@@ -62,7 +62,7 @@ describe("training mobile API", () => {
     });
     await removeWorkoutSet("session-1", 0, 1);
     await completeWorkoutSession("session-1");
-    await sendCoachMessage("Explain my training plan", [{ name: "get_current_plan" }]);
+    await sendCoachMessage("Explain my training plan");
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain(
       "/api/v1/training/sessions?day_key=day-1&plan_id=plan-1",
@@ -77,7 +77,6 @@ describe("training mobile API", () => {
     expect(fetchMock.mock.calls[4]?.[0]).toContain("/api/v1/training/coach");
     expect(JSON.parse(String(fetchMock.mock.calls[4]?.[1]?.body))).toEqual({
       message: "Explain my training plan",
-      tool_calls: [{ name: "get_current_plan" }],
     });
   });
 });

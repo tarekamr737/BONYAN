@@ -1,0 +1,47 @@
+# Live Provider Validation
+
+Live tests are opt-in and never run provider calls during normal CI.
+
+```powershell
+$env:CHAT_PROVIDER = "openai" # Use "puter" for the Puter gateway.
+$env:CHAT_API_KEY = "..."
+$env:AVATAR_API_KEY = "..."
+$env:MISTRAL_API_KEY = "..."
+$env:MUSCLEWIKI_API_KEY = "..."
+$env:BONYAN_LIVE_AVATAR_MANIFEST = "C:\private\avatar-manifest.json"
+$env:BONYAN_LIVE_OCR_MANIFEST = "C:\private\ocr-manifest.json"
+npm run api:test:live -- --junitxml=.live-results/providers.xml
+```
+
+For Puter Coach only, set `CHAT_PROVIDER=puter`, `CHAT_MODEL=gpt-4.1`, and
+`CHAT_API_KEY` to your Puter auth token in the process environment, then run
+`npm run api:test:live -- -k coach`. The live runner reads these process variables,
+not the backend `.env`. Puter tests use the configured model; direct OpenAI tests
+use the benchmark shortlist. Missing provider selection skips Coach calls.
+
+Use the example manifests under `docs/benchmarks/` as schemas, but keep real manifests, reports, source photos, generated images, and JUnit output outside Git. Avatar tests require `consent_confirmed: true`. The tests record only model IDs, latency, token counts, cost estimates, and pass/fail metrics; they do not print prompts or image/report content.
+
+For the destructive staging flow, use a disposable authenticated staging user and explicitly enable it:
+
+```powershell
+$env:BONYAN_RUN_FULL_STAGING = "1"
+$env:BONYAN_STAGING_BASE_URL = "https://staging-api.example"
+$env:BONYAN_STAGING_TOKEN = "..."
+npm run api:test:live -- -k full_provider_staging_flow
+```
+
+The staging test uploads and confirms an InBody report, generates a deterministic Training plan through MuscleWiki, invokes the real Coach, uploads a private source photo, generates an Avatar, verifies approval is not publication, explicitly publishes it for community use, and removes created artifacts in `finally` cleanup.
+
+Current integration result on 2026-09-10:
+
+- The seven Coach cases were attempted through the locally configured OpenRouter candidate. The
+  provider returned HTTP 404 for that model, so Coach has not passed live validation and the model
+  remains provisional.
+- MuscleWiki live search was attempted with the local backend credential. The provider returned
+  HTTP 403, so the credential or subscription tier must be corrected before validation can pass.
+- Avatar and Mistral remain gated by consented private fixture manifests. Avatar is also configured
+  to use the mock adapter locally, so a model name alone does not enable live generation.
+- Full staging remains gated by a deployed staging URL, disposable user token, provider access,
+  and both private fixture manifests.
+
+No secret values, prompts, photos, reports, or provider response bodies were recorded.

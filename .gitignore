@@ -21,6 +21,7 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 .private-storage/
+.live-results/
 
 # Editors / operating systems
 .DS_Store

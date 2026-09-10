@@ -1,0 +1,1 @@
+"""Production provider adapter tests."""
