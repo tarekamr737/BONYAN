@@ -112,6 +112,7 @@ def test_gateway_tools_and_followup(gateway):
     assert payloads[0]["tools"][0]["function"]["name"] == tool.name
     if gateway == "openrouter":
         assert "parallel_tool_calls" not in payloads[0]
+        assert "strict" not in payloads[0]["tools"][0]["function"]
     asyncio.run(
         provider.complete(
             LLMRequest(

@@ -98,7 +98,12 @@ class ProductionLLMProvider:
                 chat_payload["tools"] = [
                     {
                         "type": "function",
-                        "function": {key: value for key, value in tool.items() if key != "type"},
+                        "function": {
+                            key: value
+                            for key, value in tool.items()
+                            if key != "type"
+                            and not (self._provider == "openrouter" and key == "strict")
+                        },
                     }
                     for tool in payload["tools"]
                 ]
