@@ -23,6 +23,7 @@ from app.integrations.musclewiki.provider import (
 )
 
 logger = get_logger("providers")
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 
 class MuscleWikiClient:
@@ -137,7 +138,12 @@ class MuscleWikiClient:
         req = request.Request(f"{self.base_url}{path}", headers=headers, method="GET")
         try:
             with request.urlopen(req, timeout=self.timeout_seconds) as response:
-                return json.loads(response.read().decode("utf-8"))
+                encoded = response.read(MAX_RESPONSE_BYTES + 1)
+            if len(encoded) > MAX_RESPONSE_BYTES:
+                raise MuscleWikiInvalidResponseError(
+                    "MuscleWiki returned an oversized response."
+                )
+            return json.loads(encoded.decode("utf-8"))
         except error.HTTPError as exc:
             if exc.code in {401, 403}:
                 logger.warning(

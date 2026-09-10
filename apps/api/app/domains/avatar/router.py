@@ -48,6 +48,7 @@ def create_avatar_router(
         service: CurrentService,
         user_id: CurrentUserId,
         photo: Annotated[UploadFile, File()],
+        _: Annotated[None, Depends(limit_avatar)],
     ) -> AvatarSourcePhotoView:
         content = await photo.read(10 * 1024 * 1024 + 1)
         return await service.save_source_photo(

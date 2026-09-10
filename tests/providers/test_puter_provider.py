@@ -36,7 +36,7 @@ def test_gateway_wiring_transport_and_usage(monkeypatch, gateway):
         def __exit__(self, *args):
             pass
 
-        def read(self):
+        def read(self, size: int = -1):
             return json.dumps(response({"content": "Hello"})).encode()
 
     def urlopen(outbound, timeout):

@@ -28,6 +28,8 @@ class FakeSession:
             return ["inbody/private-object"]
         if "avatars.generated_object_key" in rendered:
             return ["avatars/private-object"]
+        if "avatar_source_photos.object_key" in rendered:
+            return ["avatars/private-source-photo"]
         return []
 
     async def execute(self, statement: object) -> FakeResult:
@@ -57,7 +59,11 @@ def test_account_deletion_removes_private_objects_and_all_owned_domains() -> Non
         await AccountDeletionService(session, storage).delete("user-1")  # type: ignore[arg-type]
 
         rendered = "\n".join(session.statements)
-        assert storage.deleted == ["inbody/private-object", "avatars/private-object"]
+        assert storage.deleted == [
+            "inbody/private-object",
+            "avatars/private-object",
+            "avatars/private-source-photo",
+        ]
         for table in (
             "community_post_reports",
             "community_post_reactions",
@@ -66,6 +72,7 @@ def test_account_deletion_removes_private_objects_and_all_owned_domains() -> Non
             "training_workout_plans",
             "avatars",
             "avatar_manual_body_metrics",
+            "avatar_source_photos",
             "inbody_scans",
             "user_profiles",
             "user_accounts",

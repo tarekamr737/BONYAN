@@ -79,6 +79,13 @@ def test_sends_source_without_exact_body_metrics_and_parses_private_result() -> 
     assert result.estimated_cost_usd == 0.067
     assert result.provider_metadata == {"provider": "google", "resolution": "1K"}
     assert captured["input"][0]["data"] == base64.b64encode(PNG).decode("ascii")
+    assert captured["response_format"] == {
+        "type": "image",
+        "aspect_ratio": "1:1",
+        "image_size": "1K",
+        "mime_type": "image/jpeg",
+        "delivery": "inline",
+    }
     prompt = captured["input"][1]["text"]
     assert "Body profile: fit" in prompt
     assert "178" not in prompt

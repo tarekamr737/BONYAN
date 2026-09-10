@@ -136,7 +136,10 @@ class Settings(BaseSettings):
                 raise ValueError(
                     f"CHAT_MODEL must be explicitly set when CHAT_PROVIDER={self.chat_provider}"
                 )
-        if self.avatar_provider == "gemini" and self.avatar_api_key is None:
+        if self.avatar_provider == "gemini" and (
+            self.avatar_api_key is None
+            or not self.avatar_api_key.get_secret_value().strip()
+        ):
             raise ValueError("AVATAR_API_KEY is required when AVATAR_PROVIDER=gemini")
         if self.avatar_provider == "gemini" and self.avatar_model.strip().upper() == "TBD":
             raise ValueError("AVATAR_MODEL must be explicitly set when AVATAR_PROVIDER=gemini")

@@ -16,6 +16,7 @@ from app.integrations.mistral.errors import (
 
 MISTRAL_OCR_MODEL = "mistral-ocr-4-1"
 MISTRAL_OCR_URL = "https://api.mistral.ai/v1/ocr"
+MAX_OCR_RESPONSE_BYTES = 8 * 1024 * 1024
 
 
 class MistralOcrClient:
@@ -82,7 +83,10 @@ class MistralOcrClient:
         )
         try:
             with request.urlopen(req, timeout=self.timeout_seconds) as response:
-                raw = json.loads(response.read().decode("utf-8"))
+                encoded = response.read(MAX_OCR_RESPONSE_BYTES + 1)
+            if len(encoded) > MAX_OCR_RESPONSE_BYTES:
+                raise MistralOcrInvalidResponse("Mistral OCR returned oversized data")
+            raw = json.loads(encoded.decode("utf-8"))
         except error.HTTPError as exc:
             if exc.code in {401, 403}:
                 raise MistralOcrAuthenticationError(

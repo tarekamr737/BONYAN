@@ -193,7 +193,7 @@ class MuscleWikiMediaRelay:
                 503,
             )
         response_headers = _copy_response_headers(response.headers)
-        response_headers.setdefault("Cache-Control", "private, no-store")
+        response_headers["Cache-Control"] = "private, no-store"
         response_headers["X-Content-Type-Options"] = "nosniff"
         return MediaRelayResponse(
             body=_iter_response(response),

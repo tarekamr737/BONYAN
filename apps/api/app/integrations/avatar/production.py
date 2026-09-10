@@ -94,6 +94,13 @@ class ProductionAvatarProvider:
                 },
                 {"type": "text", "text": prompt},
             ],
+            "response_format": {
+                "type": "image",
+                "aspect_ratio": "1:1",
+                "image_size": "1K",
+                "mime_type": "image/jpeg",
+                "delivery": "inline",
+            },
         }
 
     async def _request_with_retry(self, payload: dict[str, Any]) -> dict[str, Any]:

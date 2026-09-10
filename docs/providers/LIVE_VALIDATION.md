@@ -32,4 +32,16 @@ npm run api:test:live -- -k full_provider_staging_flow
 
 The staging test uploads and confirms an InBody report, generates a deterministic Training plan through MuscleWiki, invokes the real Coach, uploads a private source photo, generates an Avatar, verifies approval is not publication, explicitly publishes it for community use, and removes created artifacts in `finally` cleanup.
 
-Current result on 2026-09-04: all 27 live cases collect and skip safely. Live execution is blocked because no provider keys, consented Avatar fixture, InBody fixture manifest, staging URL, or staging token are present.
+Current integration result on 2026-09-10:
+
+- The seven Coach cases were attempted through the locally configured OpenRouter candidate. The
+  provider returned HTTP 404 for that model, so Coach has not passed live validation and the model
+  remains provisional.
+- MuscleWiki live search was attempted with the local backend credential. The provider returned
+  HTTP 403, so the credential or subscription tier must be corrected before validation can pass.
+- Avatar and Mistral remain gated by consented private fixture manifests. Avatar is also configured
+  to use the mock adapter locally, so a model name alone does not enable live generation.
+- Full staging remains gated by a deployed staging URL, disposable user token, provider access,
+  and both private fixture manifests.
+
+No secret values, prompts, photos, reports, or provider response bodies were recorded.

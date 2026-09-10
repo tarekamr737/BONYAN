@@ -18,6 +18,7 @@ OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 PUTER_CHAT_URL = "https://api.puter.com/puterai/openai/v1/chat/completions"
 _TRANSIENT_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
+_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _MODEL_PRICES_PER_MILLION = {
     "gpt-5.6-sol": (4.0, 20.0),
     "gpt-5.6": (4.0, 20.0),
@@ -144,7 +145,14 @@ class ProductionLLMProvider:
         )
         try:
             with request.urlopen(outbound, timeout=self._timeout_seconds) as response:
-                raw = json.loads(response.read().decode("utf-8"))
+                encoded = response.read(_MAX_RESPONSE_BYTES + 1)
+            if len(encoded) > _MAX_RESPONSE_BYTES:
+                raise LLMProviderError(
+                    "malformed_output",
+                    "The Coach provider returned an oversized response.",
+                    retryable=False,
+                )
+            raw = json.loads(encoded.decode("utf-8"))
         except error.HTTPError as exc:
             raise _http_error(exc.code) from exc
         except (TimeoutError, error.URLError) as exc:

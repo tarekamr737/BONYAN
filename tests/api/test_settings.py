@@ -72,8 +72,9 @@ def test_cors_origins_are_explicit_and_production_fails_closed() -> None:
 def test_selected_providers_require_backend_credentials() -> None:
     with pytest.raises(ValidationError, match="CHAT_API_KEY"):
         Settings(chat_provider="openai", chat_api_key=None)
-    with pytest.raises(ValidationError, match="AVATAR_API_KEY"):
-        Settings(avatar_provider="gemini", avatar_api_key=None)
+    for missing_key in (None, "", "   "):
+        with pytest.raises(ValidationError, match="AVATAR_API_KEY"):
+            Settings(avatar_provider="gemini", avatar_api_key=missing_key)
 
 
 def test_selected_providers_require_explicit_models() -> None:

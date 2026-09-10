@@ -17,6 +17,11 @@ cost, tool-call validity, hallucination, and reliability metrics are recorded.
 Any candidate below 98% valid tool arguments, or any candidate that invents
 authoritative user state, is ineligible.
 
+An OpenRouter candidate configured for the 2026-09-10 integration review returned
+HTTP 404 in all seven live cases. That result does not select or disqualify the
+underlying model; its current OpenRouter model slug/availability must be corrected
+before a comparable benchmark can run.
+
 Sources: https://developers.openai.com/api/docs/models and https://developers.openai.com/api/reference/cli/resources/responses/methods/create
 
 ## Avatar

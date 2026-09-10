@@ -105,9 +105,22 @@ class AvatarService:
         )
         try:
             await self._source_photo_repository.add(record)
-        except Exception:
-            await self._storage.delete_private(object_key)
-            raise
+        except Exception as exc:
+            try:
+                await self._storage.delete_private(object_key)
+            except Exception:
+                logger.warning(
+                    "private_upload_cleanup_failed",
+                    extra={
+                        "error_code": "avatar_source_cleanup_failed",
+                        "provider": "private_storage",
+                    },
+                )
+            raise AppError(
+                code="avatar_source_upload_failed",
+                message="The source photo could not be stored. Please try again.",
+                status_code=503,
+            ) from exc
         return AvatarSourcePhotoView(id=record.id)
 
     async def delete_source_photo(self, owner_id: str, source_photo_id: UUID) -> None:
@@ -351,7 +364,20 @@ class AvatarService:
         avatar.state = AvatarState.READY_FOR_REVIEW
         avatar.failure_code = None
         self._touch(avatar)
-        await self._repository.save(avatar)
+        try:
+            await self._repository.save(avatar)
+        except Exception:
+            try:
+                await self._storage.delete_private(generated_key)
+            except Exception:
+                logger.warning(
+                    "private_upload_cleanup_failed",
+                    extra={
+                        "error_code": "avatar_output_cleanup_failed",
+                        "provider": "private_storage",
+                    },
+                )
+            raise
         if previous_generated_key and previous_generated_key != generated_key:
             await self._storage.delete_private(previous_generated_key)
 

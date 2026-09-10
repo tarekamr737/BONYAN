@@ -577,6 +577,66 @@ def test_private_source_photo_is_owner_scoped_and_never_exposed() -> None:
     asyncio.run(scenario())
 
 
+def test_source_photo_repository_failure_removes_private_upload() -> None:
+    class FailingSourcePhotoRepository(FakeSourcePhotoRepository):
+        async def add(self, source_photo: AvatarSourcePhotoRecord) -> None:
+            raise RuntimeError("database unavailable")
+
+    async def scenario() -> None:
+        repository = FakeAvatarRepository()
+        storage = FakePrivateStorage()
+        service = AvatarService(
+            repository,
+            MockAvatarProvider(),
+            storage,
+            FakeBodyMetricsReader(),
+            source_photo_repository=FailingSourcePhotoRepository(),
+        )
+
+        with pytest.raises(AppError) as error:
+            await service.save_source_photo(
+                "owner", b"\x89PNG\r\n\x1a\nsource", "image/png"
+            )
+
+        assert error.value.code == "avatar_source_upload_failed"
+        assert error.value.status_code == 503
+        assert storage.deleted == ["private/avatar-1"]
+        assert not storage.items
+
+    asyncio.run(scenario())
+
+
+def test_generated_asset_is_removed_when_final_save_fails() -> None:
+    class FailingSaveRepository(FakeAvatarRepository):
+        def __init__(self) -> None:
+            super().__init__()
+            self.save_calls = 0
+
+        async def save(self, avatar: AvatarRecord) -> None:
+            self.save_calls += 1
+            if self.save_calls == 2:
+                raise RuntimeError("database unavailable")
+            await super().save(avatar)
+
+    async def scenario() -> None:
+        repository = FailingSaveRepository()
+        storage = FakePrivateStorage()
+        service = AvatarService(
+            repository,
+            MockAvatarProvider(),
+            storage,
+            FakeBodyMetricsReader(),
+        )
+
+        with pytest.raises(RuntimeError, match="database unavailable"):
+            await service.create("owner", create_request())
+
+        assert storage.deleted == ["private/avatar-1"]
+        assert not storage.items
+
+    asyncio.run(scenario())
+
+
 def test_cross_user_access_and_mutations_return_not_found() -> None:
     async def scenario() -> None:
         service, repository, storage, _ = make_service()

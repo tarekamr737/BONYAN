@@ -123,8 +123,8 @@ class CoachService:
                 extra={"error_code": "provider_timeout", "provider": "coach"},
             )
             raise AppError(
-                "provider_timeout",
-                "The Coach provider timed out.",
+                "coach_unavailable",
+                "The coach is taking too long to respond. Please try again.",
                 status.HTTP_503_SERVICE_UNAVAILABLE,
             ) from exc
         except LLMProviderError as exc:
