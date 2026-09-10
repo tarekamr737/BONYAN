@@ -21,3 +21,11 @@ discounts are excluded because they depend on the purchased plan and measured
 traffic.
 
 Sources: https://developers.openai.com/api/docs/models, https://ai.google.dev/gemini-api/docs/pricing, and https://docs.mistral.ai/models/ocr-4-1
+
+## Release-candidate status — 2026-09-10
+
+These values remain provisional. No Coach or Avatar candidate passed the complete live and human
+benchmark gates, MuscleWiki access returned HTTP 403, and no staging traffic measurements exist.
+The failed OpenRouter `openai/gpt-oss-120b` run is not used to replace the planning estimates.
+Final per-user/day and per-user/month costs therefore remain a release blocker rather than a
+fabricated measurement.

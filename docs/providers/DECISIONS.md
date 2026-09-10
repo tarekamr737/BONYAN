@@ -1,6 +1,6 @@
 # Production Provider Decisions
 
-Status as of 2026-09-04: implementation-complete, no final Coach or Avatar
+Status as of 2026-09-10: implementation-complete, no final Coach or Avatar
 production model selected. Live benchmark evidence is still required.
 
 ## Coach
@@ -17,10 +17,13 @@ cost, tool-call validity, hallucination, and reliability metrics are recorded.
 Any candidate below 98% valid tool arguments, or any candidate that invents
 authoritative user state, is ineligible.
 
-An OpenRouter candidate configured for the 2026-09-10 integration review returned
-HTTP 404 in all seven live cases. That result does not select or disqualify the
-underlying model; its current OpenRouter model slug/availability must be corrected
-before a comparable benchmark can run.
+The configured `minimax/minimax-m3:free` slug returned HTTP 404; the current paid
+`minimax/minimax-m3` listing does not accept the Coach's required tools. A second
+current, tool-capable candidate, `openai/gpt-oss-120b`, reached the provider but
+passed only 3 of 7 automated cases. Two responses exhausted the output limit, one
+made an unnecessary tool call, and one omitted a required state-read tool call.
+It is not eligible for final selection. Its withdrawn `:free` variant also returned
+HTTP 404. Local configuration has therefore been returned to the mock provider.
 
 Sources: https://developers.openai.com/api/docs/models and https://developers.openai.com/api/reference/cli/resources/responses/methods/create
 

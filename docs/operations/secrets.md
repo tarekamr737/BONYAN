@@ -11,8 +11,8 @@ credentials. Access is limited to deployment identities and operators who need i
 | `MISTRAL_API_KEY` | OCR provider | Restrict to the OCR project/environment and provider quota. Replace in secret manager, restart, validate OCR, revoke old key. |
 | `MUSCLEWIKI_API_KEY` | Exercise/media provider | Restrict by provider-supported project/quota controls. Replace, validate lookup/media, revoke old key. |
 | Storage credential | Private object read/write/delete | Name depends on the approved storage adapter. Scope to one environment and bucket/volume; deny public ACL administration where supported. |
-| Coach provider credential | Coach provider access | Environment variable name and provider remain a Workstream 05 integration dependency. Scope and rotate after that contract lands. |
-| Avatar provider credential | Avatar generation access | Environment variable name and provider remain a Workstream 05 integration dependency. Scope and rotate after that contract lands. |
+| `CHAT_API_KEY` | Coach provider access | Scope to the selected provider/project and environment. Rotate after changing the production model or suspected exposure; no production model is selected yet. |
+| `AVATAR_API_KEY` | Avatar generation access | Scope to the selected provider/project and environment. Rotate after changing the production model or suspected exposure; no production model is selected yet. |
 | Android upload/signing key | Android release identity | Store in the mobile build/signing service, never as a repository file. Restrict release roles and follow store key-upgrade/recovery procedures. |
 | iOS distribution credentials | iOS signing and delivery | Store in Apple/build-service managed signing. Restrict App Store Connect roles and rotate/revoke compromised certificates or API keys. |
 

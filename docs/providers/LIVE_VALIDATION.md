@@ -35,8 +35,12 @@ The staging test uploads and confirms an InBody report, generates a deterministi
 Current integration result on 2026-09-10:
 
 - The seven Coach cases were attempted through the locally configured OpenRouter candidate. The
-  provider returned HTTP 404 for that model, so Coach has not passed live validation and the model
-  remains provisional.
+  configured `minimax/minimax-m3:free` slug returned HTTP 404. The current paid MiniMax endpoint
+  does not support the required tool parameter. A current tool-capable paid candidate,
+  `openai/gpt-oss-120b`, passed 3 of 7 automated cases; its withdrawn free variant returned HTTP
+  404. The paid candidate failed two output-completion cases and two tool-choice cases, so it is
+  not eligible and no Coach model is selected. Human Arabic scoring was not promoted from this
+  failed run.
 - MuscleWiki live search was attempted with the local backend credential. The provider returned
   HTTP 403, so the credential or subscription tier must be corrected before validation can pass.
 - Avatar and Mistral remain gated by consented private fixture manifests. Avatar is also configured

@@ -1,5 +1,8 @@
 # Person 01 Integration Handoff
 
+> Historical record: this was the Workstream 06 pre-integration handoff. For the current release
+> decision, see [release-candidate-status.md](release-candidate-status.md).
+
 Workstream 06 is ready for integration review on `feat/06-release-hardening`, based on main commit
 `2d1736b8cba7ce31e7e3f7ea8fc136e556e23d5f`.
 
@@ -12,9 +15,9 @@ Workstream 06 is ready for integration review on `feat/06-release-hardening`, ba
 - Configure protected GitHub `staging` and `production` environments as documented, including
   required production reviewers.
 - Supply the Expo/EAS project association and externally managed Android/iOS signing credentials.
-- Coordinate the final sync after Person 05's production Coach/Avatar provider work reaches main.
-  Re-run migrations and account-deletion coverage for its expected `20260904_0007` source-photo
-  persistence, and resolve shared-file conflicts without dropping either workstream's hardening.
+- Historical integration requirement, now completed: merge Person 05's provider work, then re-run
+  migrations and account-deletion coverage for `20260904_0007` source-photo persistence without
+  dropping either workstream's hardening.
 
 ## Evidence and remaining gates
 

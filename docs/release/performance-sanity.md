@@ -15,8 +15,8 @@ PostgreSQL service, native device, or live provider credentials are available.
 | Community feed | Cursor pagination and batch-read regression tests | PASS; reactions and public Avatar records use bounded batch reads rather than per-post database reads |
 | Workout | Deterministic plan/session service tests | PASS; no duplicate query-key defect found in the mobile review |
 | Video | Current UI renders a provider-media placeholder | BLOCKED; there is no video playback path whose startup can be measured |
-| Coach | Mock behavior and enforced timeout regression test | PASS; provider call ceiling is 30 seconds; live latency blocked on Person 05/provider access |
-| Avatar | Mock generation/validation/cleanup/timeout and batch identity tests | PASS; provider call ceiling is 30 seconds; live latency blocked on Person 05/provider access |
+| Coach | Mock behavior and enforced timeout regression test | PASS; provider call ceiling is 30 seconds; live latency was not measured in this historical baseline |
+| Avatar | Mock generation/validation/cleanup/timeout and batch identity tests | PASS; provider call ceiling is 30 seconds; live latency was not measured in this historical baseline |
 
 The focused upload/feed/workout/Coach/Avatar suite completed 64 tests in 0.97 seconds. These timings
 only guard obvious local regressions; staging p50/p95 values must be captured from structured
@@ -32,3 +32,17 @@ only guard obvious local regressions; staging p50/p95 values must be captured fr
   now enforces the same simple 30-second ceiling used by Avatar generation.
 
 No cache, queue, or distributed performance infrastructure is justified by the available evidence.
+
+## Release-candidate update — 2026-09-10
+
+The table above is the historical Workstream 06 local baseline. The release-candidate review found
+no eligible final Coach or Avatar model and no deployed staging environment, so it does not promote
+those local timings to production claims.
+
+- The paid OpenRouter `openai/gpt-oss-120b` Coach candidate passed 3 of 7 automated cases; the run
+  completed in 111.97 seconds and failed completion and tool-choice requirements. It is ineligible,
+  so no Coach p50/p95 or cost is accepted.
+- MuscleWiki live access returned HTTP 403. The media relay and mobile playback paths are covered by
+  regression tests, but live video startup remains unmeasured.
+- Mistral OCR and Avatar private fixture manifests are absent, so their live latency remains gated.
+- API, feed, and workout local regression evidence remains valid; staging p50/p95 is still required.

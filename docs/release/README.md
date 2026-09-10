@@ -7,6 +7,7 @@
 - [Executable release checklist](checklist.md)
 - [Performance sanity record](performance-sanity.md)
 - [Person 01 integration handoff](person-01-handoff.md)
+- [Current release-candidate status](release-candidate-status.md)
 
 Release documents describe configuration names and procedures only. Real credentials, signing
 material, provider keys, database URLs, and storage credentials must remain outside Git.

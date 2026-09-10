@@ -1,5 +1,8 @@
 # Workstream 06 Baseline Verification
 
+> Historical record: this captures the 2026-08-31 Workstream 06 environment. For the current
+> release decision, see [release-candidate-status.md](release-candidate-status.md).
+
 Date: 2026-08-31  
 Branch: `feat/06-release-hardening`  
 Starting `main` SHA: `2d1736b8cba7ce31e7e3f7ea8fc136e556e23d5f`
@@ -29,4 +32,3 @@ the authoritative Node 24 result.
 | iOS native QA | BLOCKED | Native simulator/device environment unavailable on this Windows host. |
 
 No blocked check is reported as passing.
-

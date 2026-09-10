@@ -88,5 +88,14 @@ generation, configuration review, and rollback/privacy documentation are complet
 run `33597510534` also passed the mobile job, release-container build, and PostgreSQL 17
 `upgrade head` plus `alembic check` on commit `88f5b6d98bc265da65f30c068a68b610a8afe4a7`.
 The remaining unchecked gates require a selected host/domain, staging and production credentials,
-a persistent staging PostgreSQL/private-storage environment, Person 05's production providers,
+a persistent staging PostgreSQL/private-storage environment, live-validated production providers,
 signing credentials, and real Android/iOS device infrastructure.
+
+## Release-candidate execution record (2026-09-10)
+
+Candidate branch `feat/release-candidate` started from merged main
+`2b379fa568479505583b25eba4e3e94e1af8cce9`. Normal backend/mobile/export gates and a fresh
+PostgreSQL 17 migration cycle pass. A local isolated database backup/restore and restored-app login
+pass, but staging restore is not claimed. Live Coach produced no eligible model, MuscleWiki remains
+HTTP 403, Avatar/OCR fixtures and staging are absent, and native Android/iOS QA is unavailable.
+Release sign-off remains blocked; see [release-candidate-status.md](release-candidate-status.md).

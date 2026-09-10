@@ -6,16 +6,17 @@ Set these values in `apps/api/.env`, then restart the backend:
 
 ```dotenv
 CHAT_PROVIDER=openrouter
-CHAT_MODEL=minimax/minimax-m3:free
+CHAT_MODEL=<live-validated tool-capable OpenRouter model>
 CHAT_API_KEY=<OpenRouter API key>
 ```
 
 Create the key at https://openrouter.ai/keys. The backend uses
 https://openrouter.ai/api/v1/chat/completions with bearer authentication.
 Tool parameters are required when routing requests; returned tools remain subject
-to BONYAN validation. Free model availability and rate limits depend on OpenRouter.
-Live tests accept `CHAT_PROVIDER=openrouter` and `CHAT_MODEL` in the process
-environment. Live quality is unverified until credentials are supplied.
+to BONYAN validation. Do not append `:free` to a model unless the current model
+catalog exposes that exact slug and supports tools. Free endpoint availability and
+rate limits can change. Live tests accept `CHAT_PROVIDER=openrouter` and `CHAT_MODEL`
+in the process environment; a model is not production-selected until the full rubric passes.
 
 Reference: https://openrouter.ai/docs/quickstart
 
