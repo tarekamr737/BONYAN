@@ -97,8 +97,9 @@ Candidate branch `feat/release-candidate` started from merged main
 `2b379fa568479505583b25eba4e3e94e1af8cce9`. Normal backend/mobile/export gates and a fresh
 PostgreSQL 17 migration cycle pass. A local isolated database backup/restore and restored-app login
 pass, but staging restore is not claimed. The final providers are locked and ExerciseDB passed live.
-OpenRouter Nemotron is blocked by unresolved free-endpoint privacy terms and a 3/7 synthetic live
-benchmark result. Cloudflare FLUX credentials and synthetic model execution pass, but the intended
+The replacement SovereignEG `glm-5.3-flash` key/catalog/adapter pass and its first Coach run passed
+5/7; repeated scoring, behavior fixes, and routing/privacy approval are pending. Cloudflare FLUX
+credentials and synthetic model execution pass, but the intended
 private identity fixture is absent,
 Mistral connectivity passes but its full fixture run is gated, and native Android/iOS QA is
 unavailable.

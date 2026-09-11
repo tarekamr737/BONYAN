@@ -3,8 +3,8 @@
 The intended release configuration is:
 
 ```dotenv
-CHAT_PROVIDER=openrouter
-CHAT_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+CHAT_PROVIDER=sovereigneg
+CHAT_MODEL=glm-5.3-flash
 CHAT_API_KEY=
 EXERCISE_PROVIDER=exercisedb
 EXERCISEDB_BASE_URL=https://oss.exercisedb.dev/api/v1
@@ -20,8 +20,15 @@ or Avatar provider lacks credentials or an explicit model. The ExerciseDB endpoi
 the official HTTPS V1 host and its returned media is restricted to the official static media host.
 
 Normal offline development and CI may explicitly use `CHAT_PROVIDER=mock` and
-`AVATAR_PROVIDER=mock`. Legacy `gemini`, `puter`, and `musclewiki` adapters remain opt-in only; there
-is no automatic provider or paid-model failover. Restart the API after configuration changes.
+`AVATAR_PROVIDER=mock`. Legacy `openrouter`, `gemini`, `puter`, and `musclewiki` adapters remain
+opt-in only; there is no automatic provider or paid-model failover. Restart the API after
+configuration changes.
+
+SovereignEG uses the OpenAI-compatible endpoint
+`https://backend.sovereigneg.com/v1/chat/completions`. Verify model IDs against authenticated
+`GET /v1/models`; `glm-5.3-flash` was present and healthy when locked on 2026-09-11. Standard
+requests may be routed to external model providers. Arrange an Egypt-hosted deployment separately
+if data residency is required.
 
 Run Alembic revision `20260904_0007` before enabling source-photo uploads. Source photos and generated
 avatars use private storage; upload, generation, approval, and Community publication are separate

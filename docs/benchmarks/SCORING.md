@@ -14,11 +14,15 @@ Weight the final score: identity 30%, facial consistency 20%, realism 15%, adher
 
 ## Status
 
-Provider choices were locked on 2026-09-11. ExerciseDB passed live search/detail/media validation.
-With explicit authorization, OpenRouter Nemotron passed 3/7 synthetic cases in 430.22 seconds. It
+Provider choices were updated on 2026-09-11. ExerciseDB passed live search/detail/media validation.
+The retired OpenRouter Nemotron candidate passed 3/7 synthetic cases in 430.22 seconds. It
 passed current-plan retrieval, hallucination resistance, and the medical boundary, but failed two
 Arabic answer cases through unexpected tool selection, returned one incomplete MSA response, and
 was unavailable for exercise search. This is below the reliability and behavior gates; human Arabic
-review and three-run scoring are not complete. Cloudflare FLUX passed live model execution and
+review and three-run scoring were not completed. SovereignEG authentication and catalog discovery
+pass for the replacement `glm-5.3-flash` candidate. Its first run passed 5/7 cases in 65.82 seconds;
+mixed-language tool selection and unknown-state history selection failed. Two more runs plus human
+Arabic review are pending.
+Cloudflare FLUX passed live model execution and
 decoding against a repository synthetic fixture in 9.53 seconds. Identity, realism, regeneration,
 and human scoring remain blocked until the intended consented private fixture is provided.

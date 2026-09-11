@@ -1,13 +1,13 @@
 {
   "as_of": "2026-09-11",
-  "provider": "openrouter",
+  "provider": "sovereigneg",
   "candidates": [
     {
-      "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
-      "input_usd_per_million": 0,
-      "output_usd_per_million": 0,
+      "model": "glm-5.3-flash",
+      "input_egp_per_million": 8.4478,
+      "output_egp_per_million": 28.1592,
       "role": "locked release candidate"
     }
   ],
-  "source": "https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free"
+  "source": "https://backend.sovereigneg.com/v1/models"
 }

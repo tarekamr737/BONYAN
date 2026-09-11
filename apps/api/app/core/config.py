@@ -23,7 +23,7 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan"
     )
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    chat_provider: Literal["mock", "openai", "puter", "openrouter"] = "mock"
+    chat_provider: Literal["mock", "openai", "puter", "openrouter", "sovereigneg"] = "mock"
     chat_model: str = "TBD"
     chat_api_key: SecretStr | None = None
     chat_timeout_seconds: float = 20

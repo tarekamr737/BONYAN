@@ -12,11 +12,12 @@ from app.integrations.llm.errors import LLMProviderError
 from app.integrations.llm.production import (
     OPENROUTER_CHAT_URL,
     PUTER_CHAT_URL,
+    SOVEREIGNEG_CHAT_URL,
     ProductionLLMProvider,
 )
 
 
-@pytest.fixture(params=["puter", "openrouter"])
+@pytest.fixture(params=["puter", "openrouter", "sovereigneg"])
 def gateway(request):
     return request.param
 
@@ -40,13 +41,17 @@ def test_gateway_wiring_transport_and_usage(monkeypatch, gateway):
             return json.dumps(response({"content": "Hello"})).encode()
 
     def urlopen(outbound, timeout):
-        assert outbound.full_url == (
-            PUTER_CHAT_URL if gateway == "puter" else OPENROUTER_CHAT_URL
-        )
+        assert outbound.full_url == {
+            "puter": PUTER_CHAT_URL,
+            "openrouter": OPENROUTER_CHAT_URL,
+            "sovereigneg": SOVEREIGNEG_CHAT_URL,
+        }[gateway]
         if gateway == "openrouter":
             payload = json.loads(outbound.data)
-            assert payload["max_tokens"] == 800
             assert payload["provider"] == {"require_parameters": True}
+        if gateway in {"openrouter", "sovereigneg"}:
+            payload = json.loads(outbound.data)
+            assert payload["max_tokens"] == 800
             assert "max_completion_tokens" not in payload
         assert outbound.get_header("Authorization") == "Bearer puter-secret"
         payload = json.loads(outbound.data)
@@ -110,9 +115,12 @@ def test_gateway_tools_and_followup(gateway):
     result = asyncio.run(provider.complete(LLMRequest(prompt="Plan", tools=(tool,))))
     assert result.tool_calls[0].arguments == {}
     assert payloads[0]["tools"][0]["function"]["name"] == tool.name
+    if gateway in {"openrouter", "sovereigneg"}:
+        assert "strict" not in payloads[0]["tools"][0]["function"]
     if gateway == "openrouter":
         assert "parallel_tool_calls" not in payloads[0]
-        assert "strict" not in payloads[0]["tools"][0]["function"]
+    if gateway == "sovereigneg":
+        assert payloads[0]["parallel_tool_calls"] is False
     asyncio.run(
         provider.complete(
             LLMRequest(

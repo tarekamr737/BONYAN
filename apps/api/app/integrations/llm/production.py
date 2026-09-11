@@ -17,6 +17,7 @@ from app.integrations.llm.errors import LLMProviderError
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 PUTER_CHAT_URL = "https://api.puter.com/puterai/openai/v1/chat/completions"
+SOVEREIGNEG_CHAT_URL = "https://backend.sovereigneg.com/v1/chat/completions"
 _TRANSIENT_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
 _MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _MODEL_PRICES_PER_MILLION = {
@@ -33,7 +34,7 @@ class ProductionLLMProvider:
         *,
         api_key: str,
         model: str,
-        provider: Literal["openai", "puter", "openrouter"] = "openai",
+        provider: Literal["openai", "puter", "openrouter", "sovereigneg"] = "openai",
         timeout_seconds: float = 20,
         max_attempts: int = 2,
         retry_delay_seconds: float = 0.25,
@@ -87,7 +88,7 @@ class ProductionLLMProvider:
                 for item in llm_request.tools
             ]
             payload["tool_choice"] = "auto"
-        if self._provider in {"puter", "openrouter"}:
+        if self._provider in {"puter", "openrouter", "sovereigneg"}:
             chat_payload: dict[str, Any] = {
                 "model": self._model,
                 "messages": [{"role": "user", "content": prompt}],
@@ -102,16 +103,20 @@ class ProductionLLMProvider:
                             key: value
                             for key, value in tool.items()
                             if key != "type"
-                            and not (self._provider == "openrouter" and key == "strict")
+                            and not (
+                                self._provider in {"openrouter", "sovereigneg"}
+                                and key == "strict"
+                            )
                         },
                     }
                     for tool in payload["tools"]
                 ]
                 chat_payload["tool_choice"] = "auto"
                 chat_payload["parallel_tool_calls"] = False
+            if self._provider in {"openrouter", "sovereigneg"}:
+                chat_payload["max_tokens"] = chat_payload.pop("max_completion_tokens")
             if self._provider == "openrouter":
                 chat_payload.pop("parallel_tool_calls", None)
-                chat_payload["max_tokens"] = chat_payload.pop("max_completion_tokens")
                 chat_payload["provider"] = {"require_parameters": True}
             return chat_payload
         return payload
@@ -143,6 +148,7 @@ class ProductionLLMProvider:
             {
                 "puter": PUTER_CHAT_URL,
                 "openrouter": OPENROUTER_CHAT_URL,
+                "sovereigneg": SOVEREIGNEG_CHAT_URL,
                 "openai": OPENAI_RESPONSES_URL,
             }[self._provider],
             data=body,
@@ -184,7 +190,7 @@ class ProductionLLMProvider:
         return raw
 
     def _parse_response(self, raw: dict[str, Any], llm_request: LLMRequest) -> LLMResponse:
-        if self._provider in {"puter", "openrouter"}:
+        if self._provider in {"puter", "openrouter", "sovereigneg"}:
             raw = _normalize_chat_response(raw)
         output = raw.get("output")
         if not isinstance(output, list):
