@@ -28,6 +28,7 @@ def test_mistral_ocr_manifest_live(record_property) -> None:
         "alternate_layout",
     }
     provider = MistralOcrProvider(MistralOcrClient(api_key=api_key))
+    failures: list[str] = []
 
     for case in manifest["cases"]:
         report_path = Path(case["path"])
@@ -45,8 +46,11 @@ def test_mistral_ocr_manifest_live(record_property) -> None:
         for key, expected in case["expected"].items():
             if expected is None:
                 hallucinated += int(actual.get(key) is not None)
-                assert actual.get(key) is None
-            else:
-                assert actual.get(key) == pytest.approx(expected, abs=0.1)
+                if actual.get(key) is not None:
+                    failures.append(f"{case['id']}:{key}:hallucinated")
+            elif actual.get(key) is None or abs(actual[key] - expected) > 0.1:
+                failures.append(f"{case['id']}:{key}:mismatch")
         record_property(f"{case['id']}_latency_ms", latency_ms)
         record_property(f"{case['id']}_hallucinated_fields", hallucinated)
+
+    assert not failures, "OCR validation failures: " + ", ".join(failures)

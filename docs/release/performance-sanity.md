@@ -44,6 +44,7 @@ to production claims.
 - The retired OpenRouter Nemotron candidate passed 3/7 synthetic cases in 430.22 seconds; one
   isolated case passed in 51.62 seconds. SovereignEG `glm-5.3-flash` passed 5/7 cases in 65.82
   seconds on its first run. Two more runs are required before p50/p95 or release acceptance.
-- Cloudflare FLUX completed one synthetic source-image live check in 9.53 seconds. Mistral OCR
-  connectivity passes; representative OCR and Avatar private-fixture latency remain gated.
+- Cloudflare FLUX completed one synthetic source-image live check in 9.53 seconds. Mistral OCR's
+  private nine-case suite passes in 4.59 seconds, but a single aggregate duration is not p50/p95.
+  Avatar private-fixture latency remains gated on explicit consent.
 - API, feed, and workout local regression evidence remains valid; staging p50/p95 is still required.

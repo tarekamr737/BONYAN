@@ -22,8 +22,9 @@ not complete.
   mapping, response bounds, and secret redaction pass offline. Credentials plus the repository's
   synthetic fixture passed live model execution in 9.53 seconds; real identity/quality scoring is
   still blocked because the intended private source image is absent.
-- Mistral `mistral-ocr-4-1` connectivity passes with a generated blank PDF.
-- 217 backend tests pass; 12 opt-in live tests skip normally. Mobile lint, route generation,
+- Mistral `mistral-ocr-4-1` passes the private nine-case fixture suite in 4.59 seconds. Six cases
+  assert supplied ground truth; three hardest multipart images currently cover extraction only.
+- 221 backend tests pass; 12 opt-in live tests skip normally. Mobile lint, route generation,
   typecheck, 27 tests, and Android/iOS/web Expo release export pass.
 - PostgreSQL 17 upgrades to the single head `20260904_0007`; `alembic check` reports no drift.
 - Local API boot and `/health` pass; an unauthenticated private Training route returns 401.
@@ -36,5 +37,5 @@ not complete.
   the provider's routing/privacy posture for private Coach context.
 - Provide the intended consented private Avatar fixture and pass identity, realism, regeneration,
   approval/publication, deletion, latency, and quota checks.
-- Run representative private Mistral fixtures and the disposable-user full staging flow.
+- Label the three hardest Mistral images, then run the disposable-user full staging flow.
 - Complete signed native-device QA and required production environment/reviewer controls.

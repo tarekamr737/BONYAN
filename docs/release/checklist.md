@@ -100,7 +100,7 @@ pass, but staging restore is not claimed. The final providers are locked and Exe
 The replacement SovereignEG `glm-5.3-flash` key/catalog/adapter pass and its first Coach run passed
 5/7; repeated scoring, behavior fixes, and routing/privacy approval are pending. Cloudflare FLUX
 credentials and synthetic model execution pass, but the intended
-private identity fixture is absent,
-Mistral connectivity passes but its full fixture run is gated, and native Android/iOS QA is
+private identity fixture has not yet been consent-approved for upload. Mistral's private nine-case
+suite passes, with three hardest images still awaiting ground-truth labels. Native Android/iOS QA is
 unavailable.
 Release sign-off remains blocked; see [release-candidate-status.md](release-candidate-status.md).

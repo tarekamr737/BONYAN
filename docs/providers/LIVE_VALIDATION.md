@@ -39,5 +39,8 @@ pending.
 Cloudflare credentials and the repository's synthetic Avatar fixture passed the live source-image
 request, response decoding, and model-execution check in 9.53 seconds. The intended private identity
 fixture path was absent, so identity preservation, realism, and regeneration scoring remain gated.
-Mistral connectivity passed previously, while the representative private OCR fixture suite and full
-staging flow remain gated. Never treat these connectivity checks as human quality approval.
+Mistral passed the private nine-case fixture run in 4.59 seconds after the parser was hardened for
+Markdown tables, compact key/value output, historical measurement rows, and derived BMI review
+metadata. Six cases carry machine-readable accuracy expectations; the three hardest multipart
+images currently validate extraction robustness only and still need ground-truth labels. The full
+staging flow remains gated. Never treat connectivity checks as human quality approval.
