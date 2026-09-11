@@ -47,5 +47,11 @@ Avatar release-quality gate. Private sources, outputs, and JUnit evidence remain
 Mistral passed the private nine-case fixture run in 4.59 seconds after the parser was hardened for
 Markdown tables, compact key/value output, historical measurement rows, and derived BMI review
 metadata. Six cases carry machine-readable accuracy expectations; the three hardest multipart
-images currently validate extraction robustness only and still need ground-truth labels. The full
-staging flow remains gated. Never treat connectivity checks as human quality approval.
+images currently validate extraction robustness only and still need ground-truth labels.
+
+The disposable-user full staging flow passed through a temporary Cloudflare Quick Tunnel in 22.42
+seconds: HTTPS health, authenticated OCR upload and confirmation, plan creation, live Coach,
+private Avatar generation, approval, explicit Community publication, cleanup, and account deletion.
+The first attempt found a PostgreSQL-only expired-timestamp serialization defect; explicit refresh
+after InBody mutations fixed it. This Quick Tunnel has no uptime guarantee and is suitable only for
+the current QA cycle. Never treat connectivity checks as human quality approval.

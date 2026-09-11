@@ -16,5 +16,6 @@
 
 Provider abstractions, backend-only secrets, private Avatar lifecycle, safe errors, and no-automatic-
 paid-fallback policy are preserved. Normal backend/mobile/export/migration gates pass. Release remains
-blocked by the replacement Coach score, failed Avatar identity/quality gate, full staging E2E, labels for
-the three hardest OCR images, and native QA.
+blocked by the replacement Coach score, failed Avatar identity/quality gate, labels for the three
+hardest OCR images, provider-outage checks, and native QA. The disposable-user full staging flow
+passes through the temporary HTTPS QA tunnel, including cleanup and account deletion.

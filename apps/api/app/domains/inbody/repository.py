@@ -84,6 +84,7 @@ class InBodyRepository:
         scan.failure_code = None
         scan.failure_message = None
         await self.session.flush()
+        await self.session.refresh(scan)
         return scan
 
     async def mark_failed(self, scan: InBodyScan, *, code: str, message: str) -> InBodyScan:
@@ -91,12 +92,14 @@ class InBodyRepository:
         scan.failure_code = code
         scan.failure_message = message
         await self.session.flush()
+        await self.session.refresh(scan)
         return scan
 
     async def confirm(self, scan: InBodyScan) -> InBodyScan:
         scan.status = InBodyScanStatus.CONFIRMED
         scan.confirmed_at = datetime.now(UTC)
         await self.session.flush()
+        await self.session.refresh(scan)
         return scan
 
     async def delete(self, scan: InBodyScan) -> InBodyScan:

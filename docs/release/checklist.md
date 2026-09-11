@@ -102,5 +102,7 @@ The replacement SovereignEG `glm-5.3-flash` key/catalog/adapter pass and its fir
 credentials and synthetic model execution pass. Six generations from two consented private sources
 also passed the image contract, but the 2.75/5 human score fails the identity-quality gate. Mistral's
 private nine-case suite passes, with three hardest images still awaiting ground-truth labels. Native
-Android/iOS QA is unavailable.
+Android/iOS QA is incomplete. The disposable-user full staging flow passes through a temporary
+Cloudflare Quick Tunnel in 22.42 seconds, including cleanup and account deletion; the tunnel is not
+a durable production host.
 Release sign-off remains blocked; see [release-candidate-status.md](release-candidate-status.md).

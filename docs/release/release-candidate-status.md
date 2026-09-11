@@ -6,9 +6,9 @@ Starting main SHA: `2b379fa568479505583b25eba4e3e94e1af8cce9`
 
 ## Verdict
 
-**CHANGES REQUIRED.** The final free provider stack is implemented and offline gates pass, but the
-live Coach benchmark is below threshold and private-fixture scoring, staging E2E, and native QA are
-not complete.
+**CHANGES REQUIRED.** The selected provider stack is implemented and offline gates pass, but the
+live Coach benchmark and Avatar identity score are below threshold, while native QA and remaining
+release controls are not complete.
 
 ## Verified
 
@@ -28,6 +28,8 @@ not complete.
   typecheck, 27 tests, and Android/iOS/web Expo release export pass.
 - PostgreSQL 17 upgrades to the single head `20260904_0007`; `alembic check` reports no drift.
 - Local API boot and `/health` pass; an unauthenticated private Training route returns 401.
+- The disposable-user full staging flow passes through the temporary HTTPS QA tunnel in 22.42
+  seconds, including OCR, Training, Coach, Avatar approval/publication, cleanup, and account deletion.
 - Existing source-photo privacy, explicit approval/publication separation, rate limits, and account
   deletion tests remain green.
 
@@ -37,5 +39,5 @@ not complete.
   the provider's routing/privacy posture for private Coach context.
 - Replace or materially improve the Avatar candidate and pass identity, realism, regeneration,
   approval/publication, deletion, latency, and quota checks. Current Cloudflare FLUX scored 2.75/5.
-- Label the three hardest Mistral images, then run the disposable-user full staging flow.
+- Label the three hardest Mistral images and complete provider-outage staging checks.
 - Complete signed native-device QA and required production environment/reviewer controls.
