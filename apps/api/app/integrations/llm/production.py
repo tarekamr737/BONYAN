@@ -121,8 +121,13 @@ class ProductionLLMProvider:
         for attempt in range(self._max_attempts):
             try:
                 if self._post_json_override:
-                    return self._post_json_override(payload)
-                return await asyncio.to_thread(self._post_json, payload)
+                    raw = self._post_json_override(payload)
+                else:
+                    raw = await asyncio.to_thread(self._post_json, payload)
+                response_error = _provider_error_from_response(raw)
+                if response_error is not None:
+                    raise response_error
+                return raw
             except LLMProviderError as exc:
                 last_error = exc
                 if not exc.retryable or attempt + 1 >= self._max_attempts:
@@ -314,6 +319,18 @@ def _http_error(status_code: int) -> LLMProviderError:
         )
     return LLMProviderError(
         "provider_rejected", "The Coach provider rejected the request.", retryable=False
+    )
+
+
+def _provider_error_from_response(raw: dict[str, Any]) -> LLMProviderError | None:
+    provider_error = raw.get("error")
+    if not isinstance(provider_error, dict):
+        return None
+    status_code = provider_error.get("code")
+    if isinstance(status_code, int):
+        return _http_error(status_code)
+    return LLMProviderError(
+        "provider_unavailable", "The Coach provider is unavailable.", retryable=True
     )
 
 

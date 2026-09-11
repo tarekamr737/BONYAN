@@ -46,7 +46,15 @@ def test_coach_candidate_live(candidate, case, record_property) -> None:
     if not api_key:
         pytest.skip("CHAT_API_KEY or OPENAI_API_KEY is required")
     provider = ProductionLLMProvider(
-        api_key=api_key, model=candidate["model"], provider=provider_name
+        api_key=api_key,
+        model=candidate["model"],
+        provider=provider_name,
+        timeout_seconds=float(
+            os.getenv(
+                "BONYAN_LIVE_COACH_TIMEOUT_SECONDS",
+                os.getenv("CHAT_TIMEOUT_SECONDS", "20"),
+            )
+        ),
     )
 
     started = time.perf_counter()

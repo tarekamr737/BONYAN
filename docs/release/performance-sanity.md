@@ -41,7 +41,8 @@ to production claims.
 
 - ExerciseDB search, filters, details, and GIF URL retrieval passed live; public-service latency is
   not an availability guarantee.
-- OpenRouter Nemotron was not sent fitness context due its free-endpoint data terms; the configured
-  key also previously returned HTTP 401, so no Coach p50/p95 is accepted.
-- Mistral OCR connectivity passes; OCR and Cloudflare Avatar private-fixture latency remain gated.
+- With explicit authorization, OpenRouter Nemotron passed 3/7 synthetic cases in 430.22 seconds;
+  one isolated case passed in 51.62 seconds. This is insufficient for p50/p95 or release acceptance.
+- Cloudflare FLUX completed one synthetic source-image live check in 9.53 seconds. Mistral OCR
+  connectivity passes; representative OCR and Avatar private-fixture latency remain gated.
 - API, feed, and workout local regression evidence remains valid; staging p50/p95 is still required.

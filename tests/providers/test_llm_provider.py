@@ -189,3 +189,32 @@ def test_openrouter_nemotron_payload_uses_locked_model_and_compatible_tools() ->
     assert "strict" not in captured["tools"][0]["function"]
     assert response.tool_calls[0].arguments == {}
     assert "openrouter-secret" not in repr(instance)
+
+
+def test_openrouter_error_envelope_is_safe_and_retried() -> None:
+    attempts = 0
+
+    def post_json(payload):
+        nonlocal attempts
+        attempts += 1
+        return {
+            "error": {
+                "code": 502,
+                "message": "private upstream error must not escape",
+            }
+        }
+
+    instance = ProductionLLMProvider(
+        api_key="openrouter-secret",
+        model="nvidia/nemotron-3-ultra-550b-a55b:free",
+        provider="openrouter",
+        max_attempts=2,
+        retry_delay_seconds=0,
+        post_json=post_json,
+    )
+
+    with pytest.raises(LLMProviderError) as failure:
+        run(instance.complete(LLMRequest(prompt="synthetic benchmark")))
+
+    assert failure.value.code == "provider_unavailable"
+    assert attempts == 2

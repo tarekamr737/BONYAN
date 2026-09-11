@@ -15,6 +15,10 @@ Weight the final score: identity 30%, facial consistency 20%, realism 15%, adher
 ## Status
 
 Provider choices were locked on 2026-09-11. ExerciseDB passed live search/detail/media validation.
-OpenRouter Nemotron scoring remains blocked by its free-endpoint data terms and an OpenRouter key
-that previously returned HTTP 401; Cloudflare FLUX
-scoring remains blocked by missing account/token configuration and a consented fixture manifest.
+With explicit authorization, OpenRouter Nemotron passed 3/7 synthetic cases in 430.22 seconds. It
+passed current-plan retrieval, hallucination resistance, and the medical boundary, but failed two
+Arabic answer cases through unexpected tool selection, returned one incomplete MSA response, and
+was unavailable for exercise search. This is below the reliability and behavior gates; human Arabic
+review and three-run scoring are not complete. Cloudflare FLUX passed live model execution and
+decoding against a repository synthetic fixture in 9.53 seconds. Identity, realism, regeneration,
+and human scoring remain blocked until the intended consented private fixture is provided.
