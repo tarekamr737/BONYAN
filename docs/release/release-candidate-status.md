@@ -30,6 +30,10 @@ release controls are not complete.
 - Local API boot and `/health` pass; an unauthenticated private Training route returns 401.
 - The disposable-user full staging flow passes through the temporary HTTPS QA tunnel in 22.42
   seconds, including OCR, Training, Coach, Avatar approval/publication, cleanup, and account deletion.
+- EAS Android internal build `30d5a4b3-0131-4ac2-b8d7-96ba15d2e0bc` completed with the Preview
+  HTTPS API URL embedded. Its retained APK SHA-256 is
+  `B6C8591826FCF94842A0F4C029DC60625186CF3C5D995D83CB120E69E2E2E991`; device installation and
+  workflow QA remain pending. iOS signing is blocked because no Apple team/device is registered.
 - Existing source-photo privacy, explicit approval/publication separation, rate limits, and account
   deletion tests remain green.
 
@@ -40,4 +44,5 @@ release controls are not complete.
 - Replace or materially improve the Avatar candidate and pass identity, realism, regeneration,
   approval/publication, deletion, latency, and quota checks. Current Cloudflare FLUX scored 2.75/5.
 - Label the three hardest Mistral images and complete provider-outage staging checks.
-- Complete signed native-device QA and required production environment/reviewer controls.
+- Install and QA the signed Android artifact; connect an Apple Developer team, register the iPhone,
+  build/sign iOS, and complete required production environment/reviewer controls.

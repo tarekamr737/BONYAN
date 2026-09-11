@@ -104,5 +104,7 @@ also passed the image contract, but the 2.75/5 human score fails the identity-qu
 private nine-case suite passes, with three hardest images still awaiting ground-truth labels. Native
 Android/iOS QA is incomplete. The disposable-user full staging flow passes through a temporary
 Cloudflare Quick Tunnel in 22.42 seconds, including cleanup and account deletion; the tunnel is not
-a durable production host.
+a durable production host. EAS Android internal build
+`30d5a4b3-0131-4ac2-b8d7-96ba15d2e0bc` completed and was retained privately on `D:`; device QA is
+pending. iOS is blocked on an Apple Developer team, registered iPhone, and signing credentials.
 Release sign-off remains blocked; see [release-candidate-status.md](release-candidate-status.md).

@@ -17,5 +17,7 @@
 Provider abstractions, backend-only secrets, private Avatar lifecycle, safe errors, and no-automatic-
 paid-fallback policy are preserved. Normal backend/mobile/export/migration gates pass. Release remains
 blocked by the replacement Coach score, failed Avatar identity/quality gate, labels for the three
-hardest OCR images, provider-outage checks, and native QA. The disposable-user full staging flow
-passes through the temporary HTTPS QA tunnel, including cleanup and account deletion.
+hardest OCR images, provider-outage checks, and native-device QA. The disposable-user full staging
+flow passes through the temporary HTTPS QA tunnel, including cleanup and account deletion. EAS
+Android build `30d5a4b3-0131-4ac2-b8d7-96ba15d2e0bc` completed; installation QA is pending, while
+iOS remains blocked on an Apple Developer team, registered device, and distribution credentials.
