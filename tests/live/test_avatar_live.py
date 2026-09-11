@@ -70,6 +70,20 @@ def test_avatar_candidate_live(candidate, record_property) -> None:
     latency_ms = round((time.perf_counter() - started) * 1000, 2)
 
     validate_generated_image(result.content, result.media_type)
+    output_directory = manifest.get("output_directory")
+    if output_directory:
+        destination = Path(output_directory)
+        destination.mkdir(parents=True, exist_ok=True)
+        suffix = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp",
+        }[result.media_type]
+        output_path = destination / (
+            f"avatar-{datetime.now(UTC).strftime('%Y%m%dT%H%M%S%fZ')}{suffix}"
+        )
+        output_path.write_bytes(result.content)
+        record_property("output_path", str(output_path))
     record_property("model", candidate["model"])
     record_property("latency_ms", latency_ms)
     record_property("estimated_cost_usd", result.estimated_cost_usd or 0)

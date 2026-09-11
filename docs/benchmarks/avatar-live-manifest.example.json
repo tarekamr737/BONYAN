@@ -1,5 +1,6 @@
 {
   "source_path": "D:/BONYAN-private/avatar/avatar-source.png",
+  "output_directory": "D:/BONYAN-private/avatar/generated",
   "media_type": "image/png",
   "consent_confirmed": true,
   "notes": "Keep the real manifest and all images outside the repository."

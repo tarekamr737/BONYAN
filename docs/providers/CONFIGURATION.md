@@ -50,11 +50,13 @@ actions.
 6. Set `AVATAR_PROVIDER=cloudflare` and
    `AVATAR_MODEL=@cf/black-forest-labs/flux-2-klein-4b` in the backend environment.
 7. Copy `docs/benchmarks/avatar-live-manifest.example.json` outside the repository, point it at a
-   consented JPEG/PNG/WebP source photo, and set `consent_confirmed` to `true`.
+   consented JPEG/PNG/WebP source photo, set a private `output_directory`, and set
+   `consent_confirmed` to `true`.
 8. Set `BONYAN_LIVE_AVATAR_MANIFEST` to that private manifest path and run
    `npm run api:test:live -- -k avatar_candidate_live`.
-9. Confirm the generated image, identity/skin-tone/age preservation, anatomy, latency, and quota in
-   the private review workflow. Delete the fixture and generated test object after validation.
+9. Review the timestamped generated image in the private output directory for identity/skin-tone/age
+   preservation, anatomy, prompt adherence, latency, and quota. Delete private review artifacts
+   after the approved retention period.
 10. Store the two Cloudflare values in the staging/production backend secret manager. Rotate the
     token after suspected exposure and monitor daily neuron usage in the Workers AI dashboard.
 
