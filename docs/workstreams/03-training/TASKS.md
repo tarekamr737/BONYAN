@@ -66,7 +66,7 @@
 ## K. Coach Provider
 - [x] Wire `LLMProvider` + mock.
 - [x] Keep model selection provider-neutral; release locks OpenRouter
-  `google/gemma-4-31b-it:free`.
+  `nvidia/nemotron-3-ultra-550b-a55b:free`.
 - [x] Define compact coach schemas.
 
 ## L. Coach Tools

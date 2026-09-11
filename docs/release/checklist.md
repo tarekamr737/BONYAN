@@ -97,7 +97,9 @@ Candidate branch `feat/release-candidate` started from merged main
 `2b379fa568479505583b25eba4e3e94e1af8cce9`. Normal backend/mobile/export gates and a fresh
 PostgreSQL 17 migration cycle pass. A local isolated database backup/restore and restored-app login
 pass, but staging restore is not claimed. The final providers are locked and ExerciseDB passed live.
-OpenRouter Gemma is blocked by HTTP 401, Cloudflare FLUX lacks credentials and a consented fixture,
+OpenRouter Nemotron is blocked by unresolved free-endpoint privacy terms and a key that previously
+returned HTTP 401; Cloudflare
+FLUX lacks credentials and a consented fixture,
 Mistral connectivity passes but its full fixture run is gated, and native Android/iOS QA is
 unavailable.
 Release sign-off remains blocked; see [release-candidate-status.md](release-candidate-status.md).

@@ -11,7 +11,7 @@ Training router -> TrainingService -> WorkoutPlanner
 
 ## Coach Flow
 ```text
-CoachService -> LLMProvider(OpenRouter Gemma 4 / mock)
+CoachService -> LLMProvider(OpenRouter Nemotron 3 Ultra / mock)
             -> validated CoachToolExecutor
             -> deterministic services
 ```

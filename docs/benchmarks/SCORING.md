@@ -15,5 +15,6 @@ Weight the final score: identity 30%, facial consistency 20%, realism 15%, adher
 ## Status
 
 Provider choices were locked on 2026-09-11. ExerciseDB passed live search/detail/media validation.
-OpenRouter Gemma scoring remains blocked by HTTP 401 from the configured key, and Cloudflare FLUX
+OpenRouter Nemotron scoring remains blocked by its free-endpoint data terms and an OpenRouter key
+that previously returned HTTP 401; Cloudflare FLUX
 scoring remains blocked by missing account/token configuration and a consented fixture manifest.

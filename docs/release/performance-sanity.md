@@ -41,6 +41,7 @@ to production claims.
 
 - ExerciseDB search, filters, details, and GIF URL retrieval passed live; public-service latency is
   not an availability guarantee.
-- OpenRouter Gemma receives HTTP 401 with the configured key, so no Coach p50/p95 is accepted.
+- OpenRouter Nemotron was not sent fitness context due its free-endpoint data terms; the configured
+  key also previously returned HTTP 401, so no Coach p50/p95 is accepted.
 - Mistral OCR connectivity passes; OCR and Cloudflare Avatar private-fixture latency remain gated.
 - API, feed, and workout local regression evidence remains valid; staging p50/p95 is still required.

@@ -3,11 +3,11 @@
   "provider": "openrouter",
   "candidates": [
     {
-      "model": "google/gemma-4-31b-it:free",
+      "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
       "input_usd_per_million": 0,
       "output_usd_per_million": 0,
       "role": "locked release candidate"
     }
   ],
-  "source": "https://openrouter.ai/google/gemma-4-31b-it:free"
+  "source": "https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free"
 }

@@ -5,7 +5,7 @@ Git and never print provider keys, prompts, source photos, reports, or generated
 
 ```powershell
 $env:CHAT_PROVIDER = "openrouter"
-$env:CHAT_MODEL = "google/gemma-4-31b-it:free"
+$env:CHAT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
 $env:CHAT_API_KEY = "..."
 $env:AVATAR_PROVIDER = "cloudflare"
 $env:AVATAR_MODEL = "@cf/black-forest-labs/flux-2-klein-4b"
@@ -23,8 +23,9 @@ full-flow test additionally requires `BONYAN_RUN_FULL_STAGING=1`, an HTTPS stagi
 disposable staging token; it removes created artifacts in `finally` cleanup.
 
 Current result (2026-09-11): ExerciseDB search, filtered retrieval, detail, and sanitized GIF media
-passed live after an initial transient public-service failure. The configured OpenRouter key reached
-the endpoint but received HTTP 401, so Gemma text/tool behavior is not validated. Cloudflare account
+passed live after an initial transient public-service failure. Nemotron was not sent BONYAN fitness
+prompts because NVIDIA's free-endpoint terms warn against personal/confidential data; the configured
+OpenRouter key also previously received HTTP 401. Cloudflare account
 ID/token and the consented Avatar fixture manifest are absent, so source-image generation and quality
 scoring are blocked. Mistral connectivity passed previously, while the representative private OCR
 fixture suite and full staging flow remain gated.
