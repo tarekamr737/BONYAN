@@ -31,11 +31,19 @@ from app.domains.training.schemas import (
     WorkoutSessionResponse,
 )
 from app.domains.training.service import TrainingService
+from app.integrations.exercisedb.client import ExerciseDbClient
+from app.integrations.exercises.provider import ExerciseProvider
 from app.integrations.llm.production import ProductionLLMProvider
 from app.integrations.musclewiki.client import MuscleWikiClient
 from app.integrations.musclewiki.media import MuscleWikiMediaRelay, MuscleWikiMediaSigner
 
 router = APIRouter(prefix="/training", tags=["training"])
+
+
+def get_exercise_provider(settings: Settings) -> ExerciseProvider:
+    if settings.exercise_provider == "exercisedb":
+        return ExerciseDbClient(base_url=settings.exercisedb_base_url)
+    return MuscleWikiClient(settings=settings)
 
 
 async def get_training_service(
@@ -44,7 +52,7 @@ async def get_training_service(
 ) -> TrainingService:
     return TrainingService(
         TrainingRepository(session),
-        MuscleWikiClient(settings=settings),
+        get_exercise_provider(settings),
         InBodyTrainingAdapter(InBodyRepository(session)),
     )
 
@@ -169,7 +177,7 @@ async def get_exercise_media_access(
         user_id=current_user.id, exercise_id=exercise_id
     )
     if access is None:
-        raise AppError("musclewiki_media_unavailable", "Exercise media is unavailable.", 404)
+        raise AppError("exercise_media_unavailable", "Exercise media is unavailable.", 404)
     return ExerciseMediaAccessResponse(url=access.url, expires_at=access.expires_at)
 
 

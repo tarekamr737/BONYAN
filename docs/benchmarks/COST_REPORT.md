@@ -1,31 +1,23 @@
-# Provider Cost Estimate
+# Final Provider Cost Estimate
 
-Estimate date: 2026-09-04. These are candidate-planning list-price estimates,
-not final model decisions or invoices. Recalculate after live usage capture,
-final provider selection, and contract pricing.
+Estimate date: 2026-09-11. Free tiers and public endpoints are capacity-limited offers, not permanent
+availability guarantees.
 
-| Unit | Assumption | Estimate |
-|---|---|---:|
-| OCR report | One Mistral OCR 4.1 page at $4/1,000 pages | $0.004 |
-| 10 Coach messages | Each uses 1,000 input and 300 output tokens on the balanced Coach candidate | $0.056 |
-| Workout conversation | Five turns, each 1,500 input and 400 output tokens on the balanced Coach candidate | $0.039 |
-| Avatar generation | One balanced Avatar candidate 1K output plus rounded image/text input | $0.068 |
-| Active user/day | 10 Coach messages, one workout conversation, plus 1/30 OCR and 1/30 Avatar | $0.097 |
-| Active user/month | 30 active days under the row above | $2.92 |
+| Capability | Expected provider cost | Constraint |
+|---|---:|---|
+| ExerciseDB V1 | $0 | Published free-plan guidance is 1,000 API requests/hour; CDN media is generally unlimited |
+| Gemma Coach via OpenRouter | $0 while the `:free` route is available | Provider-dependent capacity and limits; never auto-switch to paid |
+| FLUX.2 Klein 4B Avatar | about $0.000346 for one 512-tile reference plus one 512-tile output after allowance | 31.42 neurons or $0.000059/input tile + $0.000287/output tile |
+| Mistral OCR 4.1 | $0.004 per one-page report | $4 per 1,000 pages |
 
-Balanced Coach candidate formula: `(input_tokens * 2 + output_tokens * 12) /
-1,000,000`. Avatar generation is the largest single event; repeated Coach usage
-is the largest ongoing cost driver under these assumptions. MuscleWiki
-subscription/quota charges, storage, bandwidth, retries, taxes, and provider
-discounts are excluded because they depend on the purchased plan and measured
-traffic.
+Cloudflare documents 10,000 free neurons per day. At 5.37 neurons for one input tile plus 26.05 for
+one output tile, BONYAN's 512-by-512 request is approximately 318 generations/day if no other Workers
+AI calls consume that account's allowance. This is a mathematical ceiling, not guaranteed capacity;
+retries and provider accounting can reduce it. Usage above the allowance on Workers Paid is billed at
+$0.011 per 1,000 neurons.
 
-Sources: https://developers.openai.com/api/docs/models, https://ai.google.dev/gemini-api/docs/pricing, and https://docs.mistral.ai/models/ocr-4-1
-
-## Release-candidate status — 2026-09-10
-
-These values remain provisional. No Coach or Avatar candidate passed the complete live and human
-benchmark gates, MuscleWiki access returned HTTP 403, and no staging traffic measurements exist.
-The failed OpenRouter `openai/gpt-oss-120b` run is not used to replace the planning estimates.
-Final per-user/day and per-user/month costs therefore remain a release blocker rather than a
-fabricated measurement.
+Sources: https://docs.ascendapi.com/products/edb-v1/overview,
+https://openrouter.ai/google/gemma-4-31b-it:free/apps,
+https://developers.cloudflare.com/workers-ai/models/flux-2-klein-4b/,
+https://developers.cloudflare.com/workers-ai/platform/pricing/, and
+https://docs.mistral.ai/models/ocr-4-1.

@@ -4,12 +4,14 @@
 ```text
 Training router -> TrainingService -> WorkoutPlanner
                                 |-> TrainingRepository
-                                |-> MuscleWikiExerciseProvider
+                                |-> ExerciseProvider
+                                      |-> ExerciseDbClient (active)
+                                      |-> MuscleWikiClient (legacy opt-in)
 ```
 
 ## Coach Flow
 ```text
-CoachService -> LLMProvider(TBD/mock)
+CoachService -> LLMProvider(OpenRouter Gemma 4 / mock)
             -> validated CoachToolExecutor
             -> deterministic services
 ```
@@ -23,15 +25,18 @@ Current MVP implementation:
 - `decide_progression` implements double progression increase/hold/regress.
 - `choose_substitution` preserves muscle overlap and equipment availability.
 
-## MuscleWiki Boundary
-`integrations/musclewiki` exposes:
+## Exercise Provider Boundary
+`integrations/exercises` defines the provider-neutral contract. The active
+`integrations/exercisedb` adapter exposes:
 - `search_exercises(filters, page, page_size)`
 - `get_exercise(exercise_id)`
 - `get_media_access(exercise_id)`
 
-The client maps provider failures to provider errors and caches fetched metadata in memory.
+The client maps provider failures to generic provider errors, caches fetched metadata in memory,
+and accepts only official ExerciseDB API and media hosts. MuscleWiki remains an explicit legacy
+adapter and is not an MVP runtime dependency.
 
 ## Integration Required From Person 01
 - Include `app.domains.training.router.router` in `apps/api/app/core/routing.py`.
 - Add a home/app-shell route link to `/training` when central navigation is ready.
-- Add `MUSCLEWIKI_API_KEY` to shared settings/env examples if production credentials are provisioned.
+- Configure `EXERCISE_PROVIDER=exercisedb` and the fixed official V1 base URL.

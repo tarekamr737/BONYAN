@@ -104,3 +104,28 @@ def test_provider_secrets_are_redacted() -> None:
 
     assert "chat-secret" not in repr(settings)
     assert "avatar-secret" not in repr(settings)
+
+
+def test_exercisedb_defaults_to_fixed_official_v1_endpoint() -> None:
+    settings = Settings()
+
+    assert settings.exercise_provider == "exercisedb"
+    assert settings.exercisedb_base_url == "https://oss.exercisedb.dev/api/v1"
+    with pytest.raises(ValidationError, match="official ExerciseDB"):
+        Settings(exercisedb_base_url="https://example.test/api/v1")
+
+
+def test_cloudflare_avatar_requires_backend_credentials_and_redacts_token() -> None:
+    with pytest.raises(ValidationError, match="CLOUDFLARE_ACCOUNT_ID"):
+        Settings(
+            avatar_provider="cloudflare",
+            avatar_model="@cf/black-forest-labs/flux-2-klein-4b",
+        )
+    settings = Settings(
+        avatar_provider="cloudflare",
+        avatar_model="@cf/black-forest-labs/flux-2-klein-4b",
+        cloudflare_account_id="account123",
+        cloudflare_api_token="cloudflare-private-token",
+    )
+
+    assert "cloudflare-private-token" not in repr(settings)

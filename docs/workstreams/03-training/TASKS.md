@@ -65,7 +65,8 @@
 
 ## K. Coach Provider
 - [x] Wire `LLMProvider` + mock.
-- [x] Keep `CHAT_MODEL=TBD`.
+- [x] Keep model selection provider-neutral; release locks OpenRouter
+  `google/gemma-4-31b-it:free`.
 - [x] Define compact coach schemas.
 
 ## L. Coach Tools

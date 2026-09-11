@@ -1,22 +1,12 @@
 {
-  "as_of": "2026-09-04",
-  "provider": "google",
+  "as_of": "2026-09-11",
+  "provider": "cloudflare",
   "candidates": [
     {
-      "model": "gemini-3.1-flash-lite-image",
-      "estimated_1k_output_usd": 0.0336,
-      "role": "cost and latency floor"
-    },
-    {
-      "model": "gemini-3.1-flash-image",
-      "estimated_1k_output_usd": 0.067,
-      "role": "balanced candidate under test"
-    },
-    {
-      "model": "gemini-3-pro-image",
-      "estimated_1k_output_usd": 0.134,
-      "role": "quality ceiling"
+      "model": "@cf/black-forest-labs/flux-2-klein-4b",
+      "estimated_reference_and_output_usd": 0.000346,
+      "role": "locked release candidate"
     }
   ],
-  "source": "https://ai.google.dev/gemini-api/docs/pricing"
+  "source": "https://developers.cloudflare.com/workers-ai/models/flux-2-klein-4b/"
 }

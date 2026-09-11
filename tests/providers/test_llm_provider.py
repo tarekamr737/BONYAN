@@ -147,3 +147,45 @@ def test_validated_tool_results_disable_further_tools() -> None:
 
     assert "tools" not in captured
     assert "Validated BONYAN tool results" in captured["input"]
+
+
+def test_openrouter_gemma_payload_uses_locked_model_and_compatible_tools() -> None:
+    captured = {}
+
+    def post_json(payload):
+        captured.update(payload)
+        return {
+            "model": "google/gemma-4-31b-it:free",
+            "choices": [
+                {
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call-1",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_current_plan",
+                                    "arguments": "{}",
+                                },
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+
+    instance = ProductionLLMProvider(
+        api_key="openrouter-secret",
+        model="google/gemma-4-31b-it:free",
+        provider="openrouter",
+        post_json=post_json,
+    )
+    response = run(instance.complete(LLMRequest(prompt="خطة التمرين", tools=(tool(),))))
+
+    assert captured["model"] == "google/gemma-4-31b-it:free"
+    assert captured["provider"] == {"require_parameters": True}
+    assert "strict" not in captured["tools"][0]["function"]
+    assert response.tool_calls[0].arguments == {}
+    assert "openrouter-secret" not in repr(instance)

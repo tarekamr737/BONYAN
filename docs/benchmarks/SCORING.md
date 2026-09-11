@@ -14,6 +14,6 @@ Weight the final score: identity 30%, facial consistency 20%, realism 15%, adher
 
 ## Status
 
-No live credentials or private fixtures were available on 2026-09-04. Scores and
-latency remain blocked; `gpt-5.6-terra` and `gemini-3.1-flash-image` are
-balanced benchmark candidates only, not final production selections.
+Provider choices were locked on 2026-09-11. ExerciseDB passed live search/detail/media validation.
+OpenRouter Gemma scoring remains blocked by HTTP 401 from the configured key, and Cloudflare FLUX
+scoring remains blocked by missing account/token configuration and a consented fixture manifest.

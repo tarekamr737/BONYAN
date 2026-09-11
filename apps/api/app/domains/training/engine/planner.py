@@ -15,16 +15,16 @@ from app.domains.training.schemas import (
     WorkoutDay,
     WorkoutPlan,
 )
-from app.integrations.musclewiki.errors import MuscleWikiError
-from app.integrations.musclewiki.provider import (
+from app.integrations.exercises.errors import ExerciseProviderError
+from app.integrations.exercises.provider import (
     ExerciseDetails,
+    ExerciseProvider,
     ExerciseSearchFilters,
-    MuscleWikiExerciseProvider,
 )
 
 
 class WorkoutPlanner:
-    def __init__(self, exercise_provider: MuscleWikiExerciseProvider) -> None:
+    def __init__(self, exercise_provider: ExerciseProvider) -> None:
         self.exercise_provider = exercise_provider
 
     async def generate(self, context: PlanningContext, *, activate: bool = True) -> WorkoutPlan:
@@ -48,7 +48,7 @@ class WorkoutPlanner:
                 sets, reps_min, reps_max, rest_seconds, intensity = defaults
                 prescriptions.append(
                     ExercisePrescription(
-                        musclewiki_id=exercise.id,
+                        exercise_id=exercise.id,
                         name=exercise.name,
                         muscles=list(exercise.muscles or (muscle,)),
                         equipment=list(exercise.equipment),
@@ -109,7 +109,7 @@ class WorkoutPlanner:
                 for item in page.items
                 if item.id not in used_ids and set(item.equipment).issubset(set(equipment))
             ]
-        except MuscleWikiError:
+        except ExerciseProviderError:
             candidates = []
         if candidates:
             return sorted(candidates, key=lambda item: (item.name.lower(), item.id))[0]

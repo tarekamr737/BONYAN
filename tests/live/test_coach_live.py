@@ -20,7 +20,7 @@ if os.getenv("CHAT_PROVIDER") in {"puter", "openrouter"}:
         {
             "model": os.getenv("CHAT_MODEL")
             or (
-                "minimax/minimax-m3:free"
+                "google/gemma-4-31b-it:free"
                 if os.getenv("CHAT_PROVIDER") == "openrouter"
                 else "gpt-4.1"
             )

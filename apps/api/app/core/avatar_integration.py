@@ -38,6 +38,7 @@ from app.domains.community.contracts import CommunityActor
 from app.domains.community.repository import SqlAlchemyCommunityRepository
 from app.domains.community.service import CommunityService
 from app.domains.inbody.models import InBodyScan
+from app.integrations.avatar.cloudflare import CloudflareFluxAvatarProvider
 from app.integrations.avatar.mock import MockAvatarProvider
 from app.integrations.avatar.production import ProductionAvatarProvider
 
@@ -261,12 +262,23 @@ def get_avatar_service(
     )
     if settings.avatar_provider == "mock":
         provider = MockAvatarProvider(model=settings.avatar_model)
-    else:
+    elif settings.avatar_provider == "gemini":
         api_key = settings.avatar_api_key
         if api_key is None:
             raise RuntimeError("AVATAR_API_KEY validation did not run")
         provider = ProductionAvatarProvider(
             api_key=api_key.get_secret_value(),
+            model=settings.avatar_model,
+            timeout_seconds=settings.avatar_timeout_seconds,
+        )
+    else:
+        account_id = settings.cloudflare_account_id
+        api_token = settings.cloudflare_api_token
+        if account_id is None or api_token is None:
+            raise RuntimeError("Cloudflare Avatar validation did not run")
+        provider = CloudflareFluxAvatarProvider(
+            account_id=account_id,
+            api_token=api_token.get_secret_value(),
             model=settings.avatar_model,
             timeout_seconds=settings.avatar_timeout_seconds,
         )

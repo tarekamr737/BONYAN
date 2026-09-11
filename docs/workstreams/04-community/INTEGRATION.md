@@ -97,8 +97,9 @@ Implement `PrivateAvatarStorage` with authenticated private object storage:
 - delete is idempotent so a partially completed deletion can be retried safely
 - image bytes and object keys are excluded from logs
 
-`AVATAR_MODEL` stays `TBD`. The deterministic mock is the development/test default;
-choosing or adding a production image provider is outside this workstream.
+The release provider is Cloudflare Workers AI with
+`AVATAR_MODEL=@cf/black-forest-labs/flux-2-klein-4b`. The deterministic mock remains the
+offline development/test default; Cloudflare requires backend-only account/token configuration.
 
 ## Mobile composition
 

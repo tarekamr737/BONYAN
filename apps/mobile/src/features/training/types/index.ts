@@ -11,7 +11,7 @@ export type ProgressionRule = {
 };
 
 export type ExercisePrescription = {
-  musclewiki_id: string;
+  exercise_id: string;
   name: string;
   muscles: string[];
   equipment: string[];
@@ -22,6 +22,11 @@ export type ExercisePrescription = {
   intensity_target: string | null;
   notes: string | null;
   progression: ProgressionRule;
+};
+
+export type ExerciseMediaAccess = {
+  url: string;
+  expires_at: string | null;
 };
 
 export type WorkoutDay = {

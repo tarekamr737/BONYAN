@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,9 +27,13 @@ class Settings(BaseSettings):
     chat_model: str = "TBD"
     chat_api_key: SecretStr | None = None
     chat_timeout_seconds: float = 20
-    avatar_provider: Literal["mock", "gemini"] = "mock"
+    exercise_provider: Literal["exercisedb", "musclewiki"] = "exercisedb"
+    exercisedb_base_url: str = "https://oss.exercisedb.dev/api/v1"
+    avatar_provider: Literal["mock", "gemini", "cloudflare"] = "mock"
     avatar_model: str = "TBD"
     avatar_api_key: SecretStr | None = None
+    cloudflare_account_id: str | None = None
+    cloudflare_api_token: SecretStr | None = None
     avatar_timeout_seconds: float = 45
     mistral_api_key: SecretStr | None = None
     musclewiki_api_key: SecretStr | None = None
@@ -104,6 +109,26 @@ class Settings(BaseSettings):
             raise ValueError("API_PUBLIC_URL must be an HTTP(S) URL")
         return normalized
 
+    @field_validator("exercisedb_base_url")
+    @classmethod
+    def validate_exercisedb_base_url(cls, value: str) -> str:
+        normalized = value.strip().rstrip("/")
+        parsed = urlparse(normalized)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "oss.exercisedb.dev"
+            or parsed.port not in {None, 443}
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path != "/api/v1"
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(
+                "EXERCISEDB_BASE_URL must use the official ExerciseDB V1 HTTPS endpoint"
+            )
+        return normalized
+
     @field_validator("auth_jwt_secret", mode="before")
     @classmethod
     def validate_auth_secret(cls, value: object) -> object:
@@ -143,6 +168,22 @@ class Settings(BaseSettings):
             raise ValueError("AVATAR_API_KEY is required when AVATAR_PROVIDER=gemini")
         if self.avatar_provider == "gemini" and self.avatar_model.strip().upper() == "TBD":
             raise ValueError("AVATAR_MODEL must be explicitly set when AVATAR_PROVIDER=gemini")
+        if self.avatar_provider == "cloudflare":
+            if not self.cloudflare_account_id or not self.cloudflare_account_id.strip():
+                raise ValueError(
+                    "CLOUDFLARE_ACCOUNT_ID is required when AVATAR_PROVIDER=cloudflare"
+                )
+            if (
+                self.cloudflare_api_token is None
+                or not self.cloudflare_api_token.get_secret_value().strip()
+            ):
+                raise ValueError(
+                    "CLOUDFLARE_API_TOKEN is required when AVATAR_PROVIDER=cloudflare"
+                )
+            if self.avatar_model.strip().upper() == "TBD":
+                raise ValueError(
+                    "AVATAR_MODEL must be explicitly set when AVATAR_PROVIDER=cloudflare"
+                )
         return self
 
     @property

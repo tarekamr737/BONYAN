@@ -24,7 +24,8 @@ private, consented fixtures are supplied.
 - [ ] Run and human-score all Coach candidates, including Egyptian Arabic quality.
 - [ ] Run and human-score all Avatar candidates using consented private fixtures.
 - [ ] Validate six real InBody formats against Mistral ground truth.
-- [ ] Validate live MuscleWiki search, filters, pagination, detail, and media behavior.
+- [x] Replace blocked MuscleWiki MVP access with ExerciseDB V1 and validate live search, filters,
+  detail, and GIF media behavior.
 - [ ] Run the complete deployed staging flow and outage-integrity checks.
 - [ ] Replace candidate estimates and placeholder configuration with measured final findings.
 

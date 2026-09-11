@@ -23,11 +23,11 @@ from app.domains.training.schemas import (
     WorkoutSessionResponse,
     WorkoutSessionStatus,
 )
-from app.integrations.musclewiki.provider import (
+from app.integrations.exercises.provider import (
     ExerciseDetails,
+    ExerciseProvider,
     ExerciseSearchFilters,
     ExerciseSearchPage,
-    MuscleWikiExerciseProvider,
 )
 
 
@@ -35,7 +35,7 @@ class TrainingService:
     def __init__(
         self,
         repository: TrainingRepository,
-        exercise_provider: MuscleWikiExerciseProvider,
+        exercise_provider: ExerciseProvider,
         inbody_provider: LatestInBodyProvider | None = None,
     ) -> None:
         self.repository = repository
@@ -188,7 +188,7 @@ class TrainingService:
             )
         day.prescriptions[request.prescription_index] = original.model_copy(
             update={
-                "musclewiki_id": replacement.id,
+                "exercise_id": replacement.id,
                 "name": replacement.name,
                 "muscles": list(replacement.muscles),
                 "equipment": list(replacement.equipment),

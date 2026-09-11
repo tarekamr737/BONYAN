@@ -10,7 +10,8 @@
 
 ## Avatar and privacy
 
-- [x] Keep provider selection isolated and `AVATAR_MODEL=TBD`.
+- [x] Keep provider selection isolated; release locks Cloudflare Workers AI
+  `@cf/black-forest-labs/flux-2-klein-4b`.
 - [x] Implement deterministic `MockAvatarProvider` and provider error abstraction.
 - [x] Read confirmed height/weight/InBody values through `BodyMetricsReader` only.
 - [x] Validate supported metric ranges and reject photos/client-supplied measurements.

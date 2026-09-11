@@ -1,52 +1,36 @@
 # BONYAN Release Candidate Status
 
-Date: 2026-09-10
+Date: 2026-09-11
 Branch: `feat/release-candidate`
 Starting main SHA: `2b379fa568479505583b25eba4e3e94e1af8cce9`
 
 ## Verdict
 
-**BLOCKED.** The merged codebase passes normal CI-equivalent validation, but release sign-off
-requires live provider evidence, deployed staging E2E, staging backup/restore, and native QA.
+**CHANGES REQUIRED.** The final free provider stack is implemented and offline gates pass, but
+Coach authentication, live FLUX validation, private-fixture scoring, staging E2E, and native QA are
+not complete.
 
 ## Verified
 
-- Ruff passed; 184 backend tests passed and 27 explicitly gated live cases skipped normally.
-- Release/security (10), provider (31), Training (42), and Avatar/Community (41) focused tests pass.
-- Mobile lint, route generation, typecheck, 27 tests, and Android/iOS/web Expo export pass.
-  Export used a non-secret HTTPS placeholder solely to exercise bundling; no staging deployment is
-  claimed.
-- PostgreSQL 17 upgraded to the single Alembic head `20260904_0007`; `alembic check`, downgrade to
-  `20260830_0006`, and re-upgrade passed.
-- A local isolated backup/restore rehearsal preserved revision `20260904_0007` and a disposable
-  account; the API started against the restored database, `/ready` returned 200, and login worked.
-- Current `main` GitHub Baseline CI and Release Images runs passed.
-- Root `.env` is ignored and untracked; tracked-secret tests pass. Local provider selection was
-  returned to mocks because no live candidate passed the release threshold.
-
-## Provider evidence
-
-- Mistral OCR remains locked to `mistral-ocr-4-1`; updated-key connectivity passed for a synthetic
-  PDF and repository-owned image, while its six-case private fixture manifest remains absent.
-- MuscleWiki live access still returns HTTP 403. The provider identifies the updated key as BASIC
-  tier, which is playground-only; direct API calls require TESTING tier or higher.
-- OpenRouter `minimax/minimax-m3:free` is not a valid current endpoint. The available MiniMax model
-  does not support required tools. `openai/gpt-oss-120b` reached the API but passed only 3 of 7
-  automated Coach cases and is not selected.
-- Gemini `gemini-3.1-flash-image` accepted the updated key/model after removal of an obsolete request
-  field, then returned HTTP 429 because the key has zero quota for that model. The consented private
-  fixture manifest is also absent. Avatar remains mocked and no model is selected.
+- ExerciseDB is the active provider behind a provider-neutral Training boundary. Live filtered
+  search, actual detail lookup, and sanitized official GIF URL retrieval pass.
+- OpenRouter is configured for `google/gemma-4-31b-it:free`; typed tool payload/response behavior is
+  covered offline. The configured live key receives HTTP 401 before model execution.
+- Cloudflare FLUX source-image multipart, prompt safety, endpoint/auth, output decoding, retry/error
+  mapping, response bounds, and secret redaction pass offline. Live credentials and a consented
+  fixture are absent.
+- Mistral `mistral-ocr-4-1` connectivity passes with a generated blank PDF.
+- 207 backend tests pass; 12 opt-in live tests skip normally. Mobile lint, route generation,
+  typecheck, 27 tests, and Android/iOS/web Expo release export pass.
+- PostgreSQL 17 upgrades to the single head `20260904_0007`; `alembic check` reports no drift.
+- Local API boot and `/health` pass; an unauthenticated private Training route returns 401.
+- Existing source-photo privacy, explicit approval/publication separation, rate limits, and account
+  deletion tests remain green.
 
 ## Blocking release gates
 
-- Deploy approved HTTPS staging with isolated PostgreSQL, persistent private storage, and secrets.
-- Pass the disposable-account staging E2E and provider failure/degraded-mode checks.
-- Pass live Coach, Avatar, Mistral, and MuscleWiki validation and complete required human scoring.
-- Rehearse backup/restore using an actual staging restore point; the local rehearsal is not a
-  substitute for staging evidence.
-- Install and test a signed Android build on a named device/emulator. This host has no Android SDK,
-  ADB, Java, emulator, or EAS tooling.
-- Decide whether iOS is in the first release scope; if it is, obtain simulator/device evidence.
-- Configure a protected production GitHub environment with an independent required reviewer. The
-  repository currently has only an unprotected staging environment and no production environment.
-- Replace provisional cost estimates only after final providers and staging measurements exist.
+- Replace or repair the OpenRouter key, then pass all seven Gemma Coach cases and human Arabic review.
+- Provide backend-only Cloudflare account/token values and a consented fixture manifest; pass
+  identity, realism, regeneration, approval/publication, deletion, latency, and quota checks.
+- Run representative private Mistral fixtures and the disposable-user full staging flow.
+- Complete signed native-device QA and required production environment/reviewer controls.

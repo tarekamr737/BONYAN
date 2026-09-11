@@ -35,14 +35,12 @@ No cache, queue, or distributed performance infrastructure is justified by the a
 
 ## Release-candidate update — 2026-09-10
 
-The table above is the historical Workstream 06 local baseline. The release-candidate review found
-no eligible final Coach or Avatar model and no deployed staging environment, so it does not promote
-those local timings to production claims.
+The table above is the historical Workstream 06 local baseline. Final provider choices are now
+locked, but missing live credentials/fixtures and staging still prevent promotion of local timings
+to production claims.
 
-- The paid OpenRouter `openai/gpt-oss-120b` Coach candidate passed 3 of 7 automated cases; the run
-  completed in 111.97 seconds and failed completion and tool-choice requirements. It is ineligible,
-  so no Coach p50/p95 or cost is accepted.
-- MuscleWiki live access returned HTTP 403. The media relay and mobile playback paths are covered by
-  regression tests, but live video startup remains unmeasured.
-- Mistral OCR and Avatar private fixture manifests are absent, so their live latency remains gated.
+- ExerciseDB search, filters, details, and GIF URL retrieval passed live; public-service latency is
+  not an availability guarantee.
+- OpenRouter Gemma receives HTTP 401 with the configured key, so no Coach p50/p95 is accepted.
+- Mistral OCR connectivity passes; OCR and Cloudflare Avatar private-fixture latency remain gated.
 - API, feed, and workout local regression evidence remains valid; staging p50/p95 is still required.

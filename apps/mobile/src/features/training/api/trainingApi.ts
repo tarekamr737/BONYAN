@@ -1,11 +1,18 @@
 import { apiRequest } from "../../../core/api/client";
 import type {
   CoachMessageResponse,
+  ExerciseMediaAccess,
   GeneratePlanRequest,
   LoggedSetInput,
   WorkoutPlan,
   WorkoutSession,
 } from "../types";
+
+export function getExerciseMediaAccess(exerciseId: string): Promise<ExerciseMediaAccess> {
+  return apiRequest<ExerciseMediaAccess>(
+    `/api/v1/training/exercises/${encodeURIComponent(exerciseId)}/media`,
+  );
+}
 
 export function generateWorkoutPlan(request: GeneratePlanRequest): Promise<WorkoutPlan> {
   return apiRequest<WorkoutPlan>("/api/v1/training/plans", {

@@ -11,8 +11,10 @@ credentials. Access is limited to deployment identities and operators who need i
 | `MISTRAL_API_KEY` | OCR provider | Restrict to the OCR project/environment and provider quota. Replace in secret manager, restart, validate OCR, revoke old key. |
 | `MUSCLEWIKI_API_KEY` | Exercise/media provider | Restrict by provider-supported project/quota controls. Replace, validate lookup/media, revoke old key. |
 | Storage credential | Private object read/write/delete | Name depends on the approved storage adapter. Scope to one environment and bucket/volume; deny public ACL administration where supported. |
-| `CHAT_API_KEY` | Coach provider access | Scope to the selected provider/project and environment. Rotate after changing the production model or suspected exposure; no production model is selected yet. |
-| `AVATAR_API_KEY` | Avatar generation access | Scope to the selected provider/project and environment. Rotate after changing the production model or suspected exposure; no production model is selected yet. |
+| `CHAT_API_KEY` | OpenRouter Coach access | Scope to the BONYAN environment. Rotate after suspected exposure. |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare Workers AI Avatar access | Grant only Workers AI inference required by BONYAN. Rotate after suspected exposure. |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account routing | Backend configuration only; do not expose it through client contracts. |
+| `AVATAR_API_KEY` | Legacy Gemini adapter access | Optional and unused by the locked release provider. |
 | Android upload/signing key | Android release identity | Store in the mobile build/signing service, never as a repository file. Restrict release roles and follow store key-upgrade/recovery procedures. |
 | iOS distribution credentials | iOS signing and delivery | Store in Apple/build-service managed signing. Restrict App Store Connect roles and rotate/revoke compromised certificates or API keys. |
 
