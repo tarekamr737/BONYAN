@@ -19,9 +19,9 @@ not complete.
   unknown-state tool selection. Repeated scoring and human Arabic review remain pending; standard
   routing is not Egypt data residency.
 - Cloudflare FLUX source-image multipart, prompt safety, endpoint/auth, output decoding, retry/error
-  mapping, response bounds, and secret redaction pass offline. Credentials plus the repository's
-  synthetic fixture passed live model execution in 9.53 seconds; real identity/quality scoring is
-  still blocked because the intended private source image is absent.
+  mapping, response bounds, and secret redaction pass offline. Six generations from two consented
+  private sources passed the image contract, but human review scored only 2.75/5 weighted. Identity
+  and regeneration consistency each scored 2/5, so the candidate fails the release-quality gate.
 - Mistral `mistral-ocr-4-1` passes the private nine-case fixture suite in 4.59 seconds. Six cases
   assert supplied ground truth; three hardest multipart images currently cover extraction only.
 - 221 backend tests pass; 12 opt-in live tests skip normally. Mobile lint, route generation,
@@ -35,7 +35,7 @@ not complete.
 
 - Pass all seven SovereignEG GLM Coach cases repeatedly, complete human Arabic review, and approve
   the provider's routing/privacy posture for private Coach context.
-- Provide the intended consented private Avatar fixture and pass identity, realism, regeneration,
-  approval/publication, deletion, latency, and quota checks.
+- Replace or materially improve the Avatar candidate and pass identity, realism, regeneration,
+  approval/publication, deletion, latency, and quota checks. Current Cloudflare FLUX scored 2.75/5.
 - Label the three hardest Mistral images, then run the disposable-user full staging flow.
 - Complete signed native-device QA and required production environment/reviewer controls.

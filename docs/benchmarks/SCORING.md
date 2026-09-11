@@ -23,6 +23,10 @@ review and three-run scoring were not completed. SovereignEG authentication and 
 pass for the replacement `glm-5.3-flash` candidate. Its first run passed 5/7 cases in 65.82 seconds;
 mixed-language tool selection and unknown-state history selection failed. Two more runs plus human
 Arabic review are pending.
-Cloudflare FLUX passed live model execution and
-decoding against a repository synthetic fixture in 9.53 seconds. Identity, realism, regeneration,
-and human scoring remain blocked until the intended consented private fixture is provided.
+Cloudflare FLUX passed six private live generations (two consented source images, three runs each)
+with no safety rejection or malformed result. Human review scored identity 2/5, facial consistency
+2/5, realism 3/5, prompt adherence 4/5, regeneration consistency 2/5, privacy/safety fit 5/5,
+and latency/cost 4/5: 2.75/5 weighted. Identity drift, inconsistent facial hair/stylization, and a
+generic face on the second source make the candidate ineligible for release. Measured latency was
+9.49 seconds p50 and 35.19 seconds p95; estimated total cost was $0.002076. The images and per-run
+evidence remain outside Git. Six-body-profile coverage was not continued after this blocking result.

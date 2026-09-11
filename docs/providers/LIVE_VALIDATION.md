@@ -37,8 +37,13 @@ chose current plan instead of training history. Repeated scoring and human Arabi
 pending.
 
 Cloudflare credentials and the repository's synthetic Avatar fixture passed the live source-image
-request, response decoding, and model-execution check in 9.53 seconds. The intended private identity
-fixture path was absent, so identity preservation, realism, and regeneration scoring remain gated.
+request, response decoding, and model-execution check in 9.53 seconds. Two consented private source
+images were then run three times each. All six calls returned valid safe images, with 9.49-second p50
+and 35.19-second p95 latency and $0.002076 total estimated cost. Human review scored identity 2/5,
+facial consistency 2/5, realism 3/5, prompt adherence 4/5, regeneration consistency 2/5,
+privacy/safety fit 5/5, and latency/cost 4/5, for 2.75/5 weighted. Recognizable identity was not
+preserved reliably and facial hair/style drifted across regenerations, so the candidate fails the
+Avatar release-quality gate. Private sources, outputs, and JUnit evidence remain outside Git.
 Mistral passed the private nine-case fixture run in 4.59 seconds after the parser was hardened for
 Markdown tables, compact key/value output, historical measurement rows, and derived BMI review
 metadata. Six cases carry machine-readable accuracy expectations; the three hardest multipart
