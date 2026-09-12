@@ -40,6 +40,7 @@ from app.domains.community.service import CommunityService
 from app.domains.inbody.models import InBodyScan
 from app.integrations.avatar.cloudflare import CloudflareFluxAvatarProvider
 from app.integrations.avatar.mock import MockAvatarProvider
+from app.integrations.avatar.openrouter import OpenRouterAvatarProvider
 from app.integrations.avatar.production import ProductionAvatarProvider
 
 
@@ -271,7 +272,7 @@ def get_avatar_service(
             model=settings.avatar_model,
             timeout_seconds=settings.avatar_timeout_seconds,
         )
-    else:
+    elif settings.avatar_provider == "cloudflare":
         account_id = settings.cloudflare_account_id
         api_token = settings.cloudflare_api_token
         if account_id is None or api_token is None:
@@ -280,6 +281,16 @@ def get_avatar_service(
             account_id=account_id,
             api_token=api_token.get_secret_value(),
             model=settings.avatar_model,
+            timeout_seconds=settings.avatar_timeout_seconds,
+        )
+    else:
+        api_key = settings.openrouter_avatar_api_key
+        if api_key is None:
+            raise RuntimeError("OpenRouter Avatar validation did not run")
+        provider = OpenRouterAvatarProvider(
+            api_key=api_key.get_secret_value(),
+            model=settings.avatar_model,
+            base_url=settings.openrouter_base_url,
             timeout_seconds=settings.avatar_timeout_seconds,
         )
     return AvatarService(

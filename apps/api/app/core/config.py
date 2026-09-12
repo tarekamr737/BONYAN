@@ -29,9 +29,11 @@ class Settings(BaseSettings):
     chat_timeout_seconds: float = 20
     exercise_provider: Literal["exercisedb", "musclewiki"] = "exercisedb"
     exercisedb_base_url: str = "https://oss.exercisedb.dev/api/v1"
-    avatar_provider: Literal["mock", "gemini", "cloudflare"] = "mock"
+    avatar_provider: Literal["mock", "gemini", "cloudflare", "openrouter"] = "mock"
     avatar_model: str = "TBD"
     avatar_api_key: SecretStr | None = None
+    openrouter_avatar_api_key: SecretStr | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
     cloudflare_account_id: str | None = None
     cloudflare_api_token: SecretStr | None = None
     avatar_timeout_seconds: float = 45
@@ -129,6 +131,26 @@ class Settings(BaseSettings):
             )
         return normalized
 
+    @field_validator("openrouter_base_url")
+    @classmethod
+    def validate_openrouter_base_url(cls, value: str) -> str:
+        normalized = value.strip().rstrip("/")
+        parsed = urlparse(normalized)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "openrouter.ai"
+            or parsed.port not in {None, 443}
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path != "/api/v1"
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(
+                "OPENROUTER_BASE_URL must use the official OpenRouter HTTPS API"
+            )
+        return normalized
+
     @field_validator("auth_jwt_secret", mode="before")
     @classmethod
     def validate_auth_secret(cls, value: object) -> object:
@@ -183,6 +205,18 @@ class Settings(BaseSettings):
             if self.avatar_model.strip().upper() == "TBD":
                 raise ValueError(
                     "AVATAR_MODEL must be explicitly set when AVATAR_PROVIDER=cloudflare"
+                )
+        if self.avatar_provider == "openrouter":
+            if (
+                self.openrouter_avatar_api_key is None
+                or not self.openrouter_avatar_api_key.get_secret_value().strip()
+            ):
+                raise ValueError(
+                    "OPENROUTER_AVATAR_API_KEY is required when AVATAR_PROVIDER=openrouter"
+                )
+            if self.avatar_model not in {"meta/muse-image", "qwen/qwen-image-3"}:
+                raise ValueError(
+                    "AVATAR_MODEL must be an approved OpenRouter avatar candidate"
                 )
         return self
 

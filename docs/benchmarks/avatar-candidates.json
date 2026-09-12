@@ -1,12 +1,16 @@
 {
-  "as_of": "2026-09-11",
-  "provider": "cloudflare",
+  "as_of": "2026-09-12",
+  "provider": "openrouter",
   "candidates": [
     {
-      "model": "@cf/black-forest-labs/flux-2-klein-4b",
-      "estimated_reference_and_output_usd": 0.000346,
-      "role": "locked release candidate"
+      "model": "meta/muse-image",
+      "role": "identity-quality challenger"
+    },
+    {
+      "model": "qwen/qwen-image-3",
+      "estimated_reference_and_output_usd": 0.033,
+      "role": "identity-quality challenger"
     }
   ],
-  "source": "https://developers.cloudflare.com/workers-ai/models/flux-2-klein-4b/"
+  "source": "https://openrouter.ai/api/v1/images/models"
 }

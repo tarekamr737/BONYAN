@@ -129,3 +129,26 @@ def test_cloudflare_avatar_requires_backend_credentials_and_redacts_token() -> N
     )
 
     assert "cloudflare-private-token" not in repr(settings)
+
+
+def test_openrouter_avatar_requires_approved_model_and_redacts_token() -> None:
+    with pytest.raises(ValidationError, match="OPENROUTER_AVATAR_API_KEY"):
+        Settings(avatar_provider="openrouter", avatar_model="qwen/qwen-image-3")
+    with pytest.raises(ValidationError, match="approved OpenRouter"):
+        Settings(
+            avatar_provider="openrouter",
+            avatar_model="other/model",
+            openrouter_avatar_api_key="openrouter-private-token",
+        )
+    settings = Settings(
+        avatar_provider="openrouter",
+        avatar_model="qwen/qwen-image-3",
+        openrouter_avatar_api_key="openrouter-private-token",
+    )
+
+    assert "openrouter-private-token" not in repr(settings)
+
+
+def test_openrouter_base_url_is_fixed_to_official_https_api() -> None:
+    with pytest.raises(ValidationError, match="official OpenRouter"):
+        Settings(openrouter_base_url="https://example.test/api/v1")
