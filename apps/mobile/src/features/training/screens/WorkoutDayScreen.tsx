@@ -1,12 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
-import { completeWorkoutSession, getCurrentWorkoutPlan, logWorkoutSet, startWorkoutSession } from "../api/trainingApi";
+import {
+  completeWorkoutSession,
+  getCurrentWorkoutPlan,
+  getExerciseMediaAccess,
+  logWorkoutSet,
+  startWorkoutSession,
+} from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { SetStepper } from "../components/SetStepper";
 import { TrainingHeader } from "../components/TrainingHeader";
@@ -54,6 +60,11 @@ export function WorkoutDayScreen() {
     session?.logged_sets.filter((item) => item.prescription_index === activeIndex).length ?? 0;
   const nextSetNumber = completedSets + 1;
   const sessionComplete = session?.status === "completed";
+  const mediaQuery = useQuery({
+    enabled: Boolean(active?.exercise_id),
+    queryFn: () => getExerciseMediaAccess(active!.exercise_id),
+    queryKey: ["training", "exercise-media", active?.exercise_id],
+  });
 
   const startMutation = useMutation({
     mutationFn: async () => {
@@ -146,7 +157,20 @@ export function WorkoutDayScreen() {
                 {Math.round(active.rest_seconds / 60)} minutes.
               </Text>
               <View style={styles.videoFrame}>
-                <Text style={styles.videoText}>MuscleWiki media will appear when access is available.</Text>
+                {mediaQuery.data?.url ? (
+                  <Image
+                    accessibilityLabel={`${active.name} exercise demonstration`}
+                    resizeMode="contain"
+                    source={{ uri: mediaQuery.data.url }}
+                    style={styles.exerciseMedia}
+                  />
+                ) : (
+                  <Text style={styles.videoText}>
+                    {mediaQuery.isPending
+                      ? "Loading exercise demonstration..."
+                      : "Exercise demonstration is unavailable right now."}
+                  </Text>
+                )}
               </View>
               <View style={styles.stepperRow}>
                 <SetStepper label="Reps" max={50} min={0} onChange={setReps} step={1} value={reps} />
@@ -191,7 +215,7 @@ export function WorkoutDayScreen() {
             <View style={styles.list}>
               {day.prescriptions.map((exercise, index) => (
                 <ExerciseCard
-                  key={`${exercise.musclewiki_id}-${index}`}
+                  key={`${exercise.exercise_id}-${index}`}
                   active={index === activeIndex}
                   exercise={exercise}
                   index={index}
@@ -259,6 +283,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 13,
     lineHeight: 20,
+  },
+  exerciseMedia: {
+    height: "100%",
+    width: "100%",
   },
   label: {
     color: colors.bronze,

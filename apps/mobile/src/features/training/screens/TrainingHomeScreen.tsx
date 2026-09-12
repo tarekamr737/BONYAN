@@ -143,7 +143,7 @@ export function TrainingHomeScreen() {
               <Text style={styles.sectionTitle}>Today</Text>
               {today.prescriptions.map((exercise, index) => (
                 <ExerciseCard
-                  key={`${exercise.musclewiki_id}-${index}`}
+                  key={`${exercise.exercise_id}-${index}`}
                   active={index === 0}
                   exercise={exercise}
                   index={index}

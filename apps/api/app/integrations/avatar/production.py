@@ -99,7 +99,6 @@ class ProductionAvatarProvider:
                 "aspect_ratio": "1:1",
                 "image_size": "1K",
                 "mime_type": "image/jpeg",
-                "delivery": "inline",
             },
         }
 

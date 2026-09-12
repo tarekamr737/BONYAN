@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class TrainingGoal(StrEnum):
@@ -64,7 +64,11 @@ class ProgressionRule(BaseModel):
 
 
 class ExercisePrescription(BaseModel):
-    musclewiki_id: str = Field(min_length=1, max_length=120)
+    exercise_id: str = Field(
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("exercise_id", "musclewiki_id"),
+    )
     name: str = Field(min_length=1, max_length=160)
     muscles: list[str] = Field(default_factory=list)
     equipment: list[str] = Field(default_factory=list)
@@ -183,4 +187,4 @@ class CoachMessageResponse(BaseModel):
 
 class ExerciseMediaAccessResponse(BaseModel):
     url: str
-    expires_at: datetime
+    expires_at: datetime | None = None

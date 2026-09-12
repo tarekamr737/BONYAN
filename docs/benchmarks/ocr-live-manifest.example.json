@@ -2,37 +2,37 @@
   "cases": [
     {
       "id": "image",
-      "path": "C:/private/bonyan/inbody-image.png",
+      "path": "D:/BONYAN-private/ocr/inbody-image.png",
       "content_type": "image/png",
       "expected": {"weight": 82.0, "height": 178.0}
     },
     {
       "id": "native_pdf",
-      "path": "C:/private/bonyan/inbody-native.pdf",
+      "path": "D:/BONYAN-private/ocr/inbody-native.pdf",
       "content_type": "application/pdf",
       "expected": {"weight": 82.0, "height": 178.0}
     },
     {
       "id": "scanned_pdf",
-      "path": "C:/private/bonyan/inbody-scanned.pdf",
+      "path": "D:/BONYAN-private/ocr/inbody-scanned.pdf",
       "content_type": "application/pdf",
       "expected": {"weight": 82.0}
     },
     {
       "id": "low_quality",
-      "path": "C:/private/bonyan/inbody-low-quality.jpg",
+      "path": "D:/BONYAN-private/ocr/inbody-low-quality.jpg",
       "content_type": "image/jpeg",
       "expected": {"weight": 82.0}
     },
     {
       "id": "missing_fields",
-      "path": "C:/private/bonyan/inbody-missing-fields.pdf",
+      "path": "D:/BONYAN-private/ocr/inbody-missing-fields.pdf",
       "content_type": "application/pdf",
       "expected": {"height": null, "weight": 82.0}
     },
     {
       "id": "alternate_layout",
-      "path": "C:/private/bonyan/inbody-alternate-layout.pdf",
+      "path": "D:/BONYAN-private/ocr/inbody-alternate-layout.pdf",
       "content_type": "application/pdf",
       "expected": {"weight": 82.0, "height": 178.0}
     }

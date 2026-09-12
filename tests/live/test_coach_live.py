@@ -15,15 +15,16 @@ ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = json.loads(
     (ROOT / "docs/benchmarks/coach-candidates.json").read_text(encoding="utf-8")
 )["candidates"]
-if os.getenv("CHAT_PROVIDER") in {"puter", "openrouter"}:
+if os.getenv("CHAT_PROVIDER") in {"puter", "openrouter", "sovereigneg"}:
+    provider_name = os.getenv("CHAT_PROVIDER")
+    default_model = {
+        "openrouter": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "sovereigneg": "glm-5.3-flash",
+        "puter": "gpt-4.1",
+    }[provider_name]
     CANDIDATES = [
         {
-            "model": os.getenv("CHAT_MODEL")
-            or (
-                "minimax/minimax-m3:free"
-                if os.getenv("CHAT_PROVIDER") == "openrouter"
-                else "gpt-4.1"
-            )
+            "model": os.getenv("CHAT_MODEL") or default_model
         }
     ]
 CASES = json.loads(
@@ -36,9 +37,10 @@ CASES = json.loads(
 @pytest.mark.parametrize("case", CASES, ids=lambda item: item["id"])
 def test_coach_candidate_live(candidate, case, record_property) -> None:
     provider_name = os.getenv("CHAT_PROVIDER", "mock")
-    if provider_name not in {"openai", "puter", "openrouter"}:
+    if provider_name not in {"openai", "puter", "openrouter", "sovereigneg"}:
         pytest.skip(
-            "Explicit CHAT_PROVIDER=openai, puter, or openrouter is required for live calls"
+            "Explicit CHAT_PROVIDER=openai, puter, openrouter, or sovereigneg is required for "
+            "live calls"
         )
     api_key = os.getenv("CHAT_API_KEY")
     if provider_name == "openai":
@@ -46,7 +48,15 @@ def test_coach_candidate_live(candidate, case, record_property) -> None:
     if not api_key:
         pytest.skip("CHAT_API_KEY or OPENAI_API_KEY is required")
     provider = ProductionLLMProvider(
-        api_key=api_key, model=candidate["model"], provider=provider_name
+        api_key=api_key,
+        model=candidate["model"],
+        provider=provider_name,
+        timeout_seconds=float(
+            os.getenv(
+                "BONYAN_LIVE_COACH_TIMEOUT_SECONDS",
+                os.getenv("CHAT_TIMEOUT_SECONDS", "20"),
+            )
+        ),
     )
 
     started = time.perf_counter()

@@ -84,7 +84,6 @@ def test_sends_source_without_exact_body_metrics_and_parses_private_result() -> 
         "aspect_ratio": "1:1",
         "image_size": "1K",
         "mime_type": "image/jpeg",
-        "delivery": "inline",
     }
     prompt = captured["input"][1]["text"]
     assert "Body profile: fit" in prompt

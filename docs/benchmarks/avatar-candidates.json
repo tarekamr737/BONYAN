@@ -1,22 +1,16 @@
 {
-  "as_of": "2026-09-04",
-  "provider": "google",
+  "as_of": "2026-09-12",
+  "provider": "openrouter",
   "candidates": [
     {
-      "model": "gemini-3.1-flash-lite-image",
-      "estimated_1k_output_usd": 0.0336,
-      "role": "cost and latency floor"
+      "model": "meta/muse-image",
+      "role": "identity-quality challenger"
     },
     {
-      "model": "gemini-3.1-flash-image",
-      "estimated_1k_output_usd": 0.067,
-      "role": "balanced candidate under test"
-    },
-    {
-      "model": "gemini-3-pro-image",
-      "estimated_1k_output_usd": 0.134,
-      "role": "quality ceiling"
+      "model": "qwen/qwen-image-3",
+      "estimated_reference_and_output_usd": 0.033,
+      "role": "identity-quality challenger"
     }
   ],
-  "source": "https://ai.google.dev/gemini-api/docs/pricing"
+  "source": "https://openrouter.ai/api/v1/images/models"
 }

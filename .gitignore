@@ -4,6 +4,7 @@
 !.env.example
 deployment/**/api.env
 deployment/**/compose.env
+deployment/staging/quick-tunnel.override.yaml
 
 # JavaScript / Expo
 node_modules/

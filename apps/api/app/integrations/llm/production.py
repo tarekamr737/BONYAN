@@ -17,6 +17,7 @@ from app.integrations.llm.errors import LLMProviderError
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 PUTER_CHAT_URL = "https://api.puter.com/puterai/openai/v1/chat/completions"
+SOVEREIGNEG_CHAT_URL = "https://backend.sovereigneg.com/v1/chat/completions"
 _TRANSIENT_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
 _MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _MODEL_PRICES_PER_MILLION = {
@@ -33,7 +34,7 @@ class ProductionLLMProvider:
         *,
         api_key: str,
         model: str,
-        provider: Literal["openai", "puter", "openrouter"] = "openai",
+        provider: Literal["openai", "puter", "openrouter", "sovereigneg"] = "openai",
         timeout_seconds: float = 20,
         max_attempts: int = 2,
         retry_delay_seconds: float = 0.25,
@@ -87,7 +88,7 @@ class ProductionLLMProvider:
                 for item in llm_request.tools
             ]
             payload["tool_choice"] = "auto"
-        if self._provider in {"puter", "openrouter"}:
+        if self._provider in {"puter", "openrouter", "sovereigneg"}:
             chat_payload: dict[str, Any] = {
                 "model": self._model,
                 "messages": [{"role": "user", "content": prompt}],
@@ -98,15 +99,24 @@ class ProductionLLMProvider:
                 chat_payload["tools"] = [
                     {
                         "type": "function",
-                        "function": {key: value for key, value in tool.items() if key != "type"},
+                        "function": {
+                            key: value
+                            for key, value in tool.items()
+                            if key != "type"
+                            and not (
+                                self._provider in {"openrouter", "sovereigneg"}
+                                and key == "strict"
+                            )
+                        },
                     }
                     for tool in payload["tools"]
                 ]
                 chat_payload["tool_choice"] = "auto"
                 chat_payload["parallel_tool_calls"] = False
+            if self._provider in {"openrouter", "sovereigneg"}:
+                chat_payload["max_tokens"] = chat_payload.pop("max_completion_tokens")
             if self._provider == "openrouter":
                 chat_payload.pop("parallel_tool_calls", None)
-                chat_payload["max_tokens"] = chat_payload.pop("max_completion_tokens")
                 chat_payload["provider"] = {"require_parameters": True}
             return chat_payload
         return payload
@@ -116,8 +126,13 @@ class ProductionLLMProvider:
         for attempt in range(self._max_attempts):
             try:
                 if self._post_json_override:
-                    return self._post_json_override(payload)
-                return await asyncio.to_thread(self._post_json, payload)
+                    raw = self._post_json_override(payload)
+                else:
+                    raw = await asyncio.to_thread(self._post_json, payload)
+                response_error = _provider_error_from_response(raw)
+                if response_error is not None:
+                    raise response_error
+                return raw
             except LLMProviderError as exc:
                 last_error = exc
                 if not exc.retryable or attempt + 1 >= self._max_attempts:
@@ -133,6 +148,7 @@ class ProductionLLMProvider:
             {
                 "puter": PUTER_CHAT_URL,
                 "openrouter": OPENROUTER_CHAT_URL,
+                "sovereigneg": SOVEREIGNEG_CHAT_URL,
                 "openai": OPENAI_RESPONSES_URL,
             }[self._provider],
             data=body,
@@ -174,7 +190,7 @@ class ProductionLLMProvider:
         return raw
 
     def _parse_response(self, raw: dict[str, Any], llm_request: LLMRequest) -> LLMResponse:
-        if self._provider in {"puter", "openrouter"}:
+        if self._provider in {"puter", "openrouter", "sovereigneg"}:
             raw = _normalize_chat_response(raw)
         output = raw.get("output")
         if not isinstance(output, list):
@@ -309,6 +325,18 @@ def _http_error(status_code: int) -> LLMProviderError:
         )
     return LLMProviderError(
         "provider_rejected", "The Coach provider rejected the request.", retryable=False
+    )
+
+
+def _provider_error_from_response(raw: dict[str, Any]) -> LLMProviderError | None:
+    provider_error = raw.get("error")
+    if not isinstance(provider_error, dict):
+        return None
+    status_code = provider_error.get("code")
+    if isinstance(status_code, int):
+        return _http_error(status_code)
+    return LLMProviderError(
+        "provider_unavailable", "The Coach provider is unavailable.", retryable=True
     )
 
 

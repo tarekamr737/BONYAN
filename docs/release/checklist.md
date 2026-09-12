@@ -88,5 +88,25 @@ generation, configuration review, and rollback/privacy documentation are complet
 run `33597510534` also passed the mobile job, release-container build, and PostgreSQL 17
 `upgrade head` plus `alembic check` on commit `88f5b6d98bc265da65f30c068a68b610a8afe4a7`.
 The remaining unchecked gates require a selected host/domain, staging and production credentials,
-a persistent staging PostgreSQL/private-storage environment, Person 05's production providers,
+a persistent staging PostgreSQL/private-storage environment, live-validated production providers,
 signing credentials, and real Android/iOS device infrastructure.
+
+## Release-candidate execution record (2026-09-10)
+
+Candidate branch `feat/release-candidate` started from merged main
+`2b379fa568479505583b25eba4e3e94e1af8cce9`. Normal backend/mobile/export gates and a fresh
+PostgreSQL 17 migration cycle pass. A local isolated database backup/restore and restored-app login
+pass, but staging restore is not claimed. The final providers are locked and ExerciseDB passed live.
+The replacement SovereignEG `glm-5.3-flash` key/catalog/adapter pass and its first Coach run passed
+5/7; repeated scoring, behavior fixes, and routing/privacy approval are pending. OpenRouter Muse and
+Qwen both passed the private image contract across six fresh outputs each. Muse scored 4.30/5
+weighted and passed the defined identity gate; Qwen scored 3.78/5 and failed identity/prompt drift.
+Muse is selected, with broader multi-identity coverage and routed-provider privacy approval pending.
+Cloudflare FLUX remains historically rejected at 2.75/5. Mistral's
+private nine-case suite passes, with three hardest images still awaiting ground-truth labels. Native
+Android/iOS QA is incomplete. The disposable-user full staging flow passes through a temporary
+Cloudflare Quick Tunnel in 22.42 seconds, including cleanup and account deletion; the tunnel is not
+a durable production host. EAS Android internal build
+`30d5a4b3-0131-4ac2-b8d7-96ba15d2e0bc` completed and was retained privately on `D:`; device QA is
+pending. iOS is blocked on an Apple Developer team, registered iPhone, and signing credentials.
+Release sign-off remains blocked; see [release-candidate-status.md](release-candidate-status.md).

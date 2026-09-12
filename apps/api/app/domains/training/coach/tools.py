@@ -10,7 +10,7 @@ from app.core.providers.contracts import LLMToolDefinition
 from app.domains.training.coach.schemas import CoachToolCall, CoachToolName, CoachToolResult
 from app.domains.training.schemas import GeneratePlanRequest, LoggedSetInput
 from app.domains.training.service import TrainingService
-from app.integrations.musclewiki.provider import ExerciseSearchFilters
+from app.integrations.exercises.provider import ExerciseSearchFilters
 
 
 class SearchExercisesArgs(BaseModel):

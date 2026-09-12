@@ -25,7 +25,7 @@ Never let free-form LLM output directly create or mutate authoritative workout s
 - Do not download the whole database or permanently host provider videos.
 
 ## Model Status
-- `CHAT_MODEL=TBD`
+- Release Coach model: `nvidia/nemotron-3-ultra-550b-a55b:free` through OpenRouter.
 - Use `LLMProvider` and `MockLLMProvider`.
 - Do not choose a production vendor in this workstream.
 
