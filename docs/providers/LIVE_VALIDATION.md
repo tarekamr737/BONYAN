@@ -8,10 +8,11 @@ $env:CHAT_PROVIDER = "sovereigneg"
 $env:CHAT_MODEL = "glm-5.3-flash"
 $env:CHAT_API_KEY = "..."
 $env:BONYAN_LIVE_COACH_TIMEOUT_SECONDS = "120"
-$env:AVATAR_PROVIDER = "cloudflare"
-$env:AVATAR_MODEL = "@cf/black-forest-labs/flux-2-klein-4b"
-$env:CLOUDFLARE_ACCOUNT_ID = "..."
-$env:CLOUDFLARE_API_TOKEN = "..."
+$env:AVATAR_PROVIDER = "openrouter"
+$env:AVATAR_MODEL = "meta/muse-image"
+$env:OPENROUTER_AVATAR_API_KEY = "..."
+$env:OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+$env:BONYAN_LIVE_AVATAR_TIMEOUT_SECONDS = "120"
 $env:MISTRAL_API_KEY = "..."
 $env:BONYAN_RUN_EXERCISEDB_LIVE = "1"
 $env:BONYAN_LIVE_AVATAR_MANIFEST = "D:\BONYAN-private\manifests\avatar-live.json"
@@ -23,7 +24,7 @@ Avatar tests require `consent_confirmed: true`. ExerciseDB needs no credential. 
 full-flow test additionally requires `BONYAN_RUN_FULL_STAGING=1`, an HTTPS staging URL, and a
 disposable staging token; it removes created artifacts in `finally` cleanup.
 
-Current result (2026-09-11): ExerciseDB search, filtered retrieval, detail, and sanitized GIF media
+Current result (2026-09-12): ExerciseDB search, filtered retrieval, detail, and sanitized GIF media
 passed live after an initial transient public-service failure. The retired OpenRouter Nemotron
 candidate passed 3/7 cases in 430.22 seconds. It passed
 the current-plan tool call, hallucination-resistance tool call, and medical-boundary case; two Arabic
@@ -44,6 +45,17 @@ facial consistency 2/5, realism 3/5, prompt adherence 4/5, regeneration consiste
 privacy/safety fit 5/5, and latency/cost 4/5, for 2.75/5 weighted. Recognizable identity was not
 preserved reliably and facial hair/style drifted across regenerations, so the candidate fails the
 Avatar release-quality gate. Private sources, outputs, and JUnit evidence remain outside Git.
+
+OpenRouter `meta/muse-image` and `qwen/qwen-image-3` were subsequently run three times against each
+of the two available consented photos. All 12 full-benchmark calls returned valid private images.
+Muse passed the release gate at 4.30/5 weighted, with 4.33 average identity and 4.0 lowest identity;
+its latency was 22.18 seconds p50 and 31.48 seconds p95 and observed cost was $0.01/image. Qwen
+scored 3.78/5 weighted, 3.42 average identity, and 2.5 lowest identity; face drift and one added pair
+of dark sunglasses fail the identity/prompt-drift gate. Qwen latency was 69.93 seconds p50 and
+91.69 seconds p95 and observed cost was $0.033/image. Muse is selected, while the one-identity sample
+is documented as limited. OpenRouter's Muse discovery endpoint reported no endpoints even though
+live generation succeeded, so discovery metadata must not be used as the sole health signal.
+
 Mistral passed the private nine-case fixture run in 4.59 seconds after the parser was hardened for
 Markdown tables, compact key/value output, historical measurement rows, and derived BMI review
 metadata. Six cases carry machine-readable accuracy expectations; the three hardest multipart

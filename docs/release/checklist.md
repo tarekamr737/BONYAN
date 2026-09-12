@@ -98,9 +98,11 @@ Candidate branch `feat/release-candidate` started from merged main
 PostgreSQL 17 migration cycle pass. A local isolated database backup/restore and restored-app login
 pass, but staging restore is not claimed. The final providers are locked and ExerciseDB passed live.
 The replacement SovereignEG `glm-5.3-flash` key/catalog/adapter pass and its first Coach run passed
-5/7; repeated scoring, behavior fixes, and routing/privacy approval are pending. Cloudflare FLUX
-credentials and synthetic model execution pass. Six generations from two consented private sources
-also passed the image contract, but the 2.75/5 human score fails the identity-quality gate. Mistral's
+5/7; repeated scoring, behavior fixes, and routing/privacy approval are pending. OpenRouter Muse and
+Qwen both passed the private image contract across six fresh outputs each. Muse scored 4.30/5
+weighted and passed the defined identity gate; Qwen scored 3.78/5 and failed identity/prompt drift.
+Muse is selected, with broader multi-identity coverage and routed-provider privacy approval pending.
+Cloudflare FLUX remains historically rejected at 2.75/5. Mistral's
 private nine-case suite passes, with three hardest images still awaiting ground-truth labels. Native
 Android/iOS QA is incomplete. The disposable-user full staging flow passes through a temporary
 Cloudflare Quick Tunnel in 22.42 seconds, including cleanup and account deletion; the tunnel is not

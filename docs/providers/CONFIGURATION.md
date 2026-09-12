@@ -8,10 +8,10 @@ CHAT_MODEL=glm-5.3-flash
 CHAT_API_KEY=
 EXERCISE_PROVIDER=exercisedb
 EXERCISEDB_BASE_URL=https://oss.exercisedb.dev/api/v1
-AVATAR_PROVIDER=cloudflare
-AVATAR_MODEL=@cf/black-forest-labs/flux-2-klein-4b
-CLOUDFLARE_ACCOUNT_ID=
-CLOUDFLARE_API_TOKEN=
+AVATAR_PROVIDER=openrouter
+AVATAR_MODEL=meta/muse-image
+OPENROUTER_AVATAR_API_KEY=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 MISTRAL_API_KEY=
 ```
 
@@ -20,9 +20,16 @@ or Avatar provider lacks credentials or an explicit model. The ExerciseDB endpoi
 the official HTTPS V1 host and its returned media is restricted to the official static media host.
 
 Normal offline development and CI may explicitly use `CHAT_PROVIDER=mock` and
-`AVATAR_PROVIDER=mock`. Legacy `openrouter`, `gemini`, `puter`, and `musclewiki` adapters remain
+`AVATAR_PROVIDER=mock`. Legacy Cloudflare, Gemini, Puter, and MuscleWiki adapters remain
 opt-in only; there is no automatic provider or paid-model failover. Restart the API after
 configuration changes.
+
+OpenRouter Avatar requests use the dedicated `https://openrouter.ai/api/v1/images` endpoint with a
+private base64 reference image. Only `meta/muse-image` and `qwen/qwen-image-3` are accepted by the
+release adapter. Keep `OPENROUTER_AVATAR_API_KEY` backend-only; the older mixed-case local spelling
+is supported by the live harness temporarily but must not be copied into deployment configuration.
+Muse is the selected candidate. Qwen required a timeout above 45 seconds in live testing and is not
+an automatic fallback.
 
 SovereignEG uses the OpenAI-compatible endpoint
 `https://backend.sovereigneg.com/v1/chat/completions`. Verify model IDs against authenticated
@@ -35,6 +42,9 @@ avatars use private storage; upload, generation, approval, and Community publica
 actions.
 
 ## Cloudflare Workers AI setup
+
+Cloudflare FLUX is retained as a historical/rollback adapter, not the selected Avatar provider. Its
+private identity benchmark failed at 2.75/5.
 
 1. Sign in at https://dash.cloudflare.com and select the account that will own BONYAN usage.
 2. Open **AI > Workers AI**, select **Use REST API**, then select

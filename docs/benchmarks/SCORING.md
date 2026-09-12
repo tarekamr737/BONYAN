@@ -8,9 +8,15 @@ Weight the final score: language 25%, tool and argument correctness 35%, scope a
 
 ## Avatar
 
-Use consented, synthetic, or staff-owned private source images representing varied skin tones, presentations, lighting, and the six body profiles. Run every candidate three times per image. Human reviewers score identity preservation, facial consistency, body realism, prompt adherence, and regeneration consistency from 1-5. Record safety rejections, malformed results, p50/p95 latency, and actual billed cost.
+Use consented, synthetic, or staff-owned private source images representing varied skin tones,
+presentations, lighting, and the six body profiles. Run every candidate three times per image.
+Review every output from 1-5 and record safety rejections, malformed results, p50/p95 latency, and
+actual billed cost.
 
-Weight the final score: identity 30%, facial consistency 20%, realism 15%, adherence 10%, regeneration consistency 10%, privacy/safety fit 10%, latency/cost 5%. Never commit source or generated images.
+Weight the final score: identity preservation 40%, face consistency 20%, realistic anatomy 15%,
+body-metric adherence 15%, and overall realism 10%. The release gate requires average identity at
+least 4.0/5, no individual identity result below 3.5/5, no face substitution, no severe anatomy
+failure, and no severe prompt drift. Never commit source or generated images.
 
 ## Status
 
@@ -30,3 +36,13 @@ and latency/cost 4/5: 2.75/5 weighted. Identity drift, inconsistent facial hair/
 generic face on the second source make the candidate ineligible for release. Measured latency was
 9.49 seconds p50 and 35.19 seconds p95; estimated total cost was $0.002076. The images and per-run
 evidence remain outside Git. Six-body-profile coverage was not continued after this blocking result.
+
+OpenRouter Muse Image and Qwen Image 3 were compared on 2026-09-12 using the maximum consented set
+available: two photos of one identity, three fresh generations per photo and model. All 12 calls
+returned valid private images. Muse scored identity 4.33 (lowest 4.0), consistency 4.25, anatomy
+4.5, body-metric adherence 4.0, and realism 4.5: 4.30/5 weighted. Qwen scored identity 3.42
+(lowest 2.5), consistency 3.25, anatomy 4.5, body-metric adherence 4.25, and realism 4.5: 3.78/5
+weighted. Qwen changed facial structure across runs and added identity-obscuring sunglasses in one
+output, so it fails the identity and prompt-drift gates. Muse passes the defined gate and is selected,
+with broader multi-identity coverage retained as a release-risk follow-up. Private sources, all
+outputs, and per-call JUnit evidence remain outside Git.
