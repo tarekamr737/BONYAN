@@ -4,6 +4,7 @@
 - [Deployment procedure](deployment.md)
 - [GitHub release environments](github-environments.md)
 - [Native release configuration](native-configuration.md)
+- [Team device installation](team-device-installation.md)
 - [Executable release checklist](checklist.md)
 - [Performance sanity record](performance-sanity.md)
 - [Person 01 integration handoff](person-01-handoff.md)
