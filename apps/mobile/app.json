@@ -8,7 +8,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0B0B0B",
-    "newArchEnabled": true,
     "ios": {
       "buildNumber": "1",
       "bundleIdentifier": "com.bonyan.app",

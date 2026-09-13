@@ -25,5 +25,10 @@
     "lint": "npm run mobile:lint && npm run api:lint",
     "typecheck": "npm run mobile:typecheck",
     "test": "npm run mobile:test && npm run api:test"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native-screens": "~4.26.0"
   }
 }
