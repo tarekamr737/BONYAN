@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ApiError } from "../../../core/api/errors";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { confirmInBodyScan, getInBodyScan, updateInBodyReview } from "../api/inbodyApi";
@@ -21,6 +22,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
     queryKey: ["inbody", "scan", scanId],
   });
   const measurements = data?.result?.measurements ?? [];
+  const alreadyConfirmed = data?.status === "confirmed";
 
   const saveMutation = useMutation({
     mutationFn: () => updateInBodyReview(scanId, buildEditedMeasurements(measurements, draftValues), data?.result?.scan_date ?? null),
@@ -63,53 +65,68 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
             </Pressable>
           ) : null}
           {data?.failure_message ? <Text style={styles.errorText}>{data.failure_message}</Text> : null}
-          {measurements.map((measurement) => (
-            <View key={measurement.key} style={styles.editRow}>
-              <MeasurementRow measurement={measurement} />
-              <TextInput
-                accessibilityLabel={`Correct ${measurement.key}`}
-                keyboardType="decimal-pad"
-                onChangeText={(value) => updateValue(measurement.key, value)}
-                placeholder="Value"
-                placeholderTextColor={colors.muted}
-                style={styles.input}
-                value={draftValues[measurement.key] ?? (measurement.value === null ? "" : String(measurement.value))}
-              />
+          {alreadyConfirmed ? (
+            <View style={styles.confirmedState}>
+              <Text style={styles.confirmedTitle}>This report is already confirmed</Text>
+              <Text style={styles.stateText}>
+                BONYAN recognized a report you previously saved. It is already included in your
+                progress history, so there is nothing to confirm again.
+              </Text>
+              <Pressable accessibilityRole="button" onPress={onConfirmed} style={styles.button}>
+                <Text style={styles.buttonText}>View InBody Progress</Text>
+              </Pressable>
             </View>
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            disabled={!data?.result || saveMutation.isPending}
-            onPress={() => saveMutation.mutate()}
-            style={[styles.secondaryButton, !data?.result ? styles.disabledButton : undefined]}
-          >
-            <Text style={styles.secondaryButtonText}>
-              {saveMutation.isPending ? "Saving..." : "Save Corrections"}
-            </Text>
-          </Pressable>
-          {saveMutation.isError ? (
-            <Text accessibilityLiveRegion="polite" style={styles.errorText}>
-              Corrections could not be saved. Please retry.
-            </Text>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            disabled={!data?.result || confirmMutation.isPending || saveMutation.isPending}
-            onPress={() => confirmMutation.mutate()}
-            style={[
-              styles.button,
-              !data?.result || saveMutation.isPending ? styles.disabledButton : undefined,
-            ]}
-          >
-            <Text style={styles.buttonText}>
-              {confirmMutation.isPending ? "Confirming..." : "Confirm Scan"}
-            </Text>
-          </Pressable>
-          {confirmMutation.isError ? (
-            <Text accessibilityLiveRegion="polite" style={styles.errorText}>
-              The scan could not be confirmed. Please retry.
-            </Text>
-          ) : null}
+          ) : (
+            <>
+              {measurements.map((measurement) => (
+                <View key={measurement.key} style={styles.editRow}>
+                  <MeasurementRow measurement={measurement} />
+                  <TextInput
+                    accessibilityLabel={`Correct ${measurement.key}`}
+                    keyboardType="decimal-pad"
+                    onChangeText={(value) => updateValue(measurement.key, value)}
+                    placeholder="Value"
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
+                    value={draftValues[measurement.key] ?? (measurement.value === null ? "" : String(measurement.value))}
+                  />
+                </View>
+              ))}
+              <Pressable
+                accessibilityRole="button"
+                disabled={!data?.result || saveMutation.isPending}
+                onPress={() => saveMutation.mutate()}
+                style={[styles.secondaryButton, !data?.result ? styles.disabledButton : undefined]}
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {saveMutation.isPending ? "Saving..." : "Save Corrections"}
+                </Text>
+              </Pressable>
+              {saveMutation.isError ? (
+                <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+                  {reviewErrorMessage(saveMutation.error, "Corrections could not be saved. Please retry.")}
+                </Text>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                disabled={!data?.result || confirmMutation.isPending || saveMutation.isPending}
+                onPress={() => confirmMutation.mutate()}
+                style={[
+                  styles.button,
+                  !data?.result || saveMutation.isPending ? styles.disabledButton : undefined,
+                ]}
+              >
+                <Text style={styles.buttonText}>
+                  {confirmMutation.isPending ? "Confirming..." : "Confirm Scan"}
+                </Text>
+              </Pressable>
+              {confirmMutation.isError ? (
+                <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+                  {reviewErrorMessage(confirmMutation.error, "The scan could not be confirmed. Please retry.")}
+                </Text>
+              ) : null}
+            </>
+          )}
         </SurfaceCard>
       </ScrollView>
     </SafeAreaView>
@@ -150,6 +167,14 @@ const styles = StyleSheet.create({
   },
   editRow: {
     gap: spacing.sm,
+  },
+  confirmedState: {
+    gap: spacing.sm,
+  },
+  confirmedTitle: {
+    color: colors.text,
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 20,
   },
   input: {
     backgroundColor: colors.surfaceRaised,
@@ -193,6 +218,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+function reviewErrorMessage(error: Error | null, fallback: string): string {
+  return error instanceof ApiError ? error.message : fallback;
+}
 
 function buildEditedMeasurements(
   measurements: InBodyMeasurement[],

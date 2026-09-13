@@ -45,6 +45,18 @@ export type ManualBodyMeasurementsPayload = {
 export type CreateAvatarPayload = {
   style: "cinematic_3d";
   presentation: AvatarPresentation;
+  source_photo_id: string;
+};
+
+export type AvatarSourcePhotoView = {
+  id: string;
+};
+
+export type LocalAvatarSourcePhoto = {
+  file?: Blob;
+  name: string;
+  type: string;
+  uri: string;
 };
 
 export type AvatarPresentation = "men" | "women";

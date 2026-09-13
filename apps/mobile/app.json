@@ -38,6 +38,14 @@
       "expo-router",
       "expo-font",
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow BONYAN to photograph an InBody report or private Avatar source photo.",
+          "microphonePermission": false,
+          "photosPermission": "Allow BONYAN to select an InBody report or private Avatar source photo."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#0B0B0B",

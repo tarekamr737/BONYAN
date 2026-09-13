@@ -7,7 +7,7 @@ export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
 };
 
-function getBaseUrl(): string {
+export function getApiBaseUrl(): string {
   return (process.env.EXPO_PUBLIC_API_URL ?? defaultBaseUrl).replace(/\/+$/, "");
 }
 
@@ -47,7 +47,7 @@ export async function apiRequest<T>(
     body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${getBaseUrl()}${normalizePath(path)}`, {
+  const response = await fetch(`${getApiBaseUrl()}${normalizePath(path)}`, {
     ...options,
     body,
     headers,

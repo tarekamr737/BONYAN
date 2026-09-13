@@ -1,15 +1,12 @@
 import { ApiError, parseApiErrorPayload } from "../../../core/api/errors";
 import { getAccessToken } from "../../../core/auth/session";
-import { apiRequest } from "../../../core/api/client";
+import { apiRequest, getApiBaseUrl } from "../../../core/api/client";
 import type { InBodyHistoryResponse, InBodyMeasurement, InBodyScan, UploadResponse } from "../types";
-
-const defaultBaseUrl = "http://127.0.0.1:8000";
-
-function getBaseUrl(): string {
-  return (process.env.EXPO_PUBLIC_API_URL ?? defaultBaseUrl).replace(/\/+$/, "");
-}
+import { createUploadFile } from "./uploadFile";
+import { uploadFetch } from "./uploadFetch";
 
 export type LocalReportFile = {
+  file?: Blob;
   uri: string;
   name: string;
   type: string;
@@ -17,14 +14,14 @@ export type LocalReportFile = {
 
 export async function uploadInBodyReport(file: LocalReportFile): Promise<UploadResponse> {
   const form = new FormData();
-  form.append("report", file as unknown as Blob);
+  form.append("report", createUploadFile(file), file.name);
   const headers = new Headers({ Accept: "application/json" });
   const accessToken = getAccessToken();
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${getBaseUrl()}/api/v1/inbody/scans`, {
+  const response = await uploadFetch(`${getApiBaseUrl()}/api/v1/inbody/scans`, {
     body: form,
     headers,
     method: "POST",

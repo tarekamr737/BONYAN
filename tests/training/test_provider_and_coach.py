@@ -6,8 +6,6 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
-from pydantic import ValidationError
-
 from app.core.errors import AppError
 from app.core.providers.contracts import (
     LLMRequest,
@@ -34,6 +32,7 @@ from app.integrations.musclewiki.provider import (
     ExerciseSearchFilters,
     ExerciseSearchPage,
 )
+from pydantic import ValidationError
 
 
 class FakeProvider:
@@ -439,6 +438,16 @@ def test_coach_accepts_egyptian_arabic_training_scope() -> None:
     coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
 
     response = run(coach.respond(user_id="user-1", message="عايز خطة تمرين للجيم"))
+
+    assert response.model == "TBD"
+
+
+@pytest.mark.parametrize("message", ["Why hold this weight?", "Find a swap"])
+def test_coach_accepts_its_mobile_suggested_prompts(message: str) -> None:
+    service, _ = make_service()
+    coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
+
+    response = run(coach.respond(user_id="user-1", message=message))
 
     assert response.model == "TBD"
 

@@ -1,12 +1,13 @@
 /* eslint-disable react/no-unknown-property -- React Three Fiber JSX uses Three.js props. */
-import { useFrame, useLoader } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { Box3, Group, Vector3 } from "three";
 import type { Mesh, Object3D } from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 import type { AvatarPresentation, BodyShapeProfile } from "../types";
+import { AvatarModelLoader } from "./AvatarModelLoader";
+import { modelSources } from "./avatarModelSources";
+import { useFrame, useLoader } from "./threeFiberHooks";
 
 type AvatarBody3DProps = {
   presentation: AvatarPresentation;
@@ -50,11 +51,6 @@ function shapeFullBody(mesh: Mesh, modelBounds: Box3) {
   mesh.geometry = geometry;
 }
 
-const modelUrls: Record<AvatarPresentation, string> = {
-  men: process.env.EXPO_PUBLIC_AVATAR_MEN_MODEL_URL || "/avatar-3d/man.glb",
-  women: process.env.EXPO_PUBLIC_AVATAR_WOMEN_MODEL_URL || "/avatar-3d/woman.glb",
-};
-
 export function AvatarBody3D({
   onReady,
   presentation,
@@ -63,7 +59,7 @@ export function AvatarBody3D({
   shape,
 }: AvatarBody3DProps) {
   const root = useRef<Group>(null);
-  const gltf = useLoader(GLTFLoader, modelUrls[presentation]);
+  const gltf = useLoader(AvatarModelLoader, modelSources[presentation] as string);
   const scene = useMemo(() => {
     const next = clone(gltf.scene);
     const width = bodyWidths[shape];

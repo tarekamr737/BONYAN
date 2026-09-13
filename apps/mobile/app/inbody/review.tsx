@@ -7,7 +7,7 @@ export default function ReviewRoute() {
   const router = useRouter();
   return (
     <InBodyReviewScreen
-      onConfirmed={() => router.replace("./progress")}
+      onConfirmed={() => router.replace("/inbody/progress")}
       scanId={scanId ?? ""}
     />
   );

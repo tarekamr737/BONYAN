@@ -1,3 +1,4 @@
+import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -24,7 +25,12 @@ import {
   useAvatarMutations,
   useAvatars,
 } from "../hooks";
-import type { AvatarPresentation, AvatarView, BodyShapeProfile } from "../types";
+import type {
+  AvatarPresentation,
+  AvatarView,
+  BodyShapeProfile,
+  LocalAvatarSourcePhoto,
+} from "../types";
 
 type AvatarScreenProps = {
   onBack: () => void;
@@ -45,6 +51,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const measurementQuery = useAvatarMeasurementStatus(presentation);
   const mutations = useAvatarMutations();
   const [activeAvatar, setActiveAvatar] = useState<AvatarView | null>(null);
+  const [sourcePhoto, setSourcePhoto] = useState<LocalAvatarSourcePhoto | null>(null);
+  const [uploadedSourcePhotoId, setUploadedSourcePhotoId] = useState<string | null>(null);
   const [previewChoice, setPreviewChoice] = useState<{
     presentation: AvatarPresentation;
     shape: BodyShapeProfile;
@@ -68,6 +76,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const displayedAvatar = activeAvatar ?? avatarsQuery.data?.items[0] ?? null;
   const pending =
     mutations.createMutation.isPending ||
+    mutations.sourcePhotoMutation.isPending ||
+    mutations.deleteSourcePhotoMutation.isPending ||
     mutations.approveMutation.isPending ||
     mutations.rejectMutation.isPending ||
     mutations.regenerateMutation.isPending ||
@@ -76,6 +86,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const mutationError = useMemo(() => {
     const error = [
       mutations.createMutation.error,
+      mutations.sourcePhotoMutation.error,
+      mutations.deleteSourcePhotoMutation.error,
       mutations.approveMutation.error,
       mutations.rejectMutation.error,
       mutations.regenerateMutation.error,
@@ -86,12 +98,16 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   }, [mutations]);
 
   function generate() {
+    if (!sourcePhoto) {
+      Alert.alert("Choose a private source photo", "Add a clear photo before building your avatar.");
+      return;
+    }
     mutations.resetErrors();
     buildTimers.current.forEach(clearTimeout);
     buildTimers.current = [];
     buildStartedAt.current = Date.now();
-    setBuildProgress(12);
-    setBuildStage("Reading confirmed measurements");
+    setBuildProgress(8);
+    setBuildStage("Uploading your private source photo");
     const schedule = (delay: number, action: () => void) => {
       buildTimers.current.push(setTimeout(action, delay));
     };
@@ -107,32 +123,70 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
       setBuildProgress(86);
       setBuildStage("Waiting for the private render");
     });
-    mutations.createMutation.mutate(
-      { style: "cinematic_3d", presentation },
-      {
-        onError: () => {
-          buildTimers.current.forEach(clearTimeout);
-          setBuildProgress(0);
-        },
-        onSuccess: (avatar) => {
-          if (avatar.state === "failed") {
-            buildTimers.current.forEach(clearTimeout);
-            setBuildProgress(0);
-            setActiveAvatar(avatar);
-            return;
-          }
-          const finishDelay = Math.max(0, 1500 - (Date.now() - buildStartedAt.current));
-          schedule(finishDelay, () => {
-            setBuildProgress(100);
-            setBuildStage("Avatar ready to explore");
-            schedule(380, () => {
-              setActiveAvatar(avatar);
-              setBuildProgress(0);
-            });
-          });
-        },
+    mutations.sourcePhotoMutation.mutate(sourcePhoto, {
+      onError: () => {
+        buildTimers.current.forEach(clearTimeout);
+        setBuildProgress(0);
       },
-    );
+      onSuccess: (uploadedPhoto) => {
+        setUploadedSourcePhotoId(uploadedPhoto.id);
+        mutations.createMutation.mutate(
+          { style: "cinematic_3d", presentation, source_photo_id: uploadedPhoto.id },
+          {
+            onError: () => {
+              buildTimers.current.forEach(clearTimeout);
+              setBuildProgress(0);
+              mutations.deleteSourcePhotoMutation.mutate(uploadedPhoto.id, {
+                onSuccess: () => setUploadedSourcePhotoId(null),
+              });
+            },
+            onSuccess: (avatar) => {
+              if (avatar.state === "failed") {
+                buildTimers.current.forEach(clearTimeout);
+                setBuildProgress(0);
+                setActiveAvatar(avatar);
+                return;
+              }
+              const finishDelay = Math.max(0, 1500 - (Date.now() - buildStartedAt.current));
+              schedule(finishDelay, () => {
+                setBuildProgress(100);
+                setBuildStage("Avatar ready to explore");
+                schedule(380, () => {
+                  setActiveAvatar(avatar);
+                  setBuildProgress(0);
+                });
+              });
+            },
+          },
+        );
+      },
+    });
+  }
+
+  async function chooseSourcePhoto(fromCamera: boolean) {
+    mutations.resetErrors();
+    const permission = fromCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        "Photo access is needed",
+        `Allow BONYAN to use your ${fromCamera ? "camera" : "photo library"}, then try again.`,
+      );
+      return;
+    }
+
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.9 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
+    const selected = result.assets?.[0];
+    if (result.canceled || !selected) return;
+    setSourcePhoto({
+      file: selected.file,
+      name: selected.fileName ?? `avatar-source.${selected.mimeType?.split("/")[1] ?? "jpg"}`,
+      type: selected.mimeType ?? "image/jpeg",
+      uri: selected.uri,
+    });
   }
 
   function updateAvatar(action: { mutate: typeof mutations.approveMutation.mutate }) {
@@ -144,9 +198,12 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   function confirmDelete() {
     if (!displayedAvatar) return;
     mutations.resetErrors();
+    const needsSourcePhoto = displayedAvatar.failure_code === "source_image_required";
     Alert.alert(
-      "Delete body avatar?",
-      "This removes the generated figure. Your InBody report and profile measurements stay unchanged.",
+      needsSourcePhoto ? "Delete failed version?" : "Delete body avatar?",
+      needsSourcePhoto
+        ? "Delete this failed version, then choose a private source photo to build your Avatar. Your InBody report stays unchanged."
+        : "This removes the generated figure. Your InBody report and profile measurements stay unchanged.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -182,12 +239,12 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
 
         <View style={styles.privacyPanel}>
           <View style={styles.privateBadge}>
-            <Text style={styles.privateBadgeText}>NO BODY PHOTO NEEDED</Text>
+            <Text style={styles.privateBadgeText}>PRIVATE SOURCE PHOTO</Text>
           </View>
-          <Text style={styles.privacyTitle}>Built from your confirmed data.</Text>
+          <Text style={styles.privacyTitle}>You control the source and result.</Text>
           <Text style={styles.privacyCopy}>
-            BONYAN uses height, weight, body-fat and muscle data when available to estimate a
-            respectful full-body figure. Raw measurements never appear in the community.
+            BONYAN combines one private photo with confirmed measurements to create your portrait
+            and broad body profile. Nothing appears in the community without your approval.
           </Text>
           <PrivacyTimeline />
         </View>
@@ -216,6 +273,11 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           <AvatarReview
             avatar={displayedAvatar}
             confirmDelete={confirmDelete}
+            onDeleteSourcePhoto={uploadedSourcePhotoId ? () => {
+              mutations.deleteSourcePhotoMutation.mutate(uploadedSourcePhotoId, {
+                onSuccess: () => setUploadedSourcePhotoId(null),
+              });
+            } : undefined}
             pending={pending}
             setActiveAvatar={setActiveAvatar}
             updateAvatar={updateAvatar}
@@ -280,6 +342,32 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               </View>
             </View>
             <MeasurementPanel query={measurementQuery} />
+            <View style={styles.sourcePhotoSection}>
+              <Text style={styles.selectorEyebrow}>PRIVATE SOURCE PHOTO</Text>
+              <Text style={styles.sourcePhotoTitle}>
+                {sourcePhoto ? "Photo ready for private generation" : "Add a clear photo of you"}
+              </Text>
+              <Text style={styles.sourcePhotoHelp}>
+                Use a well-lit, front-facing photo with your face visible. An upper-body or clothed
+                full-body photo works. It remains private and is never posted automatically.
+              </Text>
+              {sourcePhoto ? (
+                <Image
+                  accessibilityLabel="Selected private avatar source photo"
+                  resizeMode="cover"
+                  source={{ uri: sourcePhoto.uri }}
+                  style={styles.sourcePhotoPreview}
+                />
+              ) : null}
+              <View style={styles.sourcePhotoActions}>
+                <AvatarButton onPress={() => void chooseSourcePhoto(false)} tone="secondary">
+                  {sourcePhoto ? "Choose Another Photo" : "Choose from Photos"}
+                </AvatarButton>
+                <AvatarButton onPress={() => void chooseSourcePhoto(true)} tone="secondary">
+                  Take Photo
+                </AvatarButton>
+              </View>
+            </View>
             <View style={styles.explainer}>
               <Text style={styles.explainerTitle}>A visual estimate—not a diagnosis</Text>
               <Text style={styles.explainerCopy}>
@@ -288,8 +376,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               </Text>
             </View>
             <AvatarButton
-              disabled={!measurementQuery.data?.available || pending}
-              loading={mutations.createMutation.isPending}
+              disabled={!measurementQuery.data?.available || !sourcePhoto || pending}
+              loading={mutations.createMutation.isPending || mutations.sourcePhotoMutation.isPending}
               onPress={generate}
             >
               Build Cinematic 3D avatar
@@ -425,6 +513,7 @@ type AvatarReviewProps = {
   setActiveAvatar: (avatar: AvatarView) => void;
   updateAvatar: (action: { mutate: ReturnType<typeof useAvatarMutations>["approveMutation"]["mutate"] }) => void;
   mutations: ReturnType<typeof useAvatarMutations>;
+  onDeleteSourcePhoto?: () => void;
 };
 
 function AvatarReview({
@@ -434,6 +523,7 @@ function AvatarReview({
   setActiveAvatar,
   updateAvatar,
   mutations,
+  onDeleteSourcePhoto,
 }: AvatarReviewProps) {
   return (
     <View style={styles.previewSection}>
@@ -544,7 +634,25 @@ function AvatarReview({
         </View>
       ) : null}
 
-      {avatar.state === "failed" || avatar.state === "rejected" ? (
+      {onDeleteSourcePhoto ? (
+        <View style={styles.sourcePrivacyControl}>
+          <Text style={styles.communityTitle}>Private source photo retained</Text>
+          <Text style={styles.communityDetail}>
+            Keep it for regeneration, or delete it now. Your generated avatar remains available.
+          </Text>
+          <AvatarButton
+            disabled={pending && !mutations.deleteSourcePhotoMutation.isPending}
+            loading={mutations.deleteSourcePhotoMutation.isPending}
+            onPress={onDeleteSourcePhoto}
+            tone="secondary"
+          >
+            Delete Private Source Photo
+          </AvatarButton>
+        </View>
+      ) : null}
+
+      {(avatar.state === "failed" && avatar.failure_code !== "source_image_required") ||
+      avatar.state === "rejected" ? (
         <AvatarButton
           disabled={pending && !mutations.regenerateMutation.isPending}
           loading={mutations.regenerateMutation.isPending}
@@ -555,7 +663,9 @@ function AvatarReview({
       ) : null}
 
       <AvatarButton disabled={pending} onPress={confirmDelete} tone="danger">
-        Delete body avatar
+        {avatar.failure_code === "source_image_required"
+          ? "Delete Failed Version and Add Photo"
+          : "Delete body avatar"}
       </AvatarButton>
     </View>
   );
@@ -579,6 +689,9 @@ function avatarStateCopy(avatar: AvatarView): string {
     return "Nothing was published. Build another version from your latest confirmed data.";
   }
   if (avatar.state === "failed") {
+    if (avatar.failure_code === "source_image_required") {
+      return "This version was created without the private photo required by the Avatar provider. Delete it, then choose a source photo and build again.";
+    }
     return "Nothing was published. Your measurements remain available for a safe retry.";
   }
   if (avatar.state === "processing" || avatar.state === "requested") {
@@ -748,6 +861,34 @@ const styles = StyleSheet.create({
   },
   retryLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 13 },
   measurementSourceSection: { gap: spacing.sm },
+  sourcePhotoSection: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  sourcePhotoTitle: {
+    color: colors.text,
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 18,
+  },
+  sourcePhotoHelp: {
+    color: colors.mutedLight,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  sourcePhotoPreview: {
+    aspectRatio: 1,
+    borderRadius: radii.control,
+    marginVertical: spacing.xs,
+    width: "100%",
+  },
+  sourcePhotoActions: {
+    gap: spacing.sm,
+  },
   measurementReadyPanel: {
     backgroundColor: colors.surface,
     borderColor: colors.bronzeBorder,
@@ -886,6 +1027,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     minHeight: 82,
+    padding: spacing.md,
+  },
+  sourcePrivacyControl: {
+    backgroundColor: colors.surface,
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    gap: spacing.sm,
     padding: spacing.md,
   },
   communityCopy: { flex: 1 },

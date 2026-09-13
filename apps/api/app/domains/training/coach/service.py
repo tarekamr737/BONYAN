@@ -22,6 +22,8 @@ FITNESS_SCOPE_TERMS = (
     "plan",
     "muscle",
     "strength",
+    "weight",
+    "swap",
     "hypertrophy",
     "cardio",
     "تمرين",

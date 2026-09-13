@@ -1,4 +1,8 @@
-import { apiRequest } from "../../core/api/client";
+import { ApiError, parseApiErrorPayload } from "../../core/api/errors";
+import { apiRequest, getApiBaseUrl } from "../../core/api/client";
+import { getAccessToken } from "../../core/auth/session";
+import { createSourcePhotoFile } from "./sourcePhotoFile";
+import { sourcePhotoFetch } from "./sourcePhotoFetch";
 import type {
   AvatarListView,
   AvatarMeasurementStatus,
@@ -6,6 +10,8 @@ import type {
   AvatarPresentation,
   CreateAvatarPayload,
   ManualBodyMeasurementsPayload,
+  AvatarSourcePhotoView,
+  LocalAvatarSourcePhoto,
 } from "./types";
 
 const avatarPath = "/api/v1/avatars";
@@ -33,6 +39,37 @@ export function saveManualBodyMeasurements(
 
 export function createAvatar(payload: CreateAvatarPayload): Promise<AvatarView> {
   return apiRequest<AvatarView>(avatarPath, { method: "POST", body: payload });
+}
+
+export async function uploadAvatarSourcePhoto(
+  photo: LocalAvatarSourcePhoto,
+): Promise<AvatarSourcePhotoView> {
+  const form = new FormData();
+  form.append("photo", createSourcePhotoFile(photo), photo.name);
+  const headers = new Headers({ Accept: "application/json" });
+  const accessToken = getAccessToken();
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+
+  const response = await sourcePhotoFetch(`${getApiBaseUrl()}${avatarPath}/source-photos`, {
+    body: form,
+    headers,
+    method: "POST",
+  });
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type") ?? "";
+    const payload = contentType.includes("application/json")
+      ? await response.json().catch(() => undefined)
+      : undefined;
+    const details = parseApiErrorPayload(payload);
+    throw new ApiError(response.status, details.code, details.message);
+  }
+  return (await response.json()) as AvatarSourcePhotoView;
+}
+
+export function deleteAvatarSourcePhoto(sourcePhotoId: string): Promise<void> {
+  return apiRequest<void>(`${avatarPath}/source-photos/${sourcePhotoId}`, {
+    method: "DELETE",
+  });
 }
 
 export function approveAvatar(avatarId: string): Promise<AvatarView> {

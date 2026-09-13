@@ -7,7 +7,15 @@ import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { getInBodyHistory } from "../api/inbodyApi";
 import { MetricTrend } from "../components/MetricTrend";
 
-export function InBodyProgressScreen() {
+type InBodyProgressScreenProps = {
+  onDone?: () => void;
+  onUploadAnother?: () => void;
+};
+
+export function InBodyProgressScreen({
+  onDone,
+  onUploadAnother,
+}: InBodyProgressScreenProps = {}) {
   const { data, isLoading, isError, refetch } = useQuery({
     queryFn: getInBodyHistory,
     queryKey: ["inbody", "history"],
@@ -36,6 +44,12 @@ export function InBodyProgressScreen() {
           {!isLoading && scans.length === 0 ? (
             <Text style={styles.stateText}>Upload and confirm an InBody report to see trends.</Text>
           ) : null}
+          {!isLoading && scans.length === 1 ? (
+            <Text style={styles.stateText}>
+              Your first confirmed report is your baseline. Add another report later to see how
+              each measurement changes over time.
+            </Text>
+          ) : null}
           <View style={styles.trends}>
             <MetricTrend label="Weight" metric="weight" scans={scans} />
             <MetricTrend label="Skeletal Muscle" metric="skeletal_muscle_mass" scans={scans} />
@@ -43,6 +57,22 @@ export function InBodyProgressScreen() {
             <MetricTrend label="Body Fat Mass" metric="body_fat_mass" scans={scans} />
           </View>
         </SurfaceCard>
+
+        {!isLoading && !isError ? (
+          <View style={styles.nextActions}>
+            <Text style={styles.nextTitle}>What would you like to do next?</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onUploadAnother}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>Upload Another Report</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onDone} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>Back to BONYAN Home</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -106,6 +136,40 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.canvas,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+  },
+  nextActions: {
+    gap: spacing.sm,
+  },
+  nextTitle: {
+    color: colors.text,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    marginBottom: spacing.xs,
+  },
+  primaryButton: {
+    alignItems: "center",
+    backgroundColor: colors.bronze,
+    borderRadius: radii.control,
+    justifyContent: "center",
+    minHeight: 50,
+  },
+  primaryButtonText: {
+    color: colors.canvas,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+  },
+  secondaryButton: {
+    alignItems: "center",
+    borderColor: colors.bronzeBorder,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 50,
+  },
+  secondaryButtonText: {
+    color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
   },

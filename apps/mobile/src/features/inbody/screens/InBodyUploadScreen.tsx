@@ -5,18 +5,33 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { uploadInBodyReport, type LocalReportFile } from "../api/inbodyApi";
+import { prepareReportUpload } from "../prepareReportUpload";
+import type { UploadResponse } from "../types";
+import { getUploadErrorMessage } from "../uploadError";
 
 type Props = {
-  selectedFile?: LocalReportFile;
+  selectedFiles: LocalReportFile[];
   onPickFile?: () => void;
-  onUploaded?: (scanId: string) => void;
+  onUploaded?: (response: UploadResponse) => void;
 };
 
-export function InBodyUploadScreen({ selectedFile, onPickFile, onUploaded }: Props) {
+export function InBodyUploadScreen({ selectedFiles, onPickFile, onUploaded }: Props) {
   const uploadMutation = useMutation({
-    mutationFn: uploadInBodyReport,
-    onSuccess: (response) => onUploaded?.(response.scan.id),
+    mutationFn: async (files: LocalReportFile[]) => {
+      const prepared = await prepareReportUpload(files);
+      try {
+        return await uploadInBodyReport(prepared.report);
+      } finally {
+        await prepared.cleanup();
+      }
+    },
+    onSuccess: onUploaded,
   });
+  const pageCount = selectedFiles.length;
+  const hasSelection = pageCount > 0;
+  const selectionTitle = pageCount > 1
+    ? `${pageCount} report pages selected`
+    : selectedFiles[0]?.name ?? "Choose an InBody report";
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
@@ -28,24 +43,44 @@ export function InBodyUploadScreen({ selectedFile, onPickFile, onUploaded }: Pro
 
         <SurfaceCard>
           <View style={styles.dropZone}>
-            <Text style={styles.dropTitle}>{selectedFile?.name ?? "Choose an InBody report"}</Text>
-            <Text style={styles.dropCopy}>Images, native PDFs, and scanned PDFs are supported.</Text>
+            <Text style={styles.dropTitle}>{selectionTitle}</Text>
+            {pageCount > 1 ? (
+              <View style={styles.fileList}>
+                {selectedFiles.map((file, index) => (
+                  <Text key={`${file.uri}-${index}`} numberOfLines={1} style={styles.fileName}>
+                    {`${index + 1}. ${file.name}`}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+            <Text style={styles.dropCopy}>Choose one PDF or up to three images of the same report.</Text>
           </View>
           <View style={styles.actions}>
-            <Pressable accessibilityRole="button" onPress={onPickFile} style={styles.secondaryButton}>
-              <Text style={styles.secondaryText}>Choose File</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                uploadMutation.reset();
+                onPickFile?.();
+              }}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryText}>{hasSelection ? "Change Pages" : "Choose Pages"}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              disabled={!selectedFile || uploadMutation.isPending}
-              onPress={() => selectedFile && uploadMutation.mutate(selectedFile)}
-              style={[styles.primaryButton, !selectedFile ? styles.disabledButton : undefined]}
+              disabled={!hasSelection || uploadMutation.isPending}
+              onPress={() => hasSelection && uploadMutation.mutate(selectedFiles)}
+              style={[styles.primaryButton, !hasSelection ? styles.disabledButton : undefined]}
             >
-              <Text style={styles.primaryText}>{uploadMutation.isPending ? "Processing..." : "Upload"}</Text>
+              <Text style={styles.primaryText}>
+                {uploadMutation.isPending ? "Processing..." : pageCount > 1 ? `Upload ${pageCount} Pages` : "Upload"}
+              </Text>
             </Pressable>
           </View>
           {uploadMutation.isError ? (
-            <Text style={styles.errorText}>The report could not be uploaded. Check the file and retry.</Text>
+            <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+              {getUploadErrorMessage(uploadMutation.error)}
+            </Text>
           ) : null}
         </SurfaceCard>
       </View>
@@ -98,6 +133,18 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: spacing.sm,
     textAlign: "center",
+  },
+  fileList: {
+    alignSelf: "stretch",
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  fileName: {
+    color: colors.mutedLight,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "left",
   },
   actions: {
     flexDirection: "row",

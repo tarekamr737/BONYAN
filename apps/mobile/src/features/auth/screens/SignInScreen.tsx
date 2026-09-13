@@ -88,6 +88,7 @@ export function SignInScreen() {
               <AppTextField
                 autoCapitalize="none"
                 autoComplete={creatingAccount ? "new-password" : "current-password"}
+                clearTextOnFocus={false}
                 label="Password"
                 onChangeText={setPassword}
                 placeholder="At least 12 characters"
@@ -99,6 +100,7 @@ export function SignInScreen() {
                 <AppTextField
                   autoCapitalize="none"
                   autoComplete="new-password"
+                  clearTextOnFocus={false}
                   label="Confirm password"
                   onChangeText={setPasswordConfirmation}
                   secureTextEntry
