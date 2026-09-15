@@ -1,12 +1,12 @@
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 
+import { goBackOr } from "../../src/core/navigation/safeNavigation";
 import { CommunityFeedScreen } from "../../src/features/community/screens/CommunityFeedScreen";
 
 export default function CommunityRoute() {
-  const router = useRouter();
   return (
     <CommunityFeedScreen
-      onBack={() => router.back()}
+      onBack={() => goBackOr("/")}
       onCreatePost={() => router.push("./create")}
     />
   );

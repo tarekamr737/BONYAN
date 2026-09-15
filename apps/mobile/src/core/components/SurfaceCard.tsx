@@ -1,22 +1,11 @@
 import type { PropsWithChildren } from "react";
-import { StyleSheet, View, type ViewProps } from "react-native";
-
-import { colors, radii, spacing } from "../theme/tokens";
+import type { ViewProps } from "react-native";
+import { GlassSurface } from "./GlassSurface";
 
 export function SurfaceCard({ children, style, ...props }: PropsWithChildren<ViewProps>) {
   return (
-    <View {...props} style={[styles.card, style]}>
+    <GlassSurface {...props} style={style}>
       {children}
-    </View>
+    </GlassSurface>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    padding: spacing.lg,
-  },
-});

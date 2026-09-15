@@ -291,7 +291,10 @@ def get_avatar_service(
             api_key=api_key.get_secret_value(),
             model=settings.avatar_model,
             base_url=settings.openrouter_base_url,
-            timeout_seconds=settings.avatar_timeout_seconds,
+            # Keep the provider timeout inside AvatarService's total deadline.
+            # A second full image request can also double-bill after a slow first response.
+            timeout_seconds=max(1, settings.avatar_timeout_seconds - 5),
+            max_attempts=1,
         )
     return AvatarService(
         SqlAlchemyAvatarRepository(session),

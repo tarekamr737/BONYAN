@@ -8,6 +8,8 @@ import {
   useState,
 } from "react";
 
+import { storeCoachingDraft } from "./draftStorage";
+
 const sessionStorageKey = "bonyan.auth.access-token";
 
 type AuthSession = {
@@ -61,7 +63,7 @@ async function removeStoredAccessToken(): Promise<void> {
 export async function clearSession(): Promise<void> {
   setSessionAccessToken(null);
   try {
-    await removeStoredAccessToken();
+    await Promise.all([removeStoredAccessToken(), storeCoachingDraft(null), storeCoachingDraft(null, "assessment")]);
   } catch {
     // The active session is still cleared even if device storage is unavailable.
   }
@@ -106,6 +108,8 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     if (!normalized) {
       throw new Error("An access token is required.");
     }
+    await storeCoachingDraft(null);
+    await storeCoachingDraft(null, "assessment");
     await storeAccessToken(normalized);
     setSessionAccessToken(normalized);
   }, []);

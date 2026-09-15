@@ -1,7 +1,8 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
@@ -105,6 +106,7 @@ export function WorkoutDayScreen() {
     onSuccess: (completedSession) => {
       setSession(completedSession);
       queryClient.invalidateQueries({ queryKey: ["training"] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition", "today"] });
     },
   });
 

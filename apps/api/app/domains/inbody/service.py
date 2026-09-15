@@ -72,6 +72,14 @@ class InBodyService:
             content_hash=content_hash,
         )
         if duplicate is not None:
+            if duplicate.status == InBodyScanStatus.FAILED:
+                return await self._process_scan(
+                    duplicate,
+                    content=content,
+                    content_type=content_type,
+                    filename=filename,
+                    duplicate=True,
+                )
             return UploadResponse(scan=self._to_response(duplicate), duplicate=True)
 
         owner_key = hashlib.sha256(user_id.encode("utf-8")).hexdigest()[:32]
@@ -98,6 +106,19 @@ class InBodyService:
                 status.HTTP_503_SERVICE_UNAVAILABLE,
             ) from exc
 
+        return await self._process_scan(
+            scan, content=content, content_type=content_type, filename=filename, duplicate=False
+        )
+
+    async def _process_scan(
+        self,
+        scan: InBodyScan,
+        *,
+        content: bytes,
+        content_type: str,
+        filename: str,
+        duplicate: bool,
+    ) -> UploadResponse:
         try:
             result = await self.ocr_provider.extract(
                 content=content,
@@ -131,7 +152,7 @@ class InBodyService:
                 result=self._validate_result(result),
             )
 
-        return UploadResponse(scan=self._to_response(scan), duplicate=False)
+        return UploadResponse(scan=self._to_response(scan), duplicate=duplicate)
 
     async def _cleanup_failed_upload(self, scan: InBodyScan, storage_key: str) -> None:
         try:

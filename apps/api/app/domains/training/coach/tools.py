@@ -90,9 +90,7 @@ class CoachToolExecutor:
             return {"plan": _plan_summary(plan) if plan else None}
         if call.name == CoachToolName.GET_TRAINING_HISTORY:
             sessions = await self.training_service.list_recent_sessions(user_id=user_id, limit=5)
-            return {
-                "sessions": [_session_summary(item) for item in sessions]
-            }
+            return {"sessions": [_session_summary(item) for item in sessions]}
         if call.name == CoachToolName.SEARCH_EXERCISES:
             args = SearchExercisesArgs.model_validate(call.arguments)
             page = await self.training_service.search_exercises(

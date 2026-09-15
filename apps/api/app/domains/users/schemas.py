@@ -8,6 +8,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
+from app.domains.users.coaching_schemas import CoachingPreferences
+
 
 class AuthCredentials(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -44,6 +46,7 @@ class TrainingGoal(StrEnum):
     HYPERTROPHY = "hypertrophy"
     FAT_LOSS = "fat_loss"
     GENERAL_FITNESS = "general_fitness"
+    MILITARY_PREPARATION = "military_preparation"
 
 
 class ExperienceLevel(StrEnum):
@@ -58,6 +61,7 @@ class PreferredUnits(StrEnum):
 
 
 class ProfileFields(BaseModel):
+    coaching: CoachingPreferences = Field(default_factory=CoachingPreferences)
     model_config = ConfigDict(extra="forbid")
 
     display_name: str | None = Field(default=None, max_length=120)
@@ -118,6 +122,7 @@ class ProfileFields(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
+    coaching: CoachingPreferences | None = None
     model_config = ConfigDict(extra="forbid")
 
     display_name: str | None = Field(default=None, max_length=120)
@@ -162,5 +167,7 @@ class ProfileUpdate(BaseModel):
 class UserProfileView(ProfileFields):
     model_config = ConfigDict(from_attributes=True)
 
+    has_profile_photo: bool = False
+    profile_photo_updated_at: datetime | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

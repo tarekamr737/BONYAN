@@ -6,7 +6,17 @@ import type {
   LoggedSetInput,
   WorkoutPlan,
   WorkoutSession,
+  ExerciseSearchResponse,
+  ManualPlanRequest,
 } from "../types";
+
+export function searchExercises(query: string): Promise<ExerciseSearchResponse> {
+  return apiRequest(`/api/v1/training/exercises?query=${encodeURIComponent(query)}&page_size=20`);
+}
+
+export function createManualWorkoutPlan(request: ManualPlanRequest): Promise<WorkoutPlan> {
+  return apiRequest("/api/v1/training/plans/manual", { body: request, method: "POST" });
+}
 
 export function getExerciseMediaAccess(exerciseId: string): Promise<ExerciseMediaAccess> {
   return apiRequest<ExerciseMediaAccess>(

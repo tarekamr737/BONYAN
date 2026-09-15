@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     chat_provider: Literal["mock", "openai", "puter", "openrouter", "sovereigneg"] = "mock"
     chat_model: str = "TBD"
     chat_api_key: SecretStr | None = None
+    chat_base_url: str | None = None
     chat_timeout_seconds: float = 20
     exercise_provider: Literal["exercisedb", "musclewiki"] = "exercisedb"
     exercisedb_base_url: str = "https://oss.exercisedb.dev/api/v1"

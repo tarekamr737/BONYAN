@@ -1,3 +1,4 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   View,
 } from "react-native";

@@ -23,7 +23,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#0B0B0B",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": true
@@ -36,12 +35,13 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-image",
       [
         "expo-image-picker",
         {
           "cameraPermission": "Allow BONYAN to photograph an InBody report or private Avatar source photo.",
           "microphonePermission": false,
-          "photosPermission": "Allow BONYAN to select an InBody report or private Avatar source photo."
+          "photosPermission": "Allow BONYAN to select an InBody report, private Avatar source, or profile photo."
         }
       ],
       [

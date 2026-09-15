@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { StyleSheet, View } from "react-native";
 
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
 
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.displayBold,
-    fontSize: 40,
-    lineHeight: 44,
+    fontSize: 30,
+    lineHeight: 38,
   },
 });

@@ -1,3 +1,4 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -6,7 +7,6 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

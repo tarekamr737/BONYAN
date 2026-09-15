@@ -4,8 +4,10 @@ import { getAccessToken, setSessionAccessToken } from "../src/core/auth/session"
 import { login, register } from "../src/features/auth/api/authApi";
 import {
   deleteMyAccount,
+  deleteMyProfilePhoto,
   getMyProfile,
   updateMyProfile,
+  uploadMyProfilePhoto,
 } from "../src/features/auth/api/profileApi";
 import {
   profileDraftToUpdate,
@@ -65,6 +67,35 @@ describe("mobile auth and profile contracts", () => {
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       display_name: "Tarek",
     });
+  });
+
+  it("uploads and removes a private profile photo for the active account", async () => {
+    setSessionAccessToken("signed-access-token");
+    const fetchMock = vi.fn().mockImplementation((_: string, options: RequestInit) =>
+      Promise.resolve(
+        options.method === "DELETE"
+          ? new Response(null, { status: 204 })
+          : jsonResponse({ has_profile_photo: true, profile_photo_updated_at: "2026-09-15" }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await uploadMyProfilePhoto({
+      file: new Blob(["photo"], { type: "image/jpeg" }),
+      name: "profile.jpg",
+      type: "image/jpeg",
+      uri: "file:///profile.jpg",
+    });
+    await deleteMyProfilePhoto();
+
+    const uploadOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const deleteOptions = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/me/photo");
+    expect(new Headers(uploadOptions.headers).get("Authorization")).toBe(
+      "Bearer signed-access-token",
+    );
+    expect((uploadOptions.body as FormData).get("photo")).toBeInstanceOf(Blob);
+    expect(deleteOptions.method).toBe("DELETE");
   });
 
   it("requires an explicit web account-deletion confirmation", () => {

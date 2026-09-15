@@ -1,5 +1,6 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import type { PropsWithChildren } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 

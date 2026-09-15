@@ -1,3 +1,1 @@
-from app.domains.training.router import router
-
-__all__ = ["router"]
+"""Training plans, sessions, exercise catalog, and coaching."""

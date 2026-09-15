@@ -5,6 +5,7 @@ import json
 from collections.abc import Callable
 from typing import Any, Literal
 from urllib import error, request
+from urllib.parse import urlparse
 
 from app.core.providers.contracts import (
     LLMRequest,
@@ -35,6 +36,7 @@ class ProductionLLMProvider:
         api_key: str,
         model: str,
         provider: Literal["openai", "puter", "openrouter", "sovereigneg"] = "openai",
+        base_url: str | None = None,
         timeout_seconds: float = 20,
         max_attempts: int = 2,
         retry_delay_seconds: float = 0.25,
@@ -43,6 +45,7 @@ class ProductionLLMProvider:
         if not api_key.strip():
             raise ValueError("CHAT_API_KEY is required for the chat provider")
         self._provider = provider
+        self._request_url = _provider_request_url(provider, base_url)
         self._api_key = api_key
         self._model = model
         self._timeout_seconds = timeout_seconds
@@ -145,12 +148,7 @@ class ProductionLLMProvider:
     def _post_json(self, payload: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(payload).encode("utf-8")
         outbound = request.Request(
-            {
-                "puter": PUTER_CHAT_URL,
-                "openrouter": OPENROUTER_CHAT_URL,
-                "sovereigneg": SOVEREIGNEG_CHAT_URL,
-                "openai": OPENAI_RESPONSES_URL,
-            }[self._provider],
+            self._request_url,
             data=body,
             headers={
                 "Authorization": f"Bearer {self._api_key}",
@@ -344,6 +342,41 @@ def _is_timeout(exc: BaseException) -> bool:
     return isinstance(exc, TimeoutError) or (
         isinstance(exc, error.URLError) and isinstance(exc.reason, TimeoutError)
     )
+
+
+def _provider_request_url(
+    provider: Literal["openai", "puter", "openrouter", "sovereigneg"],
+    configured_base_url: str | None,
+) -> str:
+    defaults = {
+        "puter": PUTER_CHAT_URL,
+        "openrouter": OPENROUTER_CHAT_URL,
+        "sovereigneg": SOVEREIGNEG_CHAT_URL,
+        "openai": OPENAI_RESPONSES_URL,
+    }
+    if not configured_base_url:
+        return defaults[provider]
+    normalized = configured_base_url.strip().rstrip("/")
+    parsed = urlparse(normalized)
+    allowed = {
+        "openai": ("api.openai.com", "/v1", "/responses"),
+        "openrouter": ("openrouter.ai", "/api/v1", "/chat/completions"),
+        "puter": ("api.puter.com", "/puterai/openai/v1", "/chat/completions"),
+        "sovereigneg": ("backend.sovereigneg.com", "/v1", "/chat/completions"),
+    }
+    host, base_path, endpoint = allowed[provider]
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != host
+        or parsed.port not in {None, 443}
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != base_path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError(f"CHAT_BASE_URL is invalid for CHAT_PROVIDER={provider}")
+    return normalized + endpoint
 
 
 def _non_negative_int(value: object) -> int:

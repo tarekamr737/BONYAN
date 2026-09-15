@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import type { InBodyMeasurement } from "../types";

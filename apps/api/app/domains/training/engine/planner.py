@@ -12,6 +12,7 @@ from app.domains.training.schemas import (
     PlanningContext,
     PlanStatus,
     ProgressionRule,
+    TrainingGoal,
     WorkoutDay,
     WorkoutPlan,
 )
@@ -30,6 +31,7 @@ class WorkoutPlanner:
     async def generate(self, context: PlanningContext, *, activate: bool = True) -> WorkoutPlan:
         equipment = normalize_equipment(context.equipment)
         split = SPLITS[context.days_per_week]
+        military = context.goal == TrainingGoal.MILITARY_PREPARATION
         per_day = prescriptions_per_day(context.session_duration_minutes)
         defaults = prescription_defaults(context.goal, context.experience)
         used_ids: set[str] = set()
@@ -37,7 +39,12 @@ class WorkoutPlanner:
 
         for order, day_name in enumerate(split, start=1):
             prescriptions: list[ExercisePrescription] = []
-            for muscle in DAY_MUSCLES[day_name][:per_day]:
+            muscles = (
+                ("chest", "back", "quadriceps", "core", "hamstrings")
+                if military
+                else DAY_MUSCLES[day_name]
+            )
+            for muscle in muscles[:per_day]:
                 exercise = await self._select_exercise(
                     muscle=muscle,
                     equipment=equipment,
@@ -65,7 +72,7 @@ class WorkoutPlanner:
                 WorkoutDay(
                     key=f"day-{order}",
                     order=order,
-                    name=day_name,
+                    name=f"Preparation {order}: strength endurance" if military else day_name,
                     estimated_minutes=min(
                         context.session_duration_minutes, 10 + len(prescriptions) * 9
                     ),

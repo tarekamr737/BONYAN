@@ -11,7 +11,9 @@ import Head from "expo-router/head";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { AppTaskbar } from "../src/core/components/AppTaskbar";
+import { LanguageDirection } from "../src/core/components/DirectionalText";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppProviders } from "../src/core/providers/AppProviders";
@@ -91,13 +93,14 @@ function RootNavigator() {
       </SafeAreaView>
     );
   }
-  if (!profile.data.onboarding_completed && !inOnboardingGroup) {
+  if (!profile.data.onboarding_completed && !inOnboardingGroup && !pathname.startsWith("/inbody") && pathname !== "/training/coach" && pathname !== "/") {
     return <Redirect href="/onboarding" />;
   }
   if (profile.data.onboarding_completed && (inAuthGroup || inOnboardingGroup)) {
     return <Redirect href="/" />;
   }
-  return <AppStack />;
+  const arabic = profile.data.preferred_language.startsWith("ar");
+  return <LanguageDirection.Provider value={arabic}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View><AppTaskbar arabic={arabic} /></View></LanguageDirection.Provider>;
 }
 
 const styles = StyleSheet.create({

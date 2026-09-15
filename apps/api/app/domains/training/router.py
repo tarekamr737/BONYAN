@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -17,6 +18,7 @@ from app.core.providers.mocks import MockLLMProvider
 from app.core.rate_limit import limit_coach, limit_media_token
 from app.domains.inbody.contracts import InBodyTrainingAdapter
 from app.domains.inbody.repository import InBodyRepository
+from app.domains.nutrition.repository import NutritionRepository
 from app.domains.training.coach.service import CoachService
 from app.domains.training.coach.tools import CoachToolExecutor
 from app.domains.training.repository import TrainingRepository
@@ -24,15 +26,19 @@ from app.domains.training.schemas import (
     CoachMessageRequest,
     CoachMessageResponse,
     ExerciseMediaAccessResponse,
+    ExerciseSearchItem,
+    ExerciseSearchResponse,
     GeneratePlanRequest,
     LoggedSetInput,
+    ManualPlanRequest,
     SubstituteExerciseRequest,
     WorkoutPlan,
     WorkoutSessionResponse,
 )
 from app.domains.training.service import TrainingService
+from app.domains.users.repository import SqlAlchemyProfileRepository
 from app.integrations.exercisedb.client import ExerciseDbClient
-from app.integrations.exercises.provider import ExerciseProvider
+from app.integrations.exercises.provider import ExerciseProvider, ExerciseSearchFilters
 from app.integrations.llm.production import ProductionLLMProvider
 from app.integrations.musclewiki.client import MuscleWikiClient
 from app.integrations.musclewiki.media import MuscleWikiMediaRelay, MuscleWikiMediaSigner
@@ -88,6 +94,7 @@ def get_llm_provider(settings: Settings) -> LLMProvider:
         provider=settings.chat_provider,
         api_key=api_key.get_secret_value(),
         model=settings.chat_model,
+        base_url=settings.chat_base_url,
         timeout_seconds=settings.chat_timeout_seconds,
     )
 
@@ -106,6 +113,45 @@ async def get_current_plan(
     current_user: CurrentUserDep, service: TrainingServiceDep
 ) -> WorkoutPlan | None:
     return await service.get_current_plan(user_id=current_user.id)
+
+
+@router.post("/plans/manual", response_model=WorkoutPlan, status_code=status.HTTP_201_CREATED)
+async def create_manual_plan(
+    request: ManualPlanRequest,
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+) -> WorkoutPlan:
+    return await service.create_manual_plan(user_id=current_user.id, request=request)
+
+
+@router.get("/exercises", response_model=ExerciseSearchResponse)
+async def search_exercises(
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+    query: Annotated[str | None, Query(min_length=1, max_length=80)] = None,
+    page: Annotated[int, Query(ge=1, le=20)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=40)] = 20,
+) -> ExerciseSearchResponse:
+    del current_user
+    result = await service.search_exercises(
+        ExerciseSearchFilters(query=query), page=page, page_size=page_size
+    )
+    return ExerciseSearchResponse(
+        items=[
+            ExerciseSearchItem(
+                id=item.id,
+                name=item.name,
+                muscles=list(item.muscles),
+                equipment=list(item.equipment),
+                difficulty=item.difficulty,
+            )
+            for item in result.items
+        ],
+        page=result.page,
+        page_size=result.page_size,
+        total=result.total,
+        next_page=result.next_page,
+    )
 
 
 @router.post(
@@ -204,10 +250,28 @@ async def coach_message(
     current_user: CurrentUserDep,
     service: TrainingServiceDep,
     settings: Annotated[Settings, Depends(get_settings)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(limit_coach)],
 ) -> CoachMessageResponse:
+    profile = await SqlAlchemyProfileRepository(session).get(current_user.id)
+    nutrition = NutritionRepository(session)
+    start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    foods = await nutrition.list_food_since(owner_id=current_user.id, since=start)
+    user_context = {
+        "goal": profile.training_goal if profile else None,
+        "experience": profile.experience_level if profile else None,
+        "available_training_days": profile.available_training_days if profile else None,
+        "available_equipment": profile.available_equipment if profile else [],
+        "today_nutrition": {
+            "meals_logged": len(foods),
+            "calories": sum(item.calories for item in foods),
+            "protein_g": round(sum(float(item.protein_g) for item in foods), 1),
+        },
+    }
     coach = CoachService(
         llm_provider=get_llm_provider(settings),
         tool_executor=CoachToolExecutor(service),
     )
-    return await coach.respond(user_id=current_user.id, message=request.message)
+    return await coach.respond(
+        user_id=current_user.id, message=request.message, user_context=user_context
+    )

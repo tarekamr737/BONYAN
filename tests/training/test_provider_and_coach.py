@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
+
 from app.core.errors import AppError
 from app.core.providers.contracts import (
     LLMRequest,
@@ -32,7 +34,6 @@ from app.integrations.musclewiki.provider import (
     ExerciseSearchFilters,
     ExerciseSearchPage,
 )
-from pydantic import ValidationError
 
 
 class FakeProvider:
@@ -244,6 +245,26 @@ def test_service_preserves_no_inbody_fallback() -> None:
     assert plan.generation_snapshot["optional_inbody_used"] is False
 
 
+def test_manual_plan_uses_provider_exercises_and_is_startable() -> None:
+    from app.domains.training.schemas import ManualExerciseInput, ManualPlanRequest
+
+    service, _ = make_service()
+    plan = run(
+        service.create_manual_plan(
+            user_id="user-1",
+            request=ManualPlanRequest(
+                name="Focused session",
+                exercises=[ManualExerciseInput(exercise_id="squat")],
+            ),
+        )
+    )
+
+    assert plan.generation_snapshot == {"source": "manual", "exercise_count": 1}
+    assert plan.days[0].prescriptions[0].exercise_id == "squat"
+    session = run(service.start_session(user_id="user-1", plan_id=plan.id, day_key="manual-day-1"))
+    assert session.status == WorkoutSessionStatus.ACTIVE
+
+
 def test_service_rejects_cross_user_mutations() -> None:
     service, _ = make_service()
     plan = run(
@@ -440,6 +461,26 @@ def test_coach_accepts_egyptian_arabic_training_scope() -> None:
     response = run(coach.respond(user_id="user-1", message="عايز خطة تمرين للجيم"))
 
     assert response.model == "TBD"
+
+
+def test_coach_accepts_nutrition_scope_and_includes_authorized_context() -> None:
+    class ContextLLM:
+        async def complete(self, request: LLMRequest):
+            assert '"goal": "fat_loss"' in request.prompt
+            assert '"meals_logged": 1' in request.prompt
+            return LLMResponse(text="Keep the next meal protein-led.", model="test")
+
+    service, _ = make_service()
+    coach = CoachService(llm_provider=ContextLLM(), tool_executor=CoachToolExecutor(service))
+    response = run(
+        coach.respond(
+            user_id="user-1",
+            message="What should I eat next?",
+            user_context={"goal": "fat_loss", "today_nutrition": {"meals_logged": 1}},
+        )
+    )
+
+    assert response.response == "Keep the next meal protein-led."
 
 
 @pytest.mark.parametrize("message", ["Why hold this weight?", "Find a swap"])

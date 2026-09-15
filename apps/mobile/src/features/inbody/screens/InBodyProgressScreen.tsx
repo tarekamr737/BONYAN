@@ -1,5 +1,6 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useQuery } from "@tanstack/react-query";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../../../core/components/SurfaceCard";

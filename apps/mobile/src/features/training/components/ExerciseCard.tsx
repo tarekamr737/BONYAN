@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";

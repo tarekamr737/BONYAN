@@ -1,45 +1,47 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { getMyProfile } from "../../auth/api/profileApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
+import { MotionReveal } from "../../../core/components/MotionReveal";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { generateWorkoutPlan, getCurrentWorkoutPlan, startWorkoutSession } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { TrainingHeader } from "../components/TrainingHeader";
-import type { GeneratePlanRequest, WorkoutDay, WorkoutPlan } from "../types";
+import type { WorkoutDay, WorkoutPlan } from "../types";
 
-const defaultRequest: GeneratePlanRequest = {
-  activate: true,
-  days_per_week: 3,
-  equipment: ["bodyweight", "dumbbell"],
-  experience: "beginner",
-  goal: "general_fitness",
-  session_duration_minutes: 45,
-};
-
-function formatLabel(value: string): string {
-  return value.replace("_", " ");
-}
-
-function firstDay(plan: WorkoutPlan | null | undefined): WorkoutDay | undefined {
-  return plan?.days.slice().sort((a, b) => a.order - b.order)[0];
-}
-
+function formatLabel(value: string): string { return value.replaceAll("_", " "); }
+function firstDay(plan: WorkoutPlan | null | undefined): WorkoutDay | undefined { return plan?.days.slice().sort((a,b) => a.order-b.order)[0]; }
 export function TrainingHomeScreen() {
   const queryClient = useQueryClient();
+  const [planJustPrepared, setPlanJustPrepared] = useState(false);
+  const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
   const planQuery = useQuery({
     queryFn: getCurrentWorkoutPlan,
     queryKey: ["training", "current-plan"],
   });
   const plan = planQuery.data;
   const today = firstDay(plan);
+  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
 
   const generateMutation = useMutation({
-    mutationFn: () => generateWorkoutPlan(defaultRequest),
+    onMutate: () => setPlanJustPrepared(false),
+    mutationFn: () => {
+      if (!profile.data) throw new Error("Your profile is still loading.");
+      const p = profile.data;
+      return generateWorkoutPlan({goal: p.training_goal ?? "general_fitness", experience: p.experience_level ?? "beginner", days_per_week: p.available_training_days ?? 3, session_duration_minutes: 45, equipment: p.available_equipment, activate: true});
+    },
     onSuccess: (createdPlan) => {
       queryClient.setQueryData(["training", "current-plan"], createdPlan);
+      setPlanJustPrepared(true);
+      if (Platform.OS === "ios") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     },
   });
 
@@ -65,47 +67,52 @@ export function TrainingHomeScreen() {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TrainingHeader
-          title="Training"
-          subtitle="Your current plan, live session logging, and coach support stay synced with BONYAN."
+          title={arabic ? "نظام تمرينك" : "Your training"}
+          subtitle={arabic ? "خطتك وتمارينك والكوتش بنيان متصلين بهدفك وبياناتك الحالية." : "Your plan, live workout log and Bonyan Coach stay connected to your current goal and profile."}
         />
+
+        {planJustPrepared && plan ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{arabic ? "الخطة جاهزة" : "Your plan is ready"}</Text><Text style={styles.stateCopy}>{arabic ? "جهزنا نظامك ويمكنك بدء أول تمرين الآن." : "Your training system is prepared and the first workout is ready."}</Text></View></View></SurfaceCard></MotionReveal> : null}
 
         {planQuery.isPending ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>Loading your plan</Text>
-            <Text style={styles.stateCopy}>Checking the active training cycle for this account.</Text>
+            <ActivityIndicator color={colors.bronze} />
+            <Text style={styles.stateTitle}>{arabic ? "بنراجع خطة تمرينك" : "Checking your plan"}</Text>
+            <Text style={styles.stateCopy}>{arabic ? "لحظات ونجيب آخر نظام نشط على حسابك." : "We are loading the latest active training cycle for your account."}</Text>
           </SurfaceCard>
         ) : null}
 
         {planQuery.isError ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>Plan unavailable</Text>
+            <Text style={styles.stateTitle}>{arabic ? "تعذر تحميل الخطة" : "Plan unavailable"}</Text>
             <Text style={styles.stateCopy}>
-              The training API could not load your current plan. Retry when the connection is back.
+              {arabic ? "بياناتك محفوظة. حاول مرة أخرى عند استقرار الاتصال." : "Your data is safe. Retry when the connection is back."}
             </Text>
             <Pressable accessibilityRole="button" onPress={() => planQuery.refetch()} style={styles.secondaryAction}>
-              <Text style={styles.secondaryActionText}>Retry</Text>
+              <Text style={styles.secondaryActionText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text>
             </Pressable>
           </SurfaceCard>
         ) : null}
 
         {!planQuery.isPending && !planQuery.isError && !plan ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>No active plan yet</Text>
+            <Text style={styles.stateTitle}>{arabic ? "كيف تحب تبدأ تمرينك؟" : "How would you like to start?"}</Text>
             <Text style={styles.stateCopy}>
-              Generate a deterministic starter plan from your profile defaults and latest confirmed InBody data when
-              available.
+              {arabic ? "اختر خطة ذكية من بيانات ملفك أو ابنِ تمرينًا سريعًا بنفسك." : "Use your saved profile for an AI plan, or build a focused workout yourself."}
             </Text>
             <Pressable
               accessibilityRole="button"
-              disabled={generateMutation.isPending}
+              disabled={generateMutation.isPending || !profile.data}
               onPress={() => generateMutation.mutate()}
               style={[styles.primaryAction, generateMutation.isPending && styles.disabledAction]}
             >
               <Text style={styles.primaryActionText}>
-                {generateMutation.isPending ? "Generating..." : "Generate plan"}
+                {generateMutation.isPending ? arabic ? "جارٍ تجهيز الخطة…" : "Preparing your plan…" : arabic ? "توليد التمرين بالذكاء الاصطناعي" : "Generate my workout with AI"}
               </Text>
             </Pressable>
-            {generateMutation.isError ? <Text style={styles.errorText}>Plan generation failed. Try again.</Text> : null}
+            <Pressable accessibilityRole="button" onPress={() => router.push("/training/manual")} style={[styles.secondaryAction, {marginTop: spacing.sm}]}>
+              <Text style={styles.secondaryActionText}>{arabic ? "اختيار التمرين يدويًا" : "Choose my workout manually"}</Text>
+            </Pressable>
+            {generateMutation.isError ? <Text style={styles.errorText}>{arabic ? "لم نتمكن من تجهيز الخطة الآن. حاول مرة أخرى." : "We could not prepare the plan. Try again."}</Text> : null}
           </SurfaceCard>
         ) : null}
 
@@ -114,15 +121,15 @@ export function TrainingHomeScreen() {
             <SurfaceCard>
               <View style={styles.planHeader}>
                 <View style={styles.titleWrap}>
-                  <Text style={styles.label}>CURRENT PLAN</Text>
+                  <Text style={styles.label}>{arabic ? "الخطة الحالية" : "CURRENT PLAN"}</Text>
                   <Text style={styles.planTitle}>{today.name}</Text>
                 </View>
                 <View style={styles.durationPill}>
-                  <Text style={styles.durationText}>{today.estimated_minutes} min</Text>
+                  <Text style={styles.durationText}>{today.estimated_minutes} {arabic ? "دقيقة" : "min"}</Text>
                 </View>
               </View>
               <View style={styles.planStats}>
-                <Text style={styles.stat}>{plan.days_per_week} days/wk</Text>
+                <Text style={styles.stat}>{plan.days_per_week} {arabic ? "أيام / أسبوع" : "days/wk"}</Text>
                 <Text style={styles.stat}>{formatLabel(plan.goal)}</Text>
                 <Text style={styles.stat}>{plan.experience}</Text>
               </View>
@@ -133,14 +140,14 @@ export function TrainingHomeScreen() {
                 style={[styles.primaryAction, startMutation.isPending && styles.disabledAction]}
               >
                 <Text style={styles.primaryActionText}>
-                  {startMutation.isPending ? "Starting..." : "Start workout"}
+                  {startMutation.isPending ? arabic ? "بنبدأ…" : "Starting…" : arabic ? "ابدأ التمرين" : "Start workout"}
                 </Text>
               </Pressable>
-              {startMutation.isError ? <Text style={styles.errorText}>Workout could not be started.</Text> : null}
+              {startMutation.isError ? <Text style={styles.errorText}>{arabic ? "تعذر بدء التمرين. حاول مرة أخرى." : "Workout could not be started. Try again."}</Text> : null}
             </SurfaceCard>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Today</Text>
+              <Text style={styles.sectionTitle}>{arabic ? "تمرين اليوم" : "Today"}</Text>
               {today.prescriptions.map((exercise, index) => (
                 <ExerciseCard
                   key={`${exercise.exercise_id}-${index}`}
@@ -156,19 +163,26 @@ export function TrainingHomeScreen() {
         <View style={styles.actions}>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push("/training/coach")}
+            onPress={() => router.push("/training/manual")}
             style={styles.secondaryAction}
           >
-            <Text style={styles.secondaryActionText}>Ask coach</Text>
+            <Text style={styles.secondaryActionText}>{arabic ? "تمرين يدوي" : "Build manually"}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            disabled={generateMutation.isPending}
+            onPress={() => router.push("/training/coach")}
+            style={styles.secondaryAction}
+          >
+            <Text style={styles.secondaryActionText}>{arabic ? "تحدث مع الكوتش" : "Ask coach"}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={generateMutation.isPending || !profile.data}
             onPress={() => generateMutation.mutate()}
             style={styles.secondaryAction}
           >
             <Text style={styles.secondaryActionText}>
-              {generateMutation.isPending ? "Generating..." : plan ? "Replace plan" : "Generate plan"}
+              {generateMutation.isPending ? arabic ? "جارٍ التجهيز…" : "Preparing…" : plan ? arabic ? "تجهيز خطة جديدة" : "Replace plan" : arabic ? "تجهيز الخطة" : "Prepare plan"}
             </Text>
           </Pressable>
         </View>
@@ -191,6 +205,12 @@ const styles = StyleSheet.create({
   disabledAction: {
     opacity: 0.55,
   },
+  feedbackCopy: { flex: 1 },
+  feedbackRow: { alignItems: "center", flexDirection: "row", gap: spacing.md },
+  feedbackTitle: { color: colors.positive, fontFamily: fonts.displaySemiBold, fontSize: 19, lineHeight: 25 },
+  rowReverse: { flexDirection: "row-reverse" },
+  successIcon: { alignItems: "center", backgroundColor: "rgba(111,207,151,0.12)", borderColor: "rgba(111,207,151,0.35)", borderRadius: 18, borderWidth: 1, height: 52, justifyContent: "center", width: 52 },
+  successIconText: { color: colors.positive, fontFamily: fonts.displayBold, fontSize: 22 },
   durationPill: {
     backgroundColor: colors.bronzeSoft,
     borderColor: colors.bronzeBorder,

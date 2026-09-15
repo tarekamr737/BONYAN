@@ -1,4 +1,5 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { DirectionalText as Text } from "./DirectionalText";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { colors, fonts, spacing } from "../theme/tokens";
 import { AppButton } from "./AppButton";

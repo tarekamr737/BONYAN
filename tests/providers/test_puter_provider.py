@@ -75,6 +75,33 @@ def test_gateway_wiring_transport_and_usage(monkeypatch, gateway):
     assert result.usage.estimated_cost_usd is None
 
 
+def test_sovereigneg_uses_validated_chat_base_url_from_settings() -> None:
+    provider = get_llm_provider(
+        Settings(
+            _env_file=None,
+            chat_provider="sovereigneg",
+            chat_api_key="private-token",
+            chat_model="glm-5.3-flash",
+            chat_base_url="https://backend.sovereigneg.com/v1/",
+        )
+    )
+    assert isinstance(provider, ProductionLLMProvider)
+    assert provider._request_url == SOVEREIGNEG_CHAT_URL
+
+
+def test_gateway_rejects_untrusted_chat_base_url() -> None:
+    with pytest.raises(ValueError, match="CHAT_BASE_URL"):
+        get_llm_provider(
+            Settings(
+                _env_file=None,
+                chat_provider="sovereigneg",
+                chat_api_key="private-token",
+                chat_model="glm-5.3-flash",
+                chat_base_url="https://example.test/v1",
+            )
+        )
+
+
 @pytest.mark.parametrize("key", [None, "", "   "])
 def test_gateway_requires_token(key, gateway):
     with pytest.raises(ValidationError, match="CHAT_API_KEY"):

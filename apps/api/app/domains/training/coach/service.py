@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 
 from fastapi import status
 
@@ -26,6 +27,11 @@ FITNESS_SCOPE_TERMS = (
     "swap",
     "hypertrophy",
     "cardio",
+    "food",
+    "eat",
+    "meal",
+    "nutrition",
+    "calorie",
     "تمرين",
     "تمارين",
     "تدريب",
@@ -35,6 +41,10 @@ FITNESS_SCOPE_TERMS = (
     "مجموعة",
     "عدة",
     "خطة",
+    "أكل",
+    "وجبة",
+    "تغذية",
+    "سعرات",
 )
 logger = get_logger("providers")
 
@@ -51,17 +61,21 @@ class CoachService:
         self.tool_executor = tool_executor
         self.provider_timeout_seconds = provider_timeout_seconds
 
-    async def respond(self, *, user_id: str, message: str) -> CoachMessageResponse:
+    async def respond(
+        self, *, user_id: str, message: str, user_context: dict[str, object] | None = None
+    ) -> CoachMessageResponse:
         if not any(term in message.lower() for term in FITNESS_SCOPE_TERMS):
             raise AppError(
                 "coach_scope_error",
-                "Ask the coach about training or workouts.",
+                "Ask the coach about training, nutrition, or your progress.",
                 status.HTTP_400_BAD_REQUEST,
             )
         prompt = (
             "You are BONYAN's fitness coach. Answer naturally in the user's language, "
             "including Egyptian Arabic when used. Do not diagnose medical conditions. "
             "Use BONYAN tools for authoritative workout state and never invent user data. "
+            "Keep the answer concise and action-oriented unless detail is requested. "
+            f"Authorized user context: {json.dumps(user_context or {}, ensure_ascii=False)}. "
             f"User message: {message[:1000]}"
         )
         safety_identifier = hashlib.sha256(user_id.encode("utf-8")).hexdigest()

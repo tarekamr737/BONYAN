@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from uuid import UUID, uuid4
 
 from sqlalchemy import (
     Boolean,
@@ -11,6 +12,8 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    UniqueConstraint,
+    Uuid,
     func,
     text,
 )
@@ -37,7 +40,7 @@ class UserProfile(Base):
         ),
         CheckConstraint(
             "training_goal IS NULL OR training_goal IN "
-            "('strength', 'hypertrophy', 'fat_loss', 'general_fitness')",
+            "('strength', 'hypertrophy', 'fat_loss', 'general_fitness', 'military_preparation')",
             name="training_goal_value",
         ),
         CheckConstraint(
@@ -58,6 +61,7 @@ class UserProfile(Base):
     sex: Mapped[str | None] = mapped_column(String(20))
     height_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     training_goal: Mapped[str | None] = mapped_column(String(40))
+    coaching: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
     experience_level: Mapped[str | None] = mapped_column(String(40))
     available_training_days: Mapped[int | None] = mapped_column(Integer)
     available_equipment: Mapped[list[str]] = mapped_column(
@@ -70,10 +74,17 @@ class UserProfile(Base):
     onboarding_completed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
+    profile_photo_object_key: Mapped[str | None] = mapped_column(String(512))
+    profile_photo_media_type: Mapped[str | None] = mapped_column(String(64))
+    profile_photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    @property
+    def has_profile_photo(self) -> bool:
+        return bool(self.profile_photo_object_key)
 
 
 class UserAccount(Base):
@@ -82,4 +93,18 @@ class UserAccount(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ProfileHistoryRecord(Base):
+    __tablename__ = "profile_history"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "request_id", name="uq_profile_history_request"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    owner_id: Mapped[str] = mapped_column(String(120), index=True)
+    request_id: Mapped[UUID] = mapped_column(Uuid, default=uuid4)
+    kind: Mapped[str] = mapped_column(String(32))
+    snapshot: Mapped[dict] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

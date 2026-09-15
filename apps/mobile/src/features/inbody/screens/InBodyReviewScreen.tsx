@@ -1,6 +1,9 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { router } from "expo-router";
+import { AppButton } from "../../../core/components";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ApiError } from "../../../core/api/errors";
@@ -64,7 +67,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
               <Text style={styles.secondaryButtonText}>Retry Loading Scan</Text>
             </Pressable>
           ) : null}
-          {data?.failure_message ? <Text style={styles.errorText}>{data.failure_message}</Text> : null}
+          {data?.failure_message ? <View style={{gap: 16}}><Text style={styles.errorText}>{data.failure_message}</Text><Text style={styles.subtitle}>Your report has not been confirmed. You can re-upload it to try processing again, or add measurements manually from your profile.</Text><AppButton label="Try uploading again" onPress={() => router.replace("/inbody")} /><AppButton label="Back to my setup" variant="secondary" onPress={() => router.replace("/onboarding")} /></View> : null}
           {alreadyConfirmed ? (
             <View style={styles.confirmedState}>
               <Text style={styles.confirmedTitle}>This report is already confirmed</Text>

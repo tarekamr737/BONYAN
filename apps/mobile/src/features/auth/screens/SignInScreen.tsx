@@ -1,10 +1,10 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

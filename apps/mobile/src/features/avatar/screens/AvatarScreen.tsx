@@ -1,3 +1,4 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

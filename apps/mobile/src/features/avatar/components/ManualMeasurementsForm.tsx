@@ -1,5 +1,6 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { useManualBodyMeasurements } from "../hooks";

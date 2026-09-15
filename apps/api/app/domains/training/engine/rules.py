@@ -54,6 +54,9 @@ def prescription_defaults(
     elif goal == TrainingGoal.HYPERTROPHY:
         reps = (8, 12)
         rest = 90
+    elif goal == TrainingGoal.MILITARY_PREPARATION:
+        reps = (10, 15)
+        rest = 75
     elif goal == TrainingGoal.FAT_LOSS:
         reps = (10, 15)
         rest = 60

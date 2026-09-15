@@ -1,5 +1,6 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
-import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { relativeTime } from "../logic";

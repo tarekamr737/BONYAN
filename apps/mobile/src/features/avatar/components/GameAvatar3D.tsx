@@ -1,7 +1,8 @@
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 /* eslint-disable react/no-unknown-property -- React Three Fiber JSX uses Three.js props. */
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { GestureResponderEvent } from "react-native";
-import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import type { AvatarPresentation, BodyShapeProfile } from "../types";

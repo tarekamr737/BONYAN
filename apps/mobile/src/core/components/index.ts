@@ -1,4 +1,10 @@
 export { AppButton } from "./AppButton";
 export { AppTextField } from "./AppTextField";
+export { DirectionalText } from "./DirectionalText";
+export { BrandMark } from "./BrandMark";
+export { AvatarJourneyCard } from "./AvatarJourneyCard";
+export { MotionReveal } from "./MotionReveal";
+export { NotificationBell } from "./NotificationBell";
+export { ProfileAvatar } from "./ProfileAvatar";
 export { ScreenState } from "./ScreenState";
 export { SurfaceCard } from "./SurfaceCard";
