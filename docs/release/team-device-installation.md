@@ -1,15 +1,45 @@
 # BONYAN Team Device Installation
 
-This guide distributes production-like staging builds through the Expo project
-`@bonyan_ai/bonyan`. Team builds use the `staging` EAS profile and the EAS `preview`
-environment. They do not require Metro or a developer laptop after installation.
+This guide covers pre-hosting tests and production-like staging builds through the Expo
+project `@bonyan_ai/bonyan`. Team builds use the `staging` EAS profile and the EAS
+`preview` environment. They do not require Metro after installation, but they still
+require a reachable API and database.
+
+## Current availability
+
+The previously documented Quick Tunnel hostname did not resolve on September 17, 2026.
+The Android build listed below is an older build, not the current shared-main app.
+Do not distribute it as the latest test version or use it for connected-flow signoff.
+Before a new team build, provide a reachable, access-controlled staging API URL,
+update the EAS `preview` value of `EXPO_PUBLIC_API_URL`, verify `/health`, and create
+a new build from `main`. Record that build's ID and commit here.
+
+For testing before a hosted staging API exists, contributors can run the API and
+Expo locally. On the same Wi-Fi as the development computer:
+
+1. Install the repository and start PostgreSQL/migrations as in the root README.
+2. Find the computer's LAN IPv4 address. Set `EXPO_PUBLIC_API_URL` in
+   `apps/mobile/.env` to `http://<LAN IPv4>:8000`. Set `API_PUBLIC_URL` in
+   `apps/api/.env` to the same address so private media URLs also resolve.
+   Never put a provider key or private database URL in the mobile file.
+3. Start the API from the repository root with
+   `python -m uvicorn app.main:app --app-dir apps/api --host 0.0.0.0 --port 8000`.
+   Allow port 8000 only on the trusted private network, not the public internet.
+4. Start Metro with `npm run mobile:dev`, then scan its QR code with Expo Go.
+   Verify `http://<LAN IPv4>:8000/health` from the phone browser first.
+5. Stop the API and Metro when the session ends. Each contributor should use their
+   own branch and local data; never share the owner's `.env` or private fixtures.
+
+Android emulators on the same computer can use `http://10.0.2.2:8000` instead of
+the LAN address for `EXPO_PUBLIC_API_URL`. A physical iPhone cannot use
+`127.0.0.1` to reach the computer's API.
 
 ## Before every build
 
 From `apps/mobile`, verify the public staging API and mobile gates:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing https://belly-vertex-internal-riding.trycloudflare.com/health
+Invoke-WebRequest -UseBasicParsing https://<current-staging-host>/health
 npm.cmd run lint
 npm.cmd run typecheck
 npm.cmd test
@@ -19,14 +49,14 @@ npx.cmd eas-cli env:get preview --variable-name EXPO_PUBLIC_API_URL --scope proj
 ```
 
 The health request must return `200`, and the EAS value must match the public staging API URL.
-The current `trycloudflare.com` address is a temporary Quick Tunnel. Keep the staging computer and
-`bonyan-staging-tunnel` container running while testers use this build. If the tunnel address changes,
-update the EAS variable and create new binaries before sharing them.
+A temporary Quick Tunnel address can change or expire. If its address changes,
+update the EAS variable and create new binaries before sharing them. Do not treat
+a successful mobile build as proof that the API is available to testers.
 
 Never put backend keys, provider keys, JWT secrets, database URLs, or signing credentials in an
 `EXPO_PUBLIC_*` variable. Anything with that prefix is bundled into the app.
 
-## Current Android team build
+## Historical Android team build (not current)
 
 - EAS build ID: `b821a464-f9dc-4dbf-91bd-2afe4aa2ab25`
 - Install page: `https://expo.dev/accounts/bonyan_ai/projects/bonyan/builds/b821a464-f9dc-4dbf-91bd-2afe4aa2ab25`
