@@ -38,35 +38,46 @@ class MistralOcrProvider:
 
 _FIELD_PATTERNS = {
     InBodyMetricKey.HEIGHT: re.compile(
-        r"height\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>cm|in)",
+        r"(?:height|الطول)\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>cm|in|سم)",
         re.I,
     ),
     InBodyMetricKey.WEIGHT: re.compile(
-        r"weight\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs)",
+        r"(?:weight|الوزن)\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs|كجم|كغ)",
         re.I,
     ),
     InBodyMetricKey.SKELETAL_MUSCLE_MASS: re.compile(
-        r"skeletal\s+muscle\s+mass\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs)",
+        r"(?:skeletal\s+muscle\s+mass|كتلة\s+العضلات)\s*[:\-]?\s*"
+        r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs|كجم|كغ)",
         re.I,
     ),
     InBodyMetricKey.BODY_FAT_MASS: re.compile(
-        r"body\s+fat\s+mass\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs)",
+        r"(?:body\s+fat\s+mass|وزن\s+الدهون)\s*[:\-]?\s*"
+        r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs|كجم|كغ)",
         re.I,
     ),
     InBodyMetricKey.BODY_FAT_PERCENTAGE: re.compile(
-        r"(?:percent\s+body\s+fat|body\s+fat\s+percentage|pbf)\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>%|percent)?",
+        r"(?:percent\s+body\s+fat|body\s+fat\s+percentage|pbf|نسبة\s+دهون\s+الجسم)"
+        r"\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>%|٪|percent)?",
         re.I,
     ),
-    InBodyMetricKey.BMI: re.compile(r"\bbmi\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)", re.I),
+    InBodyMetricKey.BMI: re.compile(
+        r"(?:\bbmi\b|مؤشر\s+كتلة\s+الجسم(?:\s*\(\s*bmi\s*\))?)"
+        r"\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)",
+        re.I,
+    ),
     InBodyMetricKey.TOTAL_BODY_WATER: re.compile(
-        r"total\s+body\s+water\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>l|kg)",
+        r"(?:total\s+body\s+water|(?:إجمالي|كمية)\s+ماء\s+الجسم)\s*[:\-]?\s*"
+        r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>l|kg|لتر|كجم|كغ)",
         re.I,
     ),
     InBodyMetricKey.VISCERAL_FAT_LEVEL: re.compile(
-        r"visceral\s+fat\s+level\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)", re.I
+        r"(?:visceral\s+fat\s+level|دهون\s+منطقة\s+البطن)\s*[:\-]?\s*"
+        r"(?P<value>\d+(?:\.\d+)?)",
+        re.I,
     ),
     InBodyMetricKey.INBODY_SCORE: re.compile(
-        r"inbody\s+score\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)", re.I
+        r"(?:inbody\s+score|نتيجة\s+inbody)\s*[:\-]?\s*(?P<value>\d+(?:\.\d+)?)",
+        re.I,
     ),
 }
 

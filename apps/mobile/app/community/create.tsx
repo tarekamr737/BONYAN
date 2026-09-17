@@ -7,8 +7,8 @@ export default function CreateCommunityPostRoute() {
   return (
     <CreatePostScreen
       onBack={() => goBackOr("/community")}
-      onManageAvatar={() => router.push("../avatar")}
-      onPosted={() => router.replace("../")}
+      onManageAvatar={() => router.push("/avatar")}
+      onPosted={() => router.replace("/community")}
     />
   );
 }

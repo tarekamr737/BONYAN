@@ -2,7 +2,7 @@ import type { LocalReportFile } from "./api/inbodyApi";
 
 export type PreparedReportUpload = {
   cleanup: () => Promise<void>;
-  report: LocalReportFile;
+  report: LocalReportFile | LocalReportFile[];
 };
 
 export async function prepareReportUpload(files: LocalReportFile[]): Promise<PreparedReportUpload> {

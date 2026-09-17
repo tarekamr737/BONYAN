@@ -43,7 +43,7 @@ def generation_request(*, source: bool = True) -> AvatarGenerationRequest:
             recorded_at=datetime.now(UTC),
             source=BodyMetricsSource.INBODY,
         ),
-        style=BodyAvatarStyle.CINEMATIC_3D,
+        style=BodyAvatarStyle.PHOTO_MEASURED,
         presentation=BodyAvatarPresentation.MEN,
         source_image=AvatarSourceImage(png(), "image/png") if source else None,
     )
@@ -98,9 +98,12 @@ def test_sends_model_source_and_identity_prompt_and_decodes_output(model: str) -
     assert "exact same recognizable person" in prompt
     assert "face shape" in prompt
     assert "skin tone" in prompt
-    assert "Body profile" not in prompt
-    assert "175" not in prompt
-    assert "80" not in prompt
+    assert "height 175 cm" in prompt
+    assert "weight 80 kg" in prompt
+    assert "Body fat 20 percent" in prompt
+    assert "Skeletal muscle mass 35 kg" in prompt
+    assert "both arms relaxed" in prompt
+    assert "Remove handheld phones" in prompt
     assert "private-token" not in repr(provider(post, model=model))
 
 

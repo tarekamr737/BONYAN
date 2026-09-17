@@ -29,7 +29,7 @@ class MistralOcrClient:
         retry_delay_seconds: float = 0.25,
     ) -> None:
         settings = get_settings()
-        secret = api_key or getattr(settings, "mistral_api_key", None)
+        secret = getattr(settings, "mistral_api_key", None) if api_key is None else api_key
         self.api_key = secret.get_secret_value() if hasattr(secret, "get_secret_value") else secret
         self.timeout_seconds = timeout_seconds
         self.max_attempts = max(1, max_attempts)

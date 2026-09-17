@@ -18,20 +18,29 @@ class NutritionRepository:
         await self.session.flush()
         return record
 
-    async def list_food_since(self, *, owner_id: str, since: datetime) -> list[FoodLogRecord]:
+    async def list_food_between(
+        self, *, owner_id: str, start: datetime, end: datetime
+    ) -> list[FoodLogRecord]:
         result = await self.session.execute(
             select(FoodLogRecord)
-            .where(FoodLogRecord.owner_id == owner_id, FoodLogRecord.logged_at >= since)
+            .where(
+                FoodLogRecord.owner_id == owner_id,
+                FoodLogRecord.logged_at >= start,
+                FoodLogRecord.logged_at < end,
+            )
             .order_by(FoodLogRecord.logged_at.desc())
         )
         return list(result.scalars())
 
-    async def session_counts_since(self, *, owner_id: str, since: datetime) -> tuple[int, int]:
+    async def session_counts_between(
+        self, *, owner_id: str, start: datetime, end: datetime
+    ) -> tuple[int, int]:
         result = await self.session.execute(
             select(WorkoutSessionRecord.status, func.count(WorkoutSessionRecord.id))
             .where(
                 WorkoutSessionRecord.owner_id == owner_id,
-                WorkoutSessionRecord.started_at >= since,
+                WorkoutSessionRecord.started_at >= start,
+                WorkoutSessionRecord.started_at < end,
             )
             .group_by(WorkoutSessionRecord.status)
         )

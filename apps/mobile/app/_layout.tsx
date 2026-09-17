@@ -93,14 +93,14 @@ function RootNavigator() {
       </SafeAreaView>
     );
   }
-  if (!profile.data.onboarding_completed && !inOnboardingGroup && !pathname.startsWith("/inbody") && pathname !== "/training/coach" && pathname !== "/") {
+  if (!profile.data.onboarding_completed && !inOnboardingGroup && !pathname.startsWith("/inbody")) {
     return <Redirect href="/onboarding" />;
   }
   if (profile.data.onboarding_completed && (inAuthGroup || inOnboardingGroup)) {
     return <Redirect href="/" />;
   }
   const arabic = profile.data.preferred_language.startsWith("ar");
-  return <LanguageDirection.Provider value={arabic}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View><AppTaskbar arabic={arabic} /></View></LanguageDirection.Provider>;
+  return <LanguageDirection.Provider value={arabic}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <AppTaskbar arabic={arabic} /> : null}</View></LanguageDirection.Provider>;
 }
 
 const styles = StyleSheet.create({

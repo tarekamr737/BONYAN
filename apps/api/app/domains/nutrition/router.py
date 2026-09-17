@@ -9,6 +9,7 @@ from app.core.database import get_db_session
 from app.domains.nutrition.repository import NutritionRepository
 from app.domains.nutrition.schemas import AnalyzeFoodRequest, DailyDashboard, FoodLogView
 from app.domains.nutrition.service import NutritionService
+from app.domains.users.repository import SqlAlchemyProfileRepository
 from app.integrations.llm.production import ProductionLLMProvider
 
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
@@ -40,6 +41,11 @@ async def get_service(
 ServiceDep = Annotated[NutritionService, Depends(get_service)]
 
 
+async def _profile_timezone(session: AsyncSession, user_id: str) -> str:
+    profile = await SqlAlchemyProfileRepository(session).get(user_id)
+    return profile.timezone if profile else "UTC"
+
+
 @router.post("/analyze", response_model=FoodLogView, status_code=status.HTTP_201_CREATED)
 async def analyze_food(
     request: AnalyzeFoodRequest, current_user: CurrentUserDep, service: ServiceDep
@@ -48,12 +54,26 @@ async def analyze_food(
 
 
 @router.get("/today", response_model=DailyDashboard)
-async def get_today(current_user: CurrentUserDep, service: ServiceDep) -> DailyDashboard:
-    dashboard, _ = await service.today(user_id=current_user.id)
+async def get_today(
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> DailyDashboard:
+    dashboard, _ = await service.today(
+        user_id=current_user.id,
+        timezone_name=await _profile_timezone(session, current_user.id),
+    )
     return dashboard
 
 
 @router.get("/logs/today", response_model=list[FoodLogView])
-async def get_today_logs(current_user: CurrentUserDep, service: ServiceDep) -> list[FoodLogView]:
-    _, logs = await service.today(user_id=current_user.id)
+async def get_today_logs(
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> list[FoodLogView]:
+    _, logs = await service.today(
+        user_id=current_user.id,
+        timezone_name=await _profile_timezone(session, current_user.id),
+    )
     return logs

@@ -6,8 +6,10 @@ import { AppButton, AppTextField } from "../../../core/components";
 import { getMyProfile } from "../../auth/api/profileApi";
 import { CoachingPage, GlassCard, ui } from "../../auth/components/CoachingUI";
 import { sendCoachMessage } from "../api/trainingApi";
+import { readableCoachText } from "../coachText";
 
 type Message = {role: "user" | "coach"; text: string};
+
 export function CoachScreen() {
   const client = useQueryClient();
   const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
@@ -23,7 +25,7 @@ export function CoachScreen() {
     <Text style={ui.title}>{arabic ? "الكوتش بنيان" : "Bonyan Coach"}</Text>
     <Text style={ui.text}>{arabic ? "خلينا ناخد تدريبك خطوة بخطوة. اسأل عن خطتك أو بديل لتمرين." : "Let's take training one step at a time. Ask about your plan or an exercise alternative."}</Text>
     {messages.length === 0 ? <GlassCard><Text style={ui.heading}>{arabic ? "نبدأ بإيه؟" : "Where shall we start?"}</Text>{(arabic ? ["اشرح لي خطة تمريني", "ساعدني أختار بديل لتمرين"] : ["Explain my training plan", "Help me find an exercise alternative"]).map(prompt => <AppButton key={prompt} label={prompt} variant="secondary" onPress={() => setMessage(prompt)} />)}</GlassCard> : null}
-    {messages.map((entry, index) => <GlassCard key={index}><Text style={ui.small}>{entry.role === "coach" ? arabic ? "بنيان" : "Bonyan" : arabic ? "أنت" : "You"}</Text><Text selectable style={ui.text}>{entry.text}</Text></GlassCard>)}
+    {messages.map((entry, index) => <GlassCard key={index}><Text style={ui.small}>{entry.role === "coach" ? arabic ? "بنيان" : "Bonyan" : arabic ? "أنت" : "You"}</Text><Text selectable style={ui.text}>{entry.role === "coach" ? readableCoachText(entry.text) : entry.text}</Text></GlassCard>)}
     {send.isPending ? <Text accessibilityLiveRegion="polite" style={ui.small}>{arabic ? "بنيان بيجهّز الرد…" : "Bonyan is preparing a reply…"}</Text> : null}
     {send.isError ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذّر إرسال الرسالة. كلامك موجود؛ حاول تاني." : "Couldn't send your message. Your text is still here; please retry."}</Text> : null}
   </CoachingPage>;

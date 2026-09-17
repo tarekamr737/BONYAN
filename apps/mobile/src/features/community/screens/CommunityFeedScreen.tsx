@@ -1,5 +1,5 @@
-import { DirectionalText as Text } from "../../../core/components/DirectionalText";
-import { useMemo, useRef, useState } from "react";
+import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
+import { useContext, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +22,7 @@ type CommunityFeedScreenProps = {
 };
 
 export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScreenProps) {
+  const arabic = useContext(LanguageDirection);
   const feedQuery = useCommunityFeed();
   const mutations = useCommunityMutations();
   const pendingReactionPostIdsRef = useRef(new Set<string>());
@@ -41,8 +42,8 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
       await mutations.reactionMutation.mutateAsync({ postId, reaction, remove });
     } catch {
       Alert.alert(
-        "Reaction was not saved",
-        "Your feed has been restored. Try again when you are ready.",
+        arabic ? "ما قدرناش نحفظ التفاعل" : "Reaction was not saved",
+        arabic ? "رجعنا المنشور لحالته السابقة. جرّب تاني لما الاتصال يستقر." : "Your feed has been restored. Try again when you are ready.",
       );
     } finally {
       pendingReactionPostIdsRef.current.delete(postId);
@@ -53,10 +54,10 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
   if (feedQuery.isPending) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View accessibilityLabel="Loading community posts" style={styles.centerState}>
+        <View accessibilityLabel={arabic ? "تحميل منشورات المجتمع" : "Loading community posts"} style={styles.centerState}>
           <ActivityIndicator color={colors.bronze} size="large" />
-          <Text style={styles.stateTitle}>Loading recent progress</Text>
-          <Text style={styles.stateCopy}>The feed stays chronological and calm.</Text>
+          <Text style={styles.stateTitle}>{arabic ? "بنحمّل أحدث التقدم" : "Loading recent progress"}</Text>
+          <Text style={styles.stateCopy}>{arabic ? "المنشورات مرتبة زمنيًا وببساطة." : "The feed stays chronological and calm."}</Text>
         </View>
       </SafeAreaView>
     );
@@ -66,14 +67,14 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
     return (
       <SafeAreaView style={styles.safeArea}>
         <View accessibilityRole="alert" style={styles.centerState}>
-          <Text style={styles.stateTitle}>Community could not load</Text>
-          <Text style={styles.stateCopy}>Check your connection, then try again.</Text>
+          <Text style={styles.stateTitle}>{arabic ? "ما قدرناش نحمّل المجتمع" : "Community could not load"}</Text>
+          <Text style={styles.stateCopy}>{arabic ? "راجع اتصالك وجرّب تاني." : "Check your connection, then try again."}</Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => feedQuery.refetch()}
             style={styles.retryButton}
           >
-            <Text style={styles.retryLabel}>Try again</Text>
+            <Text style={styles.retryLabel}>{arabic ? "جرّب تاني" : "Try again"}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -88,16 +89,16 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
         keyExtractor={(post) => post.id}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.stateTitle}>Progress starts quietly</Text>
+            <Text style={styles.stateTitle}>{arabic ? "التقدم بيبدأ بخطوة بسيطة" : "Progress starts quietly"}</Text>
             <Text style={styles.stateCopy}>
-              Share a milestone when it feels useful. Measurements are never added automatically.
+              {arabic ? "شارك محطة مهمة لما تحب. قياساتك عمرها ما بتتضاف تلقائيًا." : "Share a milestone when it feels useful. Measurements are never added automatically."}
             </Text>
             <Pressable
               accessibilityRole="button"
               onPress={onCreatePost}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryLabel}>Create the first post</Text>
+              <Text style={styles.primaryLabel}>{arabic ? "أنشئ أول منشور" : "Create the first post"}</Text>
             </Pressable>
           </View>
         }
@@ -106,13 +107,13 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
             <ActivityIndicator color={colors.bronze} style={styles.footerLoader} />
           ) : feedQuery.isFetchNextPageError ? (
             <View accessibilityRole="alert" style={styles.pageError}>
-              <Text style={styles.pageErrorCopy}>More posts could not load.</Text>
+              <Text style={styles.pageErrorCopy}>{arabic ? "ما قدرناش نحمّل منشورات أكتر." : "More posts could not load."}</Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => void feedQuery.fetchNextPage()}
                 style={styles.pageRetry}
               >
-                <Text style={styles.retryLabel}>Try again</Text>
+                <Text style={styles.retryLabel}>{arabic ? "جرّب تاني" : "Try again"}</Text>
               </Pressable>
             </View>
           ) : null
@@ -121,41 +122,40 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
           <View style={styles.headerBlock}>
             <View style={styles.topBar}>
               <Pressable
-                accessibilityLabel="Go back"
+                accessibilityLabel={arabic ? "رجوع" : "Go back"}
                 accessibilityRole="button"
                 onPress={onBack}
                 style={styles.backButton}
               >
-                <Text style={styles.backLabel}>Back</Text>
+                <Text style={styles.backLabel}>{arabic ? "رجوع" : "Back"}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={onCreatePost}
                 style={styles.createButton}
               >
-                <Text style={styles.createLabel}>Create post</Text>
+                <Text style={styles.createLabel}>{arabic ? "منشور جديد" : "Create post"}</Text>
               </Pressable>
             </View>
             <Text accessibilityRole="header" style={styles.heading}>
-              Community
+              {arabic ? "المجتمع" : "Community"}
             </Text>
             <Text style={styles.intro}>
-              Recent milestones from people building steadily. No rankings, recommendations, or
-              automatic body data.
+              {arabic ? "محطات تقدم حديثة من ناس بيتطوروا بهدوء. من غير ترتيب أو توصيات أو بيانات جسم تلقائية." : "Recent milestones from people building steadily. No rankings, recommendations, or automatic body data."}
             </Text>
             <View style={styles.feedRule}>
-              <Text style={styles.feedRuleTitle}>RECENT FIRST</Text>
-              <Text style={styles.feedRuleCopy}>A simple chronological feed</Text>
+              <Text style={styles.feedRuleTitle}>{arabic ? "الأحدث أولًا" : "RECENT FIRST"}</Text>
+              <Text style={styles.feedRuleCopy}>{arabic ? "منشورات مرتبة زمنيًا" : "A simple chronological feed"}</Text>
             </View>
             {feedQuery.isRefetchError && !feedQuery.isFetchNextPageError ? (
               <View accessibilityRole="alert" style={styles.refreshError}>
-                <Text style={styles.pageErrorCopy}>The latest refresh did not finish.</Text>
+                <Text style={styles.pageErrorCopy}>{arabic ? "آخر تحديث ما اكتملش." : "The latest refresh did not finish."}</Text>
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => void feedQuery.refetch()}
                   style={styles.pageRetry}
                 >
-                  <Text style={styles.retryLabel}>Retry refresh</Text>
+                  <Text style={styles.retryLabel}>{arabic ? "حدّث تاني" : "Retry refresh"}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -183,7 +183,7 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
             onDelete={(postId) =>
               mutations.deleteMutation.mutate(postId, {
                 onError: () =>
-                  Alert.alert("Post was not deleted", "Try again when your connection is stable."),
+                  Alert.alert(arabic ? "ما قدرناش نحذف المنشور" : "Post was not deleted", arabic ? "جرّب تاني لما الاتصال يستقر." : "Try again when your connection is stable."),
               })
             }
             onReact={(postId, reaction, remove) =>
@@ -195,18 +195,19 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
                 {
                   onError: () =>
                     Alert.alert(
-                      "Report was not sent",
-                      "Nothing was submitted. Check your connection and try again.",
+                      arabic ? "البلاغ ما اتبعتش" : "Report was not sent",
+                      arabic ? "ما اتبعتش أي بيانات. راجع اتصالك وجرّب تاني." : "Nothing was submitted. Check your connection and try again.",
                     ),
                   onSuccess: () =>
                     Alert.alert(
-                      "Report received",
-                      "Thank you. The report is queued for review.",
+                      arabic ? "استلمنا البلاغ" : "Report received",
+                      arabic ? "شكرًا. البلاغ دخل قائمة المراجعة." : "Thank you. The report is queued for review.",
                     ),
                 },
               )
             }
             post={item}
+            arabic={arabic}
             reactionBusy={pendingReactionPostIds.has(item.id)}
           />
         )}

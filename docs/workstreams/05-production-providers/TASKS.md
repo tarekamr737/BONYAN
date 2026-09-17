@@ -1,7 +1,7 @@
 # Workstream 05 Task Status
 
-Status as of 2026-09-04. Live evidence gates remain unchecked until credentials and
-private, consented fixtures are supplied.
+Status as of 2026-09-17. The final Coach, Avatar, OCR, and ExerciseDB providers have
+live evidence from private, explicitly consented fixtures where applicable.
 
 ## Complete
 
@@ -21,18 +21,15 @@ private, consented fixtures are supplied.
 
 ## Pending Live Evidence
 
-- [ ] Run and human-score all Coach candidates, including Egyptian Arabic quality.
+- [x] Run and human-score the approved final SovereignEG Coach provider, including
+  Egyptian Arabic quality (7/7 live cases passed).
 - [x] Run and score both final OpenRouter Avatar candidates using the maximum consented private set.
-- [ ] Validate six real InBody formats against Mistral ground truth.
+- [x] Validate the nine-sample consented InBody manifest against Mistral ground truth.
 - [x] Replace blocked MuscleWiki MVP access with ExerciseDB V1 and validate live search, filters,
   detail, and GIF media behavior.
 - [ ] Run the complete deployed staging flow and outage-integrity checks.
 - [ ] Replace candidate estimates and placeholder configuration with measured final findings.
 
-## External Inputs Required
+## Remaining External Inputs
 
-- `CHAT_API_KEY` or `OPENAI_API_KEY`
-- `AVATAR_API_KEY` and `BONYAN_LIVE_AVATAR_MANIFEST`
-- `MISTRAL_API_KEY` and `BONYAN_LIVE_OCR_MANIFEST`
-- `MUSCLEWIKI_API_KEY`
 - `BONYAN_STAGING_BASE_URL`, `BONYAN_STAGING_TOKEN`, and `BONYAN_RUN_FULL_STAGING=1`

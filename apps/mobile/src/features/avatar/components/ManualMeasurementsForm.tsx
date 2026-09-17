@@ -8,6 +8,7 @@ import type { ManualBodyMeasurementsPayload } from "../types";
 import { AvatarButton } from "./AvatarButton";
 
 type ManualMeasurementsFormProps = {
+  arabic?: boolean;
   onCancel?: () => void;
   onSaved: () => void;
 };
@@ -33,7 +34,7 @@ function parseValue(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function validatePayload(values: Record<FieldKey, string>): {
+function validatePayload(values: Record<FieldKey, string>, arabic = false): {
   error: string | null;
   payload: ManualBodyMeasurementsPayload | null;
 } {
@@ -43,22 +44,22 @@ function validatePayload(values: Record<FieldKey, string>): {
   const muscleMass = parseValue(values.muscleMass);
 
   if (height === null || height < 100 || height > 240) {
-    return { error: "Enter a height between 100 and 240 cm.", payload: null };
+    return { error: arabic ? "اكتب طول بين 100 و240 سم." : "Enter a height between 100 and 240 cm.", payload: null };
   }
   if (weight === null || weight < 30 || weight > 350) {
-    return { error: "Enter a weight between 30 and 350 kg.", payload: null };
+    return { error: arabic ? "اكتب وزن بين 30 و350 كجم." : "Enter a weight between 30 and 350 kg.", payload: null };
   }
   if (values.bodyFat.trim() && (bodyFat === null || bodyFat < 2 || bodyFat > 70)) {
-    return { error: "Body fat must be between 2% and 70%.", payload: null };
+    return { error: arabic ? "نسبة الدهون لازم تكون بين 2% و70%." : "Body fat must be between 2% and 70%.", payload: null };
   }
   if (
     values.muscleMass.trim() &&
     (muscleMass === null || muscleMass < 5 || muscleMass > 150)
   ) {
-    return { error: "Muscle mass must be between 5 and 150 kg.", payload: null };
+    return { error: arabic ? "الكتلة العضلية لازم تكون بين 5 و150 كجم." : "Muscle mass must be between 5 and 150 kg.", payload: null };
   }
   if (muscleMass !== null && muscleMass >= weight) {
-    return { error: "Muscle mass must be lower than body weight.", payload: null };
+    return { error: arabic ? "الكتلة العضلية لازم تكون أقل من وزن الجسم." : "Muscle mass must be lower than body weight.", payload: null };
   }
 
   return {
@@ -72,7 +73,7 @@ function validatePayload(values: Record<FieldKey, string>): {
   };
 }
 
-export function ManualMeasurementsForm({ onCancel, onSaved }: ManualMeasurementsFormProps) {
+export function ManualMeasurementsForm({ arabic = false, onCancel, onSaved }: ManualMeasurementsFormProps) {
   const mutation = useManualBodyMeasurements();
   const [values, setValues] = useState<Record<FieldKey, string>>({
     bodyFat: "",
@@ -89,7 +90,7 @@ export function ManualMeasurementsForm({ onCancel, onSaved }: ManualMeasurements
   }
 
   function save() {
-    const result = validatePayload(values);
+    const result = validatePayload(values, arabic);
     if (!result.payload) {
       setValidationError(result.error);
       return;
@@ -102,21 +103,21 @@ export function ManualMeasurementsForm({ onCancel, onSaved }: ManualMeasurements
     (mutation.error instanceof Error
       ? mutation.error.message
       : mutation.isError
-        ? "Manual measurements could not be saved. Try again."
+        ? arabic ? "ما قدرناش نحفظ القياسات. جرّب تاني." : "Manual measurements could not be saved. Try again."
         : null);
 
   return (
     <View style={styles.form}>
       <View style={styles.headingRow}>
         <View style={styles.headingCopy}>
-          <Text style={styles.title}>Enter confirmed measurements</Text>
+          <Text style={styles.title}>{arabic ? "اكتب قياسات مؤكدة" : "Enter confirmed measurements"}</Text>
           <Text style={styles.copy}>
-            Height and weight are required. More data makes the body estimate more specific.
+            {arabic ? "الطول والوزن مطلوبين. البيانات الإضافية بتخلي تقدير شكل الجسم أدق." : "Height and weight are required. More data makes the body estimate more specific."}
           </Text>
         </View>
         {onCancel ? (
           <Pressable accessibilityRole="button" onPress={onCancel} style={styles.closeButton}>
-            <Text style={styles.closeLabel}>Cancel</Text>
+            <Text style={styles.closeLabel}>{arabic ? "إلغاء" : "Cancel"}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -124,17 +125,17 @@ export function ManualMeasurementsForm({ onCancel, onSaved }: ManualMeasurements
       <View style={styles.fields}>
         {fieldDefinitions.map((field) => (
           <View key={field.key} style={styles.field}>
-            <Text style={styles.label}>{field.label}</Text>
+            <Text style={styles.label}>{fieldLabel(field.key, arabic)}</Text>
             <View style={styles.inputShell}>
               <TextInput
-                accessibilityLabel={`${field.label} in ${field.suffix}`}
+                accessibilityLabel={arabic ? `${fieldLabel(field.key, true)} بوحدة ${field.suffix}` : `${field.label} in ${field.suffix}`}
                 inputMode="decimal"
                 keyboardType="decimal-pad"
                 onChangeText={(value) => updateValue(field.key, value)}
                 placeholder={field.placeholder}
                 placeholderTextColor={colors.muted}
                 returnKeyType="next"
-                style={styles.input}
+                style={[styles.input, arabic && styles.inputArabic]}
                 value={values[field.key]}
               />
               <Text style={styles.suffix}>{field.suffix}</Text>
@@ -149,10 +150,10 @@ export function ManualMeasurementsForm({ onCancel, onSaved }: ManualMeasurements
         </Text>
       ) : null}
       <Text style={styles.privacyNote}>
-        Used privately to calculate proportions. Raw values never appear in the community.
+        {arabic ? "بتتستخدم بشكل خاص لحساب النسب، والقيم نفسها عمرها ما بتظهر في المجتمع." : "Used privately to calculate proportions. Raw values never appear in the community."}
       </Text>
       <AvatarButton loading={mutation.isPending} onPress={save}>
-        Save measurements & calculate shape
+        {arabic ? "احفظ القياسات واحسب الشكل" : "Save measurements & calculate shape"}
       </AvatarButton>
     </View>
   );
@@ -200,7 +201,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingVertical: spacing.sm,
   },
+  inputArabic: { textAlign: "right", writingDirection: "rtl" },
   suffix: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 11 },
   error: { color: colors.error, fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 18 },
   privacyNote: { color: colors.muted, fontFamily: fonts.body, fontSize: 11, lineHeight: 16 },
 });
+
+function fieldLabel(key: FieldKey, arabic: boolean): string {
+  if (!arabic) return fieldDefinitions.find((field) => field.key === key)?.label ?? key;
+  return ({ height: "الطول", weight: "الوزن", bodyFat: "دهون الجسم (اختياري)", muscleMass: "الكتلة العضلية (اختياري)" } as Record<FieldKey, string>)[key];
+}

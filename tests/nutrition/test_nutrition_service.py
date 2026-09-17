@@ -35,13 +35,15 @@ class FakeRepository:
         self.foods.append(record)
         return record
 
-    async def list_food_since(self, *, owner_id: str, since: datetime):
+    async def list_food_between(self, *, owner_id: str, start: datetime, end: datetime):
         return [
-            item for item in self.foods if item.owner_id == owner_id and item.logged_at >= since
+            item
+            for item in self.foods
+            if item.owner_id == owner_id and start <= item.logged_at < end
         ]
 
-    async def session_counts_since(self, *, owner_id: str, since: datetime):
-        del owner_id, since
+    async def session_counts_between(self, *, owner_id: str, start: datetime, end: datetime):
+        del owner_id, start, end
         return self.completed, self.active
 
 

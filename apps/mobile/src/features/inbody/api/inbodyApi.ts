@@ -12,9 +12,14 @@ export type LocalReportFile = {
   type: string;
 };
 
-export async function uploadInBodyReport(file: LocalReportFile): Promise<UploadResponse> {
+export async function uploadInBodyReport(
+  file: LocalReportFile | LocalReportFile[],
+): Promise<UploadResponse> {
   const form = new FormData();
-  form.append("report", createUploadFile(file), file.name);
+  const reports = Array.isArray(file) ? file : [file];
+  for (const report of reports) {
+    form.append("report", createUploadFile(report), report.name);
+  }
   const headers = new Headers({ Accept: "application/json" });
   const accessToken = getAccessToken();
   if (accessToken) {

@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 
 
 class CoachToolName(StrEnum):
+    GET_PROFILE = "get_profile"
+    GET_LATEST_INBODY = "get_latest_inbody"
     GET_CURRENT_PLAN = "get_current_plan"
     GET_TRAINING_HISTORY = "get_training_history"
     SEARCH_EXERCISES = "search_exercises"

@@ -52,6 +52,12 @@ class FakeStorage:
         return self.objects[key][0]
 
 
+class FailingDeleteStorage(FakeStorage):
+    async def delete(self, *, key: str) -> None:
+        del key
+        raise RuntimeError("storage unavailable")
+
+
 def png_bytes() -> bytes:
     output = io.BytesIO()
     Image.new("RGB", (128, 128), "#3686df").save(output, format="PNG")
@@ -128,5 +134,27 @@ def test_profile_photo_lookup_is_scoped_to_the_requested_owner() -> None:
             await service.read("user-2")
 
         assert raised.value.code == "profile_photo_not_found"
+
+    asyncio.run(scenario())
+
+
+def test_profile_photo_delete_fails_without_hiding_a_retained_object() -> None:
+    async def scenario() -> None:
+        profile = profile_record()
+        profile.profile_photo_object_key = "profile-photos/user-1/profile.jpg"
+        profile.profile_photo_media_type = "image/jpeg"
+        profile.profile_photo_updated_at = datetime.now(UTC)
+        session = FakeSession(profile)
+        service = ProfilePhotoService(
+            session, FailingDeleteStorage()  # type: ignore[arg-type]
+        )
+
+        with pytest.raises(AppError) as raised:
+            await service.delete("user-1")
+
+        assert raised.value.code == "profile_photo_delete_unavailable"
+        assert raised.value.status_code == 503
+        assert profile.profile_photo_object_key == "profile-photos/user-1/profile.jpg"
+        assert session.committed == 0
 
     asyncio.run(scenario())

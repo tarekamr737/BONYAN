@@ -221,10 +221,16 @@ class AvatarService:
                 message="Avatar generation is already in progress.",
                 status_code=409,
             )
-        metrics = await self._require_body_metrics(owner_id)
-        avatar.is_public = False
-        await self._generate(avatar, metrics)
-        return await self._to_view(avatar)
+        # A refreshed image is a new private version. Keep the approved image and
+        # any explicit community use intact until the owner reviews the result.
+        return await self.create(
+            owner_id,
+            CreateAvatarRequest(
+                style=BodyAvatarStyle.PHOTO_MEASURED,
+                presentation=BodyAvatarPresentation(avatar.presentation),
+                source_photo_id=avatar.source_photo_id,
+            ),
+        )
 
     async def set_public_use(
         self, owner_id: str, avatar_id: UUID, *, enabled: bool

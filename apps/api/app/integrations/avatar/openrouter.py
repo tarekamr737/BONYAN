@@ -194,20 +194,41 @@ def _prepare_source_image(content: bytes, media_type: str) -> tuple[bytes, str]:
 
 
 def _avatar_prompt(avatar_request: AvatarGenerationRequest) -> str:
+    metrics = avatar_request.metrics
     shape = classify_body_shape(
         avatar_request.metrics, avatar_request.presentation
     ).value
+    composition = (
+        f"Body fat {metrics.body_fat_percentage:g} percent. "
+        if metrics.body_fat_percentage is not None
+        else "Body fat was not measured; do not invent a value. "
+    )
+    muscle = (
+        f"Skeletal muscle mass {metrics.skeletal_muscle_mass_kg:g} kg. "
+        if metrics.skeletal_muscle_mass_kg is not None
+        else "Muscle mass was not measured; do not invent a value. "
+    )
     return (
-        "Transform the private reference photo into one polished cinematic 3D fitness avatar of "
-        "the exact same recognizable person. Preserve identity precisely: face shape, facial "
-        "structure, skin tone, ethnicity, approximate age, hairstyle where reasonably possible, "
-        "and gender presentation. Do not redesign, substitute, beautify, or create a new face. "
-        "Keep realistic human anatomy and natural proportions, with modest non-sexualized athletic "
-        "clothing and a neutral studio background. "
-        f"Presentation: {avatar_request.presentation.value}. Approximate fitness profile: {shape}. "
-        "Use the fitness profile only as bounded body-composition guidance, never as a medically "
-        "exact visualization. Avoid extreme body changes, prompt drift, text, logos, and medical "
-        "claims. The result must clearly look like the same real person. Return one image."
+        "Edit the private reference photo into one photorealistic, full-body progress portrait of "
+        "the exact same recognizable person. The reference photo is the authority for identity: "
+        "preserve face shape, facial structure, skin tone, ethnicity, approximate age, hairstyle, "
+        "facial hair, and distinguishing features. Do not redesign, substitute, beautify, or "
+        "invent a new face. If a body region is not visible in the photo, use conservative natural "
+        "anatomy "
+        "instead of inventing muscular definition. Show the person standing naturally in modest, "
+        "non-sexualized athletic clothing against a plain neutral studio background. Use an "
+        "unobstructed, front-facing progress pose with both arms relaxed naturally and the whole "
+        "body visible from head to feet. Remove handheld phones, headphones, sunglasses, bags, "
+        "and other accessories from the reference instead of reproducing a mirror selfie. Keep a "
+        "consistent camera angle, lighting, clothing style, and pose across future updates so "
+        "real changes are comparable. "
+        f"Confirmed latest measurements: height {metrics.height_cm:g} cm, "
+        f"weight {metrics.weight_kg:g} kg. {composition}{muscle}"
+        f"Presentation: {avatar_request.presentation.value}. Broad shape category: {shape}. "
+        "Use these measurements to guide plausible height-to-width and body-composition "
+        "proportions, not to print numbers or claim exact visual accuracy. Avoid extreme body "
+        "changes, identity drift, medical claims, text, logos, and extra people. "
+        "The result must clearly look like the same real person. Return one image."
     )
 
 

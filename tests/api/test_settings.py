@@ -125,6 +125,8 @@ def test_cloudflare_avatar_requires_backend_credentials_and_redacts_token() -> N
         Settings(
             avatar_provider="cloudflare",
             avatar_model="@cf/black-forest-labs/flux-2-klein-4b",
+            cloudflare_account_id=None,
+            cloudflare_api_token=None,
         )
     settings = Settings(
         avatar_provider="cloudflare",
@@ -138,7 +140,11 @@ def test_cloudflare_avatar_requires_backend_credentials_and_redacts_token() -> N
 
 def test_openrouter_avatar_requires_approved_model_and_redacts_token() -> None:
     with pytest.raises(ValidationError, match="OPENROUTER_AVATAR_API_KEY"):
-        Settings(avatar_provider="openrouter", avatar_model="qwen/qwen-image-3")
+        Settings(
+            avatar_provider="openrouter",
+            avatar_model="qwen/qwen-image-3",
+            openrouter_avatar_api_key=None,
+        )
     with pytest.raises(ValidationError, match="approved OpenRouter"):
         Settings(
             avatar_provider="openrouter",

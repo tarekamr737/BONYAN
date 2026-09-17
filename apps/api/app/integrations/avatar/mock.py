@@ -13,7 +13,9 @@ from app.domains.avatar.contracts import (
 )
 from app.domains.avatar.shape import classify_body_shape
 
-CinematicBodyProfile = BodyShapeProfile
+PortraitBodyProfile = BodyShapeProfile
+# Compatibility alias for callers created before the image-only portrait flow.
+CinematicBodyProfile = PortraitBodyProfile
 
 
 def select_cinematic_body_profile(
@@ -34,14 +36,14 @@ class MockAvatarProvider:
                 self._fail_with,
                 "The mock avatar provider failed.",
             )
-        if request.style is not BodyAvatarStyle.CINEMATIC_3D:
+        if request.style not in {BodyAvatarStyle.CINEMATIC_3D, BodyAvatarStyle.PHOTO_MEASURED}:
             raise AvatarProviderError(
                 "unsupported_avatar_style",
                 "The selected body-avatar style is not available.",
                 retryable=False,
             )
         profile = select_cinematic_body_profile(request.metrics, request.presentation)
-        # The local portrait fixture set predates the Full 3D profile. Reuse the
+        # The local portrait fixture set predates the Full profile. Reuse the
         # closest private portrait only in the mock; production providers receive
         # the original measurements and render the matching body directly.
         portrait_profile = (

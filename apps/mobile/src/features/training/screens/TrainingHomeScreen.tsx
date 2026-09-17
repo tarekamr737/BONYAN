@@ -16,6 +16,18 @@ import { TrainingHeader } from "../components/TrainingHeader";
 import type { WorkoutDay, WorkoutPlan } from "../types";
 
 function formatLabel(value: string): string { return value.replaceAll("_", " "); }
+const arabicLabels: Record<string, string> = {
+  strength: "قوة",
+  hypertrophy: "بناء عضلات",
+  fat_loss: "خسارة دهون",
+  general_fitness: "لياقة عامة",
+  beginner: "مبتدئ",
+  intermediate: "متوسط",
+  advanced: "متقدم",
+};
+function planLabel(value: string, arabic: boolean): string { return arabic ? (arabicLabels[value.toLowerCase()] ?? formatLabel(value)) : formatLabel(value); }
+function weeklyDays(value: number, arabic: boolean): string { if (!arabic) return `${value} days/wk`; return value === 1 ? "يوم واحد أسبوعيًا" : value === 2 ? "يومين أسبوعيًا" : `${value} أيام أسبوعيًا`; }
+function dayName(value: string, arabic: boolean): string { return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value; }
 function firstDay(plan: WorkoutPlan | null | undefined): WorkoutDay | undefined { return plan?.days.slice().sort((a,b) => a.order-b.order)[0]; }
 export function TrainingHomeScreen() {
   const queryClient = useQueryClient();
@@ -122,16 +134,16 @@ export function TrainingHomeScreen() {
               <View style={styles.planHeader}>
                 <View style={styles.titleWrap}>
                   <Text style={styles.label}>{arabic ? "الخطة الحالية" : "CURRENT PLAN"}</Text>
-                  <Text style={styles.planTitle}>{today.name}</Text>
+                  <Text style={styles.planTitle}>{dayName(today.name, arabic)}</Text>
                 </View>
                 <View style={styles.durationPill}>
                   <Text style={styles.durationText}>{today.estimated_minutes} {arabic ? "دقيقة" : "min"}</Text>
                 </View>
               </View>
               <View style={styles.planStats}>
-                <Text style={styles.stat}>{plan.days_per_week} {arabic ? "أيام / أسبوع" : "days/wk"}</Text>
-                <Text style={styles.stat}>{formatLabel(plan.goal)}</Text>
-                <Text style={styles.stat}>{plan.experience}</Text>
+                <Text style={styles.stat}>{weeklyDays(plan.days_per_week, arabic)}</Text>
+                <Text style={styles.stat}>{planLabel(plan.goal, arabic)}</Text>
+                <Text style={styles.stat}>{planLabel(plan.experience, arabic)}</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -150,6 +162,7 @@ export function TrainingHomeScreen() {
               <Text style={styles.sectionTitle}>{arabic ? "تمرين اليوم" : "Today"}</Text>
               {today.prescriptions.map((exercise, index) => (
                 <ExerciseCard
+                  arabic={arabic}
                   key={`${exercise.exercise_id}-${index}`}
                   active={index === 0}
                   exercise={exercise}

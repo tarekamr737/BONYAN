@@ -24,6 +24,16 @@ describe("InBody upload feedback", () => {
     );
   });
 
+  it("explains when Android file access has expired", () => {
+    const error = new Error("Missing READ permission for selected file");
+    expect(getUploadErrorMessage(error)).toBe(
+      "BONYAN could not read one or more files. Select the pages again and retry.",
+    );
+    expect(getUploadErrorMessage(error, true)).toBe(
+      "ما قدرناش نقرا ملف أو أكتر. اختار الصفحات من جديد وحاول تاني.",
+    );
+  });
+
   it("uploads a real Blob with the trusted bearer token", async () => {
     setSessionAccessToken("signed-access-token");
     const fetchMock = vi.fn().mockResolvedValue(
@@ -49,6 +59,27 @@ describe("InBody upload feedback", () => {
     expect(new Headers(options.headers).get("Authorization")).toBe("Bearer signed-access-token");
     expect(options.body).toBeInstanceOf(FormData);
     expect((options.body as FormData).get("report")).toBeInstanceOf(Blob);
+  });
+
+  it("uploads each page under the same private report field", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ duplicate: false, scan: { id: "scan-pages", status: "review_required" } }),
+        { headers: { "Content-Type": "application/json" }, status: 201 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const pages = [1, 2, 3].map((page) => ({
+      file: new Blob([`page-${page}`], { type: "image/jpeg" }),
+      name: `page-${page}.jpg`,
+      type: "image/jpeg",
+      uri: `file:///page-${page}.jpg`,
+    }));
+
+    await uploadInBodyReport(pages);
+
+    const options = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect((options.body as FormData).getAll("report")).toHaveLength(3);
   });
 
   it("keeps a single report unchanged", async () => {

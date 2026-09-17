@@ -10,14 +10,22 @@ const privacySteps = [
   ["Community", "Off until you enable it"],
 ] as const;
 
-export function PrivacyTimeline() {
+const privacyStepsArabic = [
+  ["المصدر", "صورة خاصة وقياسات مؤكدة"],
+  ["الشكل", "تقدير حسب قياسات جسمك الحالية"],
+  ["المراجعة", "صورتك تفضل خاصة لحد ما تعتمدها"],
+  ["المجتمع", "مقفولة لحد ما تفعّلها بنفسك"],
+] as const;
+
+export function PrivacyTimeline({ arabic = false }: { arabic?: boolean }) {
+  const steps = arabic ? privacyStepsArabic : privacySteps;
   return (
-    <View accessibilityLabel="Body avatar privacy stages" style={styles.container}>
-      {privacySteps.map(([title, detail], index) => (
+    <View accessibilityLabel={arabic ? "مراحل خصوصية الصورة" : "Body avatar privacy stages"} style={styles.container}>
+      {steps.map(([title, detail], index) => (
         <View key={title} style={styles.step}>
           <View style={styles.markerColumn}>
             <View style={styles.marker} />
-            {index < privacySteps.length - 1 ? <View style={styles.line} /> : null}
+            {index < steps.length - 1 ? <View style={styles.line} /> : null}
           </View>
           <View style={styles.copy}>
             <Text style={styles.title}>{title}</Text>

@@ -41,7 +41,9 @@
 
 ## K–L. Native Release QA
 
-- [ ] Validate Android identifiers, versioning, permissions, API URL, release build, and device flows. Configuration and JS export pass; signed build/device unavailable.
+- [ ] Validate Android identifiers, versioning, permissions, API URL, release build, and device flows.
+  Configuration, JS export, and authenticated Android Expo Go flows pass; the signed release
+  build remains unavailable.
 - [ ] Validate iOS identifiers, versioning, permissions, API URL, release build, and device flows, or record the exact blocker. Configuration and JS export pass; Windows has no iOS simulator.
 
 ## M–O. Performance and Release

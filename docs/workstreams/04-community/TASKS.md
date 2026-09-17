@@ -10,12 +10,11 @@
 
 ## Avatar and privacy
 
-- [x] Keep provider selection isolated; release locks Cloudflare Workers AI
-  `@cf/black-forest-labs/flux-2-klein-4b`.
+- [x] Keep provider selection isolated; release locks OpenRouter `meta/muse-image`.
 - [x] Implement deterministic `MockAvatarProvider` and provider error abstraction.
 - [x] Read confirmed height/weight/InBody values through `BodyMetricsReader` only.
 - [x] Validate supported metric ranges and reject photos/client-supplied measurements.
-- [x] Ship a Cinematic 3D mock set with lean, athletic, and strong measurement profiles.
+- [x] Ship a deterministic portrait mock set with lean, athletic, and strong profiles.
 - [x] Select the closest respectful, fully clothed profile from BMI/body-fat thresholds.
 - [x] Store only generated objects through private storage; never persist raw metrics in avatar.
 - [x] Implement generate, detail/list, approve, reject, regenerate, community-use, and delete.
@@ -34,8 +33,8 @@
 
 ## Mobile UX
 
-- [x] Remove photo selection and show confirmed InBody/profile data availability.
-- [x] Explain approximation limits and show the real Cinematic 3D visual style.
+- [x] Require a private source photo and show confirmed InBody/profile data availability.
+- [x] Explain identity/proportion limits and show the generated image for review.
 - [x] Build generation, preview, approval, rejection, regeneration, and deletion states.
 - [x] Build a separate, explicit community-use privacy control.
 - [x] Build feed, post card, create-post, reaction, delete, and report flows.
@@ -54,4 +53,5 @@
 - [x] Person 01: create/register the central migration, auth dependencies, storage, routers, and app-shell entries.
 - [x] Person 01/02: compose `BodyMetricsReader` from confirmed InBody and profile contracts.
 - [x] Person 01: resolve the clean-install root React typings/workspace layout noted in `INTEGRATION.md`.
-- [ ] Integration environment: smoke-test authenticated API and native Android/iOS routes.
+- [ ] Integration environment: authenticated API and Android Expo Go routes passed on 2026-09-17;
+  the native iOS route pass remains outstanding.

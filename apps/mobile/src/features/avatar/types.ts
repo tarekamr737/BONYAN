@@ -43,7 +43,7 @@ export type ManualBodyMeasurementsPayload = {
 };
 
 export type CreateAvatarPayload = {
-  style: "cinematic_3d";
+  style: "photo_measured";
   presentation: AvatarPresentation;
   source_photo_id: string;
 };

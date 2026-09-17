@@ -1,12 +1,14 @@
 import type { AssessmentOverview, UserProfile } from "../../features/auth/types";
 import type { AvatarListView, AvatarState, AvatarView } from "../../features/avatar/types";
 import type { WorkoutPlan } from "../../features/training/types";
+import { avatarRenewalStatus } from "../../features/avatar/renewal";
 
 export type AppNotificationKind =
   | "avatar_build"
   | "avatar_failed"
   | "avatar_processing"
   | "avatar_ready"
+  | "avatar_refresh"
   | "avatar_review"
   | "plan_missing"
   | "plan_ready"
@@ -31,7 +33,7 @@ type NotificationInputs = {
   profile: UserProfile;
 };
 
-function avatarNotification(avatar: AvatarView | undefined, arabic: boolean): AppNotification {
+function avatarNotification(avatar: AvatarView | undefined, arabic: boolean, latestMeasurementsAt: string | null): AppNotification {
   if (!avatar) {
     return {
       actionLabel: arabic ? "إنشاء الـAvatar" : "Build avatar",
@@ -44,6 +46,17 @@ function avatarNotification(avatar: AvatarView | undefined, arabic: boolean): Ap
       requiresAction: true,
       title: arabic ? "الـAvatar جاهز للإنشاء" : "Your avatar can be built",
     };
+  }
+  if (avatar.state === "approved") {
+    const renewal = avatarRenewalStatus(avatar.measurements_recorded_at, latestMeasurementsAt);
+    if (renewal !== "current") {
+      return {
+        actionLabel: arabic ? renewal === "new_measurements" ? "تحديث الصورة" : "تحديث القياسات" : renewal === "new_measurements" ? "Refresh portrait" : "Update measurements",
+        body: arabic ? renewal === "new_measurements" ? "قياساتك الجديدة جاهزة لصورة خاصة تراجعها قبل اعتمادها." : "مرّ نحو شهرين على آخر قياساتك. حدّثها لتبقى صورتك قريبة من شكلك الحالي." : renewal === "new_measurements" ? "New body data is ready. Make a private portrait and review it before replacing your approved version." : "It has been about two months since your last measurements. Update them before refreshing your portrait.",
+        href: "/avatar", icon: "user-check", id: "avatar_refresh", requiresAction: true,
+        title: arabic ? "خلّي صورتك مواكبة لتقدمك" : "Keep your portrait current",
+      };
+    }
   }
   const byState: Record<AvatarState, AppNotification> = {
     approved: {
@@ -107,14 +120,20 @@ export function buildAppNotifications({
       title: arabic ? "أكمل ملفك الشخصي" : "Complete your profile",
     });
   }
-  if (plan === null) {
+  const hasWeeklyPlan = plan && plan.generation_snapshot.source !== "manual";
+  if (plan === null || (plan && !hasWeeklyPlan)) {
+    const hasManualWorkout = Boolean(plan);
     items.push({
       actionLabel: arabic ? "تجهيز الخطة" : "Prepare plan",
-      body: arabic
-        ? "سنستخدم هدفك وخبرتك وأيامك المتاحة لبناء نظام تمرين مناسب."
-        : "We will use your goal, experience and available days to prepare your training system.",
+      body: hasManualWorkout
+        ? arabic
+          ? `تم حفظ تمرينك اليدوي. جهّز خطة أسبوعية تناسب ${profile.available_training_days} أيام عندما تكون مستعدًا.`
+          : `Your custom workout is saved. Prepare a ${profile.available_training_days}-day weekly plan when you're ready.`
+        : arabic
+          ? "سنستخدم هدفك وخبرتك وأيامك المتاحة لبناء نظام تمرين مناسب."
+          : "We will use your goal, experience and available days to prepare your training system.",
       href: "/training", icon: "activity", id: "plan_missing", requiresAction: true,
-      title: arabic ? "خطة تمرينك لم تُجهّز بعد" : "Your training plan is not ready yet",
+      title: arabic ? "خطتك الأسبوعية لم تُجهّز بعد" : "Your weekly plan is not ready yet",
     });
   } else if (plan) {
     items.push({
@@ -127,7 +146,7 @@ export function buildAppNotifications({
     });
   }
   if (assessment?.latest && avatars) {
-    items.push(avatarNotification(avatars.items[0], arabic));
+    items.push(avatarNotification(avatars.items[0], arabic, assessment.latest.created_at));
   }
   if (assessment?.score.value !== null && assessment?.score.value !== undefined) {
     items.push({
@@ -157,6 +176,6 @@ export function getAvatarJourney(
   if (!avatar) return { progress: 45, status: arabic ? "بيانات الجسم جاهزة" : "Body data ready", next: arabic ? "أنشئ الـAvatar الأول" : "Build your first avatar" };
   if (avatar.state === "requested" || avatar.state === "processing") return { progress: 72, status: arabic ? "جارٍ تجهيز نسختك" : "Preparing your version", next: arabic ? "انتظر اكتمال المعالجة" : "Wait for processing to finish" };
   if (avatar.state === "ready_for_review") return { progress: 88, status: arabic ? "النسخة جاهزة للمراجعة" : "Version ready to review", next: arabic ? "راجع النسخة واعتمدها" : "Review and approve it" };
-  if (avatar.state === "approved") return { progress: 100, status: arabic ? "الـAvatar معتمد" : "Avatar approved", next: arabic ? "حدّثه بعد تقييم جسم جديد" : "Refresh it after your next assessment" };
+  if (avatar.state === "approved") return { progress: 100, status: arabic ? "الأفاتار معتمد" : "Avatar approved", next: arabic ? "حدّثه بعد تقييم جسم جديد" : "Refresh it after your next assessment" };
   return { progress: 55, status: arabic ? "النسخة تحتاج إعادة المحاولة" : "Version needs another try", next: arabic ? "أنشئ نسخة من أحدث بياناتك" : "Rebuild from your latest data" };
 }

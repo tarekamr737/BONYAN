@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildAppNotifications, getAvatarJourney } from "../src/core/notifications/appNotifications";
 import type { AssessmentOverview, UserProfile } from "../src/features/auth/types";
 import type { AvatarView } from "../src/features/avatar/types";
+import type { WorkoutPlan } from "../src/features/training/types";
 
 const profile: UserProfile = {
   available_equipment: ["bodyweight"],
@@ -64,5 +65,42 @@ describe("app notifications", () => {
     expect(getAvatarJourney(undefined, true, false).progress).toBe(45);
     expect(getAvatarJourney(avatar, true, false)).toMatchObject({ progress: 88, status: "Version ready to review" });
     expect(getAvatarJourney({ ...avatar, approved: true, state: "approved" }, true, true).progress).toBe(100);
+  });
+
+  it("does not describe a one-day manual workout as the user's weekly plan", () => {
+    const manualPlan: WorkoutPlan = {
+      id: "manual-plan-1",
+      status: "active",
+      goal: "general_fitness",
+      experience: "beginner",
+      days_per_week: 1,
+      session_duration_minutes: 30,
+      equipment: ["bodyweight"],
+      generation_snapshot: { source: "manual" },
+      days: [],
+      created_at: null,
+      updated_at: null,
+    };
+    const item = buildAppNotifications({ arabic: false, plan: manualPlan, profile }).find(
+      (notification) => notification.id === "plan_missing",
+    );
+    expect(item).toMatchObject({ requiresAction: true, title: "Your weekly plan is not ready yet" });
+    expect(item?.body).toContain("3-day weekly plan");
+  });
+
+  it("prompts a private portrait refresh after a newer confirmed assessment", () => {
+    const approved = {
+      ...avatar,
+      approved: true,
+      state: "approved" as const,
+      measurements_recorded_at: "2026-09-01T08:00:00Z",
+    };
+    const items = buildAppNotifications({
+      arabic: false, assessment, avatars: { items: [approved] }, plan: null, profile,
+    });
+    expect(items.find((item) => item.id === "avatar_refresh")).toMatchObject({
+      requiresAction: true,
+      href: "/avatar",
+    });
   });
 });

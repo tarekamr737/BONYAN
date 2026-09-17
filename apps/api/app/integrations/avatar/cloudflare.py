@@ -154,7 +154,7 @@ def _avatar_prompt(avatar_request: AvatarGenerationRequest) -> str:
         avatar_request.metrics, avatar_request.presentation
     ).value
     return (
-        "Edit reference image 0 into a polished cinematic 3D fitness avatar. "
+        "Edit reference image 0 into a photorealistic full-body progress portrait. "
         "Preserve the same recognizable person, face, skin tone, ethnicity, approximate age, and "
         "natural proportions. Use realistic anatomy, modest athletic clothing, and a neutral "
         f"studio background. Presentation: {avatar_request.presentation.value}. "

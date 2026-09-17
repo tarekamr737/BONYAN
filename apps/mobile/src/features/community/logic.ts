@@ -16,14 +16,15 @@ export function optimisticReaction(
   return { counts, viewer_reaction: remove ? null : nextReaction };
 }
 
-export function relativeTime(value: string, now = Date.now()): string {
+export function relativeTime(value: string, now = Date.now(), arabic = false): string {
   const differenceMinutes = Math.max(
     0,
     Math.floor((now - new Date(value).getTime()) / 60_000),
   );
-  if (differenceMinutes < 1) return "now";
-  if (differenceMinutes < 60) return `${differenceMinutes}m`;
+  if (differenceMinutes < 1) return arabic ? "دلوقتي" : "now";
+  if (differenceMinutes < 60) return arabic ? `منذ ${differenceMinutes} د` : `${differenceMinutes}m`;
   const differenceHours = Math.floor(differenceMinutes / 60);
-  if (differenceHours < 24) return `${differenceHours}h`;
-  return `${Math.floor(differenceHours / 24)}d`;
+  if (differenceHours < 24) return arabic ? `منذ ${differenceHours} س` : `${differenceHours}h`;
+  const days = Math.floor(differenceHours / 24);
+  return arabic ? `منذ ${days} ي` : `${days}d`;
 }

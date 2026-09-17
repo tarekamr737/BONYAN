@@ -40,6 +40,38 @@ def test_scanned_pdf_missing_fields_remain_null() -> None:
     assert values[InBodyMetricKey.HEIGHT] is None
 
 
+def test_arabic_smart_lab_receipt_maps_without_inventing_water_liters() -> None:
+    result = map_mistral_ocr_to_inbody(
+        {
+            "pages": [
+                {
+                    "markdown": """
+                    الطول: 181.7 سم
+                    الوزن: 73.7 كجم
+                    مؤشر كتلة الجسم (BMI): 22.3
+                    نسبة دهون الجسم: 15.1 %
+                    وزن الدهون: 11.1 كجم
+                    دهون منطقة البطن: 6.5
+                    نسبة الماء في الجسم: 62.8 %
+                    كتلة العضلات: 59.4 كجم
+                    """
+                }
+            ]
+        }
+    )
+    measurements = {item.key: item for item in result.measurements}
+
+    assert measurements[InBodyMetricKey.HEIGHT].value == 181.7
+    assert measurements[InBodyMetricKey.HEIGHT].unit == "cm"
+    assert measurements[InBodyMetricKey.WEIGHT].value == 73.7
+    assert measurements[InBodyMetricKey.BMI].value == 22.3
+    assert measurements[InBodyMetricKey.BODY_FAT_PERCENTAGE].value == 15.1
+    assert measurements[InBodyMetricKey.BODY_FAT_MASS].value == 11.1
+    assert measurements[InBodyMetricKey.VISCERAL_FAT_LEVEL].value == 6.5
+    assert measurements[InBodyMetricKey.SKELETAL_MUSCLE_MASS].value == 59.4
+    assert measurements[InBodyMetricKey.TOTAL_BODY_WATER].value is None
+
+
 def test_markdown_table_separators_do_not_hide_measurements() -> None:
     result = map_mistral_ocr_to_inbody(
         {

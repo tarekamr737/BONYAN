@@ -26,6 +26,10 @@ ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = json.loads(
     (ROOT / "docs/benchmarks/avatar-candidates.json").read_text(encoding="utf-8")
 )["candidates"]
+if os.getenv("AVATAR_PROVIDER") == "openrouter" and os.getenv("AVATAR_MODEL"):
+    CANDIDATES = [
+        candidate for candidate in CANDIDATES if candidate["model"] == os.environ["AVATAR_MODEL"]
+    ]
 
 
 @pytest.mark.live
@@ -74,7 +78,7 @@ def test_avatar_candidate_live(candidate, record_property) -> None:
             recorded_at=datetime.now(UTC),
             source=BodyMetricsSource.PROFILE,
         ),
-        style=BodyAvatarStyle.CINEMATIC_3D,
+        style=BodyAvatarStyle.PHOTO_MEASURED,
         presentation=BodyAvatarPresentation.MEN,
         source_image=AvatarSourceImage(source.content, source.media_type),
     )

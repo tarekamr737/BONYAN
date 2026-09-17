@@ -103,6 +103,20 @@ class FakeInBodyProvider:
         return self.latest if user_id == "user-1" else None
 
 
+class FakeProfileRepository:
+    async def get(self, owner_id: str):
+        if owner_id != "user-1":
+            return None
+        return SimpleNamespace(
+            training_goal="strength",
+            experience_level="beginner",
+            available_training_days=3,
+            available_equipment=["dumbbell"],
+            preferred_language="ar-EG",
+            timezone="Africa/Cairo",
+        )
+
+
 class FakeRepository:
     def __init__(self) -> None:
         self.plans: dict[uuid.UUID, SimpleNamespace] = {}
@@ -194,6 +208,28 @@ class ToolCallingLLM:
                 ),
             )
         return LLMResponse(text="Your validated plan is ready.", model="gpt-5.6-terra")
+
+
+class InBodyToolCallingLLM:
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        if not request.tool_results:
+            assert any(tool.name == CoachToolName.GET_LATEST_INBODY for tool in request.tools)
+            return LLMResponse(
+                text="",
+                model="sovereigneg-test",
+                tool_calls=(
+                    ProviderToolCall(
+                        call_id="call-inbody",
+                        name=CoachToolName.GET_LATEST_INBODY.value,
+                        arguments={},
+                    ),
+                ),
+            )
+        assert request.tool_results[0].output["result"]["latest_confirmed_inbody"] == {
+            "weight": 75.0,
+            "scan_date": "2026-09-16",
+        }
+        return LLMResponse(text="I used your confirmed assessment.", model="sovereigneg-test")
 
 
 class HangingLLM:
@@ -429,6 +465,67 @@ def test_invalid_coach_tool_call_is_rejected() -> None:
                 ),
             )
         )
+
+
+def test_coach_profile_and_confirmed_inbody_tools_are_owner_scoped() -> None:
+    service, _ = make_service()
+    executor = CoachToolExecutor(
+        service,
+        profile_repository=FakeProfileRepository(),
+        inbody_provider=FakeInBodyProvider(
+            {"weight": 75.0, "percent_body_fat": 20.0, "scan_date": "2026-09-16"}
+        ),
+    )
+
+    profile = run(
+        executor.execute(
+            user_id="user-1",
+            call=CoachToolCall(name=CoachToolName.GET_PROFILE),
+        )
+    )
+    inbody = run(
+        executor.execute(
+            user_id="user-1",
+            call=CoachToolCall(name=CoachToolName.GET_LATEST_INBODY),
+        )
+    )
+    other_user = run(
+        executor.execute(
+            user_id="user-2",
+            call=CoachToolCall(name=CoachToolName.GET_LATEST_INBODY),
+        )
+    )
+
+    assert profile.result["profile"] == {
+        "training_goal": "strength",
+        "experience_level": "beginner",
+        "available_training_days": 3,
+        "available_equipment": ["dumbbell"],
+        "preferred_language": "ar-EG",
+        "timezone": "Africa/Cairo",
+    }
+    assert inbody.result["latest_confirmed_inbody"]["weight"] == 75.0
+    assert other_user.result["latest_confirmed_inbody"] is None
+
+
+def test_coach_returns_confirmed_inbody_only_after_provider_requests_tool() -> None:
+    service, _ = make_service()
+    coach = CoachService(
+        llm_provider=InBodyToolCallingLLM(),
+        tool_executor=CoachToolExecutor(
+            service,
+            inbody_provider=FakeInBodyProvider(
+                {"weight": 75.0, "scan_date": "2026-09-16"}
+            ),
+        ),
+    )
+
+    response = run(
+        coach.respond(user_id="user-1", message="Use my latest assessment for training progress")
+    )
+
+    assert response.response == "I used your confirmed assessment."
+    assert response.tool_results[0]["name"] == CoachToolName.GET_LATEST_INBODY
 
 
 def test_coach_uses_mock_llm_and_validated_tool_results() -> None:

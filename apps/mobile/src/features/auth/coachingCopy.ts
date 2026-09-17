@@ -55,6 +55,13 @@ const arabicCopy: Record<string, string> = {
   name: "الاسم", goal: "الهدف", experience: "الخبرة", schedule: "الجدول", equipment: "الأدوات", body_data: "قياسات الجسم", military_subtype: "جهة الاستعداد",
   "Manual": "يدوي", "Manual entry": "إدخال يدوي",
 };
+const englishChoiceCopy: Record<string, string> = {
+  consistency: "Consistency", endurance: "Endurance", strength: "Strength", body_composition: "Body composition",
+  beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced",
+  starting: "Just starting", building: "Building momentum", established: "In a steady routine",
+  bodyweight: "Bodyweight", dumbbell: "Dumbbells", barbell: "Barbell", machine: "Machines", bands: "Resistance bands",
+};
+
 export function coachingCopy(text: string, arabic = false): string {
-  return arabic ? arabicCopy[text] ?? text.replaceAll("_", " ") : text.replaceAll("_", " ");
+  return arabic ? arabicCopy[text] ?? text.replaceAll("_", " ") : englishChoiceCopy[text] ?? text.replaceAll("_", " ");
 }

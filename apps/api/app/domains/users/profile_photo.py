@@ -109,16 +109,20 @@ class ProfilePhotoService:
         if profile is None or not profile.profile_photo_object_key:
             return
         object_key = profile.profile_photo_object_key
+        try:
+            await self.storage.delete(key=object_key)
+        except Exception as exc:
+            logger.warning("profile_photo_object_delete_failed")
+            raise AppError(
+                "profile_photo_delete_unavailable",
+                "Your profile photo could not be deleted right now. Please try again.",
+                503,
+            ) from exc
         profile.profile_photo_object_key = None
         profile.profile_photo_media_type = None
         profile.profile_photo_updated_at = None
         await self.session.flush()
         await self.session.commit()
-        try:
-            await self.storage.delete(key=object_key)
-        except Exception:
-            # The profile no longer exposes the object. Cleanup can be retried operationally.
-            logger.warning("profile_photo_deleted_object_cleanup_failed")
 
     async def _profile(self, owner_id: str) -> UserProfile | None:
         return await self.session.scalar(

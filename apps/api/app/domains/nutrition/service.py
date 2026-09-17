@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 
 from fastapi import status
 from pydantic import ValidationError
 
 from app.core.errors import AppError
 from app.core.providers.contracts import LLMProvider, LLMRequest
+from app.core.time import local_day_bounds
 from app.domains.nutrition.repository import NutritionRepository
 from app.domains.nutrition.schemas import (
     AnalyzeFoodRequest,
@@ -54,12 +54,15 @@ class NutritionService:
         )
         return _view(record)
 
-    async def today(self, *, user_id: str) -> tuple[DailyDashboard, list[FoodLogView]]:
-        now = datetime.now(UTC)
-        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        foods = await self.repository.list_food_since(owner_id=user_id, since=start)
-        completed, active = await self.repository.session_counts_since(
-            owner_id=user_id, since=start
+    async def today(
+        self, *, user_id: str, timezone_name: str = "UTC"
+    ) -> tuple[DailyDashboard, list[FoodLogView]]:
+        start, end, local_date = local_day_bounds(timezone_name)
+        foods = await self.repository.list_food_between(
+            owner_id=user_id, start=start, end=end
+        )
+        completed, active = await self.repository.session_counts_between(
+            owner_id=user_id, start=start, end=end
         )
         meal_points = min(40, round(len(foods) / 3 * 40))
         workout_points = 60 if completed else (20 if active else 0)
@@ -72,7 +75,7 @@ class NutritionService:
             else "Today's core actions are complete."
         )
         dashboard = DailyDashboard(
-            date=start.date().isoformat(),
+            date=local_date.isoformat(),
             score=score,
             completed_workouts=completed,
             active_workouts=active,

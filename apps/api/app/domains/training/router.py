@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -16,6 +15,7 @@ from app.core.errors import AppError
 from app.core.providers.contracts import LLMProvider
 from app.core.providers.mocks import MockLLMProvider
 from app.core.rate_limit import limit_coach, limit_media_token
+from app.core.time import local_day_bounds
 from app.domains.inbody.contracts import InBodyTrainingAdapter
 from app.domains.inbody.repository import InBodyRepository
 from app.domains.nutrition.repository import NutritionRepository
@@ -253,10 +253,14 @@ async def coach_message(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     _: Annotated[None, Depends(limit_coach)],
 ) -> CoachMessageResponse:
-    profile = await SqlAlchemyProfileRepository(session).get(current_user.id)
+    profile_repository = SqlAlchemyProfileRepository(session)
+    inbody_provider = InBodyTrainingAdapter(InBodyRepository(session))
+    profile = await profile_repository.get(current_user.id)
     nutrition = NutritionRepository(session)
-    start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-    foods = await nutrition.list_food_since(owner_id=current_user.id, since=start)
+    start, end, _ = local_day_bounds(profile.timezone if profile else "UTC")
+    foods = await nutrition.list_food_between(
+        owner_id=current_user.id, start=start, end=end
+    )
     user_context = {
         "goal": profile.training_goal if profile else None,
         "experience": profile.experience_level if profile else None,
@@ -270,7 +274,11 @@ async def coach_message(
     }
     coach = CoachService(
         llm_provider=get_llm_provider(settings),
-        tool_executor=CoachToolExecutor(service),
+        tool_executor=CoachToolExecutor(
+            service,
+            profile_repository=profile_repository,
+            inbody_provider=inbody_provider,
+        ),
     )
     return await coach.respond(
         user_id=current_user.id, message=request.message, user_context=user_context

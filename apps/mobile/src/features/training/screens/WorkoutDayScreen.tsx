@@ -1,7 +1,7 @@
-import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,7 +27,13 @@ function selectedDay(days: WorkoutDay[], dayKey: string | undefined): WorkoutDay
   return days.find((day) => day.key === dayKey) ?? days.slice().sort((a, b) => a.order - b.order)[0];
 }
 
+function displayDayName(value: string | undefined, arabic: boolean): string {
+  if (!value) return arabic ? "التمرين" : "Workout";
+  return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value;
+}
+
 export function WorkoutDayScreen() {
+  const arabic = useContext(LanguageDirection);
   const queryClient = useQueryClient();
   const params = useLocalSearchParams();
   const dayKey = paramValue(params.dayKey);
@@ -114,37 +120,37 @@ export function WorkoutDayScreen() {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TrainingHeader
-          title={day?.name ?? "Workout"}
-          subtitle="Start the session, log prescribed sets, and complete the workout when the work is done."
+          title={displayDayName(day?.name, arabic)}
+          subtitle={arabic ? "ابدأ الجلسة وسجّل المجموعات المطلوبة، وبعد ما تخلص اقفل التمرين." : "Start the session, log prescribed sets, and complete the workout when the work is done."}
         />
 
         {planQuery.isPending ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>Loading workout</Text>
-            <Text style={styles.stateCopy}>Pulling the active plan for this session.</Text>
+            <Text style={styles.stateTitle}>{arabic ? "بنحمّل التمرين" : "Loading workout"}</Text>
+            <Text style={styles.stateCopy}>{arabic ? "بنجيب الخطة النشطة للجلسة دي." : "Pulling the active plan for this session."}</Text>
           </SurfaceCard>
         ) : null}
 
         {planQuery.isError ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>Workout unavailable</Text>
-            <Text style={styles.stateCopy}>The training API could not load this workout day.</Text>
+            <Text style={styles.stateTitle}>{arabic ? "التمرين مش متاح دلوقتي" : "Workout unavailable"}</Text>
+            <Text style={styles.stateCopy}>{arabic ? "ما قدرناش نحمّل يوم التمرين ده." : "The training API could not load this workout day."}</Text>
             <Pressable accessibilityRole="button" onPress={() => planQuery.refetch()} style={styles.completeButton}>
-              <Text style={styles.completeButtonText}>Retry</Text>
+              <Text style={styles.completeButtonText}>{arabic ? "جرّب تاني" : "Retry"}</Text>
             </Pressable>
           </SurfaceCard>
         ) : null}
 
         {!planQuery.isPending && !planQuery.isError && !day ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>No workout day</Text>
-            <Text style={styles.stateCopy}>Generate a plan before starting a training session.</Text>
+            <Text style={styles.stateTitle}>{arabic ? "مفيش يوم تمرين" : "No workout day"}</Text>
+            <Text style={styles.stateCopy}>{arabic ? "جهّز خطة الأول قبل ما تبدأ جلسة تمرين." : "Generate a plan before starting a training session."}</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push("/training")}
               style={styles.completeButton}
             >
-              <Text style={styles.completeButtonText}>Back to Training</Text>
+              <Text style={styles.completeButtonText}>{arabic ? "ارجع للتمرين" : "Back to Training"}</Text>
             </Pressable>
           </SurfaceCard>
         ) : null}
@@ -152,16 +158,15 @@ export function WorkoutDayScreen() {
         {day && active ? (
           <>
             <SurfaceCard>
-              <Text style={styles.label}>{sessionComplete ? "COMPLETED" : "ACTIVE EXERCISE"}</Text>
+              <Text style={styles.label}>{sessionComplete ? (arabic ? "اكتمل" : "COMPLETED") : (arabic ? "التمرين الحالي" : "ACTIVE EXERCISE")}</Text>
               <Text style={styles.activeName}>{active.name}</Text>
               <Text style={styles.detail}>
-                {active.sets} sets x {active.reps_min}-{active.reps_max} reps. Rest{" "}
-                {Math.round(active.rest_seconds / 60)} minutes.
+                {arabic ? `${active.sets} مجموعات × ${active.reps_min}-${active.reps_max} تكرار. راحة ${Math.round(active.rest_seconds / 60)} دقيقة.` : `${active.sets} sets × ${active.reps_min}-${active.reps_max} reps. Rest ${Math.round(active.rest_seconds / 60)} minutes.`}
               </Text>
               <View style={styles.videoFrame}>
                 {mediaQuery.data?.url ? (
                   <Image
-                    accessibilityLabel={`${active.name} exercise demonstration`}
+                    accessibilityLabel={arabic ? `شرح تمرين ${active.name}` : `${active.name} exercise demonstration`}
                     resizeMode="contain"
                     source={{ uri: mediaQuery.data.url }}
                     style={styles.exerciseMedia}
@@ -169,15 +174,16 @@ export function WorkoutDayScreen() {
                 ) : (
                   <Text style={styles.videoText}>
                     {mediaQuery.isPending
-                      ? "Loading exercise demonstration..."
-                      : "Exercise demonstration is unavailable right now."}
+                      ? (arabic ? "بنحمّل شرح التمرين…" : "Loading exercise demonstration...")
+                      : (arabic ? "شرح التمرين مش متاح دلوقتي." : "Exercise demonstration is unavailable right now.")}
                   </Text>
                 )}
               </View>
               <View style={styles.stepperRow}>
-                <SetStepper label="Reps" max={50} min={0} onChange={setReps} step={1} value={reps} />
+                <SetStepper arabic={arabic} label={arabic ? "التكرارات" : "Reps"} max={50} min={0} onChange={setReps} step={1} value={reps} />
                 <SetStepper
-                  label="Kg"
+                  arabic={arabic}
+                  label={arabic ? "كجم" : "Kg"}
                   max={300}
                   min={0}
                   onChange={setWeight}
@@ -192,7 +198,7 @@ export function WorkoutDayScreen() {
                   onPress={() => startMutation.mutate()}
                   style={[styles.logButton, startMutation.isPending && styles.disabledAction]}
                 >
-                  <Text style={styles.logButtonText}>{startMutation.isPending ? "Starting..." : "Start session"}</Text>
+                  <Text style={styles.logButtonText}>{startMutation.isPending ? (arabic ? "بنبدأ…" : "Starting...") : (arabic ? "ابدأ الجلسة" : "Start session")}</Text>
                 </Pressable>
               ) : (
                 <Pressable
@@ -205,18 +211,19 @@ export function WorkoutDayScreen() {
                   ]}
                 >
                   <Text style={styles.logButtonText}>
-                    {nextSetNumber > active.sets ? "Sets complete" : `Log set ${nextSetNumber}`}
+                    {nextSetNumber > active.sets ? (arabic ? "المجموعات اكتملت" : "Sets complete") : (arabic ? `سجّل المجموعة ${nextSetNumber}` : `Log set ${nextSetNumber}`)}
                   </Text>
                 </Pressable>
               )}
               {startMutation.isError || logMutation.isError ? (
-                <Text style={styles.errorText}>This workout update could not be saved.</Text>
+                <Text style={styles.errorText}>{arabic ? "ما قدرناش نحفظ تحديث التمرين." : "This workout update could not be saved."}</Text>
               ) : null}
             </SurfaceCard>
 
             <View style={styles.list}>
               {day.prescriptions.map((exercise, index) => (
                 <ExerciseCard
+                  arabic={arabic}
                   key={`${exercise.exercise_id}-${index}`}
                   active={index === activeIndex}
                   exercise={exercise}
@@ -233,10 +240,10 @@ export function WorkoutDayScreen() {
               style={[styles.completeButton, (!session || sessionComplete || completeMutation.isPending) && styles.disabledAction]}
             >
               <Text style={styles.completeButtonText}>
-                {sessionComplete ? "Workout complete" : completeMutation.isPending ? "Completing..." : "Complete workout"}
+                {sessionComplete ? (arabic ? "التمرين اكتمل" : "Workout complete") : completeMutation.isPending ? (arabic ? "بنكمل…" : "Completing...") : (arabic ? "أنهِ التمرين" : "Complete workout")}
               </Text>
             </Pressable>
-            {completeMutation.isError ? <Text style={styles.errorText}>Workout could not be completed.</Text> : null}
+            {completeMutation.isError ? <Text style={styles.errorText}>{arabic ? "ما قدرناش ننهي التمرين." : "Workout could not be completed."}</Text> : null}
           </>
         ) : null}
       </ScrollView>

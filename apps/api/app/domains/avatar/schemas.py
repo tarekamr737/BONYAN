@@ -11,7 +11,7 @@ from app.domains.avatar.contracts import AvatarState, BodyAvatarPresentation, Bo
 class CreateAvatarRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    style: BodyAvatarStyle = BodyAvatarStyle.CINEMATIC_3D
+    style: BodyAvatarStyle = BodyAvatarStyle.PHOTO_MEASURED
     presentation: BodyAvatarPresentation = BodyAvatarPresentation.MEN
     source_photo_id: UUID | None = None
 
