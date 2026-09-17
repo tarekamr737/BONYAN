@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T21:30:00+03:00",
+  "title": "Design System: BONYAN",
+  "extensions": {
+    "colorMeta": {
+      "charcoal-ground": { "canonical": "#0B0B0B", "role": "neutral", "displayName": "Charcoal Ground" },
+      "forged-surface": { "canonical": "#151515", "role": "neutral", "displayName": "Forged Surface" },
+      "raised-graphite": { "canonical": "#20201F", "role": "neutral", "displayName": "Raised Graphite" },
+      "quiet-steel": { "canonical": "#2B2B29", "role": "neutral", "displayName": "Quiet Steel" },
+      "warm-porcelain": { "canonical": "#F7F4EE", "role": "neutral", "displayName": "Warm Porcelain" },
+      "cool-ash": { "canonical": "#8C9099", "role": "neutral", "displayName": "Cool Ash" },
+      "warm-ash": { "canonical": "#B6B2A9", "role": "neutral", "displayName": "Warm Ash" },
+      "measured-bronze": { "canonical": "#C8A86B", "role": "primary", "displayName": "Measured Bronze" },
+      "bronze-ember": { "canonical": "#2B251A", "role": "primary", "displayName": "Bronze Ember" },
+      "aged-bronze-edge": { "canonical": "#4B402B", "role": "primary", "displayName": "Aged Bronze Edge" },
+      "progress-mint": { "canonical": "#6FCF97", "role": "semantic", "displayName": "Progress Mint" },
+      "direct-coral": { "canonical": "#EB5757", "role": "semantic", "displayName": "Direct Coral" }
+    },
+    "typographyMeta": {
+      "display": { "family": "Space Grotesk", "usage": "identity, headings, numeric landmarks" },
+      "body": { "family": "Manrope", "usage": "body, forms, buttons, operational copy" }
+    },
+    "shadows": [],
+    "motion": { "feedbackDurationMs": [150, 250], "purpose": "state feedback only", "reducedMotion": "system" },
+    "breakpoints": { "mobileFirst": true, "contentMaxWidth": 660 },
+    "evidence": [
+      "apps/mobile/src/core/theme/tokens.ts",
+      "apps/mobile/src/core/components/GlassSurface.tsx",
+      "apps/mobile/src/core/screens/HomeScreen.tsx",
+      "apps/mobile/src/features/nutrition/NutritionScreen.tsx",
+      "apps/mobile/src/features/training/screens/ManualWorkoutScreen.tsx"
+    ],
+    "material": { "canvas": "opaque charcoal", "cards": "opaque forged surface", "editable": "raised graphite", "effects": [] }
+  },
+  "components": [
+    { "name": "PrimaryButton", "height": 50, "radius": 16, "background": "#C8A86B", "text": "#0B0B0B" },
+    { "name": "SecondaryButton", "height": 50, "radius": 16, "background": "transparent", "border": "#4B402B", "text": "#C8A86B" },
+    { "name": "Input", "height": 50, "radius": 16, "background": "#20201F", "border": "#2B2B29", "text": "#F7F4EE" },
+    { "name": "SurfaceCard", "radius": 24, "background": "#151515", "border": "#2B2B29", "shadow": null },
+    { "name": "DailyScore", "source": "authenticated meals and workout sessions", "frontendCalculation": false }
+  ],
+  "narrative": {
+    "northStar": "The Human Foundry",
+    "overview": "A private, disciplined system for measurable body, nutrition, and training progress.",
+    "keyCharacteristics": ["charcoal tonal hierarchy", "earned bronze", "mobile-native tasks", "quiet state-driven motion"],
+    "rules": ["Bronze marks the next meaningful action.", "Mint is success and coral is error or danger.", "Depth comes from tone and one-pixel boundaries."],
+    "dos": ["Use the 4/8/12/16/24/32/48 spacing scale.", "Keep controls at least 50 units high.", "Connect surfaces to authenticated data."],
+    "donts": ["No gradients, glassmorphism, blur, glow, decorative shadows, neon, or nested cards.", "Do not invent user activity or expose provider secrets."]
+  }
+}

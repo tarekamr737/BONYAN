@@ -1,22 +1,31 @@
-import { StyleSheet, Text, View } from "react-native";
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { StyleSheet, View } from "react-native";
 
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
 
 const privacySteps = [
-  ["Data", "Confirmed measurements, never posted"],
+  ["Source", "Private photo and confirmed measurements"],
   ["Shape", "Skinny, Slim, Normal, Fit, Strong or Full"],
   ["Review", "Your avatar stays private until approval"],
   ["Community", "Off until you enable it"],
 ] as const;
 
-export function PrivacyTimeline() {
+const privacyStepsArabic = [
+  ["المصدر", "صورة خاصة وقياسات مؤكدة"],
+  ["الشكل", "تقدير حسب قياسات جسمك الحالية"],
+  ["المراجعة", "صورتك تفضل خاصة لحد ما تعتمدها"],
+  ["المجتمع", "مقفولة لحد ما تفعّلها بنفسك"],
+] as const;
+
+export function PrivacyTimeline({ arabic = false }: { arabic?: boolean }) {
+  const steps = arabic ? privacyStepsArabic : privacySteps;
   return (
-    <View accessibilityLabel="Body avatar privacy stages" style={styles.container}>
-      {privacySteps.map(([title, detail], index) => (
+    <View accessibilityLabel={arabic ? "مراحل خصوصية الصورة" : "Body avatar privacy stages"} style={styles.container}>
+      {steps.map(([title, detail], index) => (
         <View key={title} style={styles.step}>
           <View style={styles.markerColumn}>
             <View style={styles.marker} />
-            {index < privacySteps.length - 1 ? <View style={styles.line} /> : null}
+            {index < steps.length - 1 ? <View style={styles.line} /> : null}
           </View>
           <View style={styles.copy}>
             <Text style={styles.title}>{title}</Text>

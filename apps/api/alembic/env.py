@@ -12,6 +12,7 @@ from app.core.database import Base
 from app.domains.avatar import models as avatar_models  # noqa: F401
 from app.domains.community import models as community_models  # noqa: F401
 from app.domains.inbody import models as inbody_models  # noqa: F401
+from app.domains.nutrition import models as nutrition_models  # noqa: F401
 from app.domains.training import models as training_models  # noqa: F401
 from app.domains.users import models as user_models  # noqa: F401
 

@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class TrainingGoal(StrEnum):
@@ -13,6 +13,7 @@ class TrainingGoal(StrEnum):
     HYPERTROPHY = "hypertrophy"
     FAT_LOSS = "fat_loss"
     GENERAL_FITNESS = "general_fitness"
+    MILITARY_PREPARATION = "military_preparation"
 
 
 class ExperienceLevel(StrEnum):
@@ -64,7 +65,11 @@ class ProgressionRule(BaseModel):
 
 
 class ExercisePrescription(BaseModel):
-    musclewiki_id: str = Field(min_length=1, max_length=120)
+    exercise_id: str = Field(
+        min_length=1,
+        max_length=120,
+        validation_alias=AliasChoices("exercise_id", "musclewiki_id"),
+    )
     name: str = Field(min_length=1, max_length=160)
     muscles: list[str] = Field(default_factory=list)
     equipment: list[str] = Field(default_factory=list)
@@ -126,6 +131,46 @@ class GeneratePlanRequest(BaseModel):
         return sorted({item.strip().lower() for item in value if item.strip()})
 
 
+class ManualExerciseInput(BaseModel):
+    exercise_id: str = Field(min_length=1, max_length=120)
+    sets: Annotated[int, Field(ge=1, le=8)] = 3
+    reps_min: Annotated[int, Field(ge=1, le=50)] = 8
+    reps_max: Annotated[int, Field(ge=1, le=50)] = 12
+    rest_seconds: Annotated[int, Field(ge=30, le=300)] = 90
+
+    @model_validator(mode="after")
+    def validate_reps(self) -> ManualExerciseInput:
+        if self.reps_min > self.reps_max:
+            raise ValueError("reps_min cannot exceed reps_max")
+        return self
+
+
+class ManualPlanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=2, max_length=80)
+    goal: TrainingGoal = TrainingGoal.GENERAL_FITNESS
+    experience: ExperienceLevel = ExperienceLevel.BEGINNER
+    exercises: list[ManualExerciseInput] = Field(min_length=1, max_length=12)
+    activate: bool = True
+
+
+class ExerciseSearchItem(BaseModel):
+    id: str
+    name: str
+    muscles: list[str]
+    equipment: list[str]
+    difficulty: str
+
+
+class ExerciseSearchResponse(BaseModel):
+    items: list[ExerciseSearchItem]
+    page: int
+    page_size: int
+    total: int | None = None
+    next_page: int | None = None
+
+
 class LoggedSetInput(BaseModel):
     prescription_index: Annotated[int, Field(ge=0, le=20)]
     set_number: Annotated[int, Field(ge=1, le=12)]
@@ -183,4 +228,4 @@ class CoachMessageResponse(BaseModel):
 
 class ExerciseMediaAccessResponse(BaseModel):
     url: str
-    expires_at: datetime
+    expires_at: datetime | None = None

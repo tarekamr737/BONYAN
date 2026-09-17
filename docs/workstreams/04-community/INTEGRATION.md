@@ -50,8 +50,8 @@ validated, authenticated manual-measurements endpoint and are never returned in 
 responses. Body-photo upload is intentionally unsupported. Provider SDK types must
 remain inside `app.integrations.avatar`.
 
-The development `MockAvatarProvider` implements `cinematic_3d` with deterministic
-men/women portrait fixtures. The interactive client supports six respectful broad
+The development `MockAvatarProvider` implements the image-only `photo_measured` flow with
+deterministic men/women portrait fixtures. The client supports six respectful broad
 profiles: Skinny, Slim, Normal, Fit, Strong, and Full. `classify_body_shape` uses
 height, weight, optional body-fat, optional skeletal-muscle mass, and presentation;
 the preview buttons never override the server-calculated result. This is a broad
@@ -97,8 +97,8 @@ Implement `PrivateAvatarStorage` with authenticated private object storage:
 - delete is idempotent so a partially completed deletion can be retried safely
 - image bytes and object keys are excluded from logs
 
-`AVATAR_MODEL` stays `TBD`. The deterministic mock is the development/test default;
-choosing or adding a production image provider is outside this workstream.
+The release provider is OpenRouter with `AVATAR_MODEL=meta/muse-image`. The deterministic mock
+remains the offline development/test default; OpenRouter credentials stay backend-only.
 
 ## Mobile composition
 
@@ -113,15 +113,10 @@ profile are available. The existing API client must attach the authenticated ses
 to these requests. Configure `EXPO_PUBLIC_API_URL` for a physical device or emulator;
 `127.0.0.1` addresses the device itself outside a local web runtime.
 
-The 3D body viewer loads provider/CDN GLB URLs from
-`EXPO_PUBLIC_AVATAR_MEN_MODEL_URL` and `EXPO_PUBLIC_AVATAR_WOMEN_MODEL_URL`. Local
-MetaPerson sample files are evaluation-only; confirm distribution rights and replace
-them with licensed production assets before release.
-
-Expo Image Picker is not used by the final metrics-only avatar flow. Do not add its
-config plugin or camera/photo-library permission copy for Workstream 04. The avatar
-route reads measurement status and generated preview data from authenticated APIs,
-and sends manual values only through the explicit authenticated save action.
+There is no 3D viewer or bundled GLB asset. Expo Image Picker collects an explicitly chosen
+private source photo. The backend combines that photo with the latest confirmed measurements;
+the user reviews each generated image before approval, and community use remains separately off
+until explicitly enabled.
 
 The root npm workspace currently keeps `@types/react` below
 `apps/mobile/node_modules` while `react-native` is hoisted at the root. A clean local
@@ -136,7 +131,8 @@ owned and stable.
 ## Public behavior
 
 - Avatar approval and community enablement are separate explicit mutations.
-- Body photos and raw measurements are rejected by the avatar creation schema.
+- Source photos are uploaded through the private authenticated photo endpoint; raw measurements
+  are rejected by the avatar creation schema and saved only through the validated measurements flow.
 - Manual values are accepted only by the validated, authenticated
   `PUT /avatars/manual-measurements` endpoint and persisted per owner.
 - Raw metric values and generated object keys never occur in response schemas.

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from app.integrations.exercises.errors import ExerciseProviderError
 
-class MuscleWikiError(Exception):
+
+class MuscleWikiError(ExerciseProviderError):
     """Base provider error that is safe to map at the API boundary."""
 
 

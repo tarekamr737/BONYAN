@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
+import { useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -8,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -31,6 +31,7 @@ export function CreatePostScreen({
   onManageAvatar,
   onPosted,
 }: CreatePostScreenProps) {
+  const arabic = useContext(LanguageDirection);
   const avatarsQuery = useAvatars();
   const { createMutation } = useCommunityMutations();
   const [caption, setCaption] = useState("");
@@ -74,19 +75,19 @@ export function CreatePostScreen({
               onPress={onBack}
               style={styles.headerAction}
             >
-              <Text style={styles.headerActionLabel}>Cancel</Text>
+              <Text style={styles.headerActionLabel}>{arabic ? "إلغاء" : "Cancel"}</Text>
             </Pressable>
             <Text accessibilityRole="header" style={styles.heading}>
-              Share progress
+              {arabic ? "شارك تقدمك" : "Share progress"}
             </Text>
             <View style={styles.headerBalance} />
           </View>
 
           <Text style={styles.intro}>
-            Write the part you intend to share. BONYAN never inserts measurements or report data.
+            {arabic ? "اكتب بس اللي حابب تشاركه. بنيان عمره ما بيضيف قياساتك أو بيانات تقاريرك تلقائيًا." : "Write the part you intend to share. BONYAN never inserts measurements or report data."}
           </Text>
 
-          <View accessibilityLabel="Post type" style={styles.segmentedControl}>
+          <View accessibilityLabel={arabic ? "نوع المنشور" : "Post type"} style={styles.segmentedControl}>
             {(["milestone", "progress"] as PostType[]).map((type) => {
               const selected = postType === type;
               return (
@@ -98,7 +99,7 @@ export function CreatePostScreen({
                   style={[styles.segment, selected && styles.segmentSelected]}
                 >
                   <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>
-                    {type === "milestone" ? "Milestone" : "Progress note"}
+                    {type === "milestone" ? (arabic ? "محطة مهمة" : "Milestone") : (arabic ? "تحديث تقدم" : "Progress note")}
                   </Text>
                 </Pressable>
               );
@@ -107,13 +108,13 @@ export function CreatePostScreen({
 
           <View style={styles.composer}>
             <TextInput
-              accessibilityLabel="Post caption"
+              accessibilityLabel={arabic ? "نص المنشور" : "Post caption"}
               maxLength={500}
               multiline
               onChangeText={setCaption}
-              placeholder="What changed, and what helped you keep going?"
+              placeholder={arabic ? "إيه اللي اتغير، وإيه اللي ساعدك تكمّل؟" : "What changed, and what helped you keep going?"}
               placeholderTextColor={colors.muted}
-              style={styles.input}
+              style={[styles.input, arabic && styles.inputArabic]}
               textAlignVertical="top"
               value={caption}
             />
@@ -121,22 +122,21 @@ export function CreatePostScreen({
           </View>
 
           {avatarsQuery.isPending ? (
-            <View accessibilityLabel="Checking approved avatars" style={styles.avatarEmpty}>
+            <View accessibilityLabel={arabic ? "بنراجع خصوصية الأفاتار" : "Checking approved avatars"} style={styles.avatarEmpty}>
               <ActivityIndicator color={colors.bronze} />
               <View style={styles.avatarCopy}>
-                <Text style={styles.avatarTitle}>Checking your avatar privacy</Text>
+                <Text style={styles.avatarTitle}>{arabic ? "بنراجع خصوصية الأفاتار" : "Checking your avatar privacy"}</Text>
                 <Text style={styles.avatarDetail}>
-                  Publishing waits until your approved community setting is known.
+                  {arabic ? "النشر هيستنى لحد ما نتأكد من إعداد المشاركة اللي وافقت عليه." : "Publishing waits until your approved community setting is known."}
                 </Text>
               </View>
             </View>
           ) : avatarsQuery.isError && !avatarsQuery.data ? (
             <View accessibilityRole="alert" style={styles.avatarEmpty}>
               <View style={styles.avatarCopy}>
-                <Text style={styles.avatarTitle}>Avatar status could not load</Text>
+                <Text style={styles.avatarTitle}>{arabic ? "ما قدرناش نحمّل حالة الأفاتار" : "Avatar status could not load"}</Text>
                 <Text style={styles.avatarDetail}>
-                  Retry to attach an avatar, or publish without one. No avatar will be added
-                  automatically.
+                  {arabic ? "جرّب تاني عشان تضيف الأفاتار، أو انشر من غيره. مش هنضيف أي أفاتار تلقائيًا." : "Retry to attach an avatar, or publish without one. No avatar will be added automatically."}
                 </Text>
               </View>
               <Pressable
@@ -144,26 +144,26 @@ export function CreatePostScreen({
                 onPress={() => void avatarsQuery.refetch()}
                 style={styles.manageButton}
               >
-                <Text style={styles.manageLabel}>Try again</Text>
+                <Text style={styles.manageLabel}>{arabic ? "جرّب تاني" : "Try again"}</Text>
               </Pressable>
             </View>
           ) : approvedAvatar ? (
             <View style={styles.avatarControl}>
               {approvedAvatar.preview_url ? (
                 <Image
-                  accessibilityLabel="Selected approved body avatar"
+                  accessibilityLabel={arabic ? "أفاتار الجسم المعتمد والمختار" : "Selected approved body avatar"}
                   source={{ uri: approvedAvatar.preview_url }}
                   style={styles.avatarImage}
                 />
               ) : null}
               <View style={styles.avatarCopy}>
-                <Text style={styles.avatarTitle}>Use approved body avatar</Text>
+                <Text style={styles.avatarTitle}>{arabic ? "استخدم أفاتار الجسم المعتمد" : "Use approved body avatar"}</Text>
                 <Text style={styles.avatarDetail}>
-                  Only the generated figure appears. Its underlying measurements stay private.
+                  {arabic ? "هيظهر الشكل المتولّد بس، وقياساتك الأصلية هتفضل خاصة." : "Only the generated figure appears. Its underlying measurements stay private."}
                 </Text>
               </View>
               <Switch
-                accessibilityLabel="Use approved avatar on this post"
+                accessibilityLabel={arabic ? "استخدم الأفاتار المعتمد في المنشور ده" : "Use approved avatar on this post"}
                 onValueChange={setUseAvatar}
                 thumbColor={colors.text}
                 trackColor={{ false: colors.line, true: colors.bronzeBorder }}
@@ -173,9 +173,9 @@ export function CreatePostScreen({
           ) : (
             <View style={styles.avatarEmpty}>
               <View style={styles.avatarCopy}>
-                <Text style={styles.avatarTitle}>No body avatar enabled</Text>
+                <Text style={styles.avatarTitle}>{arabic ? "مفيش أفاتار مفعّل للمجتمع" : "No body avatar enabled"}</Text>
                 <Text style={styles.avatarDetail}>
-                  Post without one, or approve a body avatar and explicitly enable it.
+                  {arabic ? "انشر من غيره، أو اعتمد أفاتار وفعّل مشاركته بنفسك." : "Post without one, or approve a body avatar and explicitly enable it."}
                 </Text>
               </View>
               <Pressable
@@ -183,24 +183,23 @@ export function CreatePostScreen({
                 onPress={onManageAvatar}
                 style={styles.manageButton}
               >
-                <Text style={styles.manageLabel}>Manage avatar</Text>
+                <Text style={styles.manageLabel}>{arabic ? "إدارة الأفاتار" : "Manage avatar"}</Text>
               </Pressable>
             </View>
           )}
 
           <View style={styles.privacyNote}>
-            <Text style={styles.privacyTitle}>WHAT WILL BE SHARED</Text>
+            <Text style={styles.privacyTitle}>{arabic ? "إيه اللي هيتشارك" : "WHAT WILL BE SHARED"}</Text>
             <Text style={styles.privacyCopy}>
-              Your display name, this caption, and the body avatar only if the switch is on. No
-              measurements are included.
+              {arabic ? "اسم العرض والنص ده، والأفاتار بس لو المفتاح شغال. مش هتتشارك أي قياسات." : "Your display name, this caption, and the body avatar only if the switch is on. No measurements are included."}
             </Text>
           </View>
 
           {createMutation.isError ? (
             <View accessibilityRole="alert" style={styles.errorPanel}>
-              <Text style={styles.errorTitle}>Post was not created</Text>
+              <Text style={styles.errorTitle}>{arabic ? "المنشور ما اتعملش" : "Post was not created"}</Text>
               <Text style={styles.errorCopy}>
-                Nothing was published. Check your connection and avatar setting, then try again.
+                {arabic ? "ما اتنشرش أي حاجة. راجع الاتصال وإعداد الأفاتار وجرّب تاني." : "Nothing was published. Check your connection and avatar setting, then try again."}
               </Text>
             </View>
           ) : null}
@@ -217,7 +216,7 @@ export function CreatePostScreen({
             ]}
           >
             <Text style={styles.submitLabel}>
-              {createMutation.isPending ? "Publishing…" : "Publish post"}
+              {createMutation.isPending ? (arabic ? "جاري النشر…" : "Publishing…") : (arabic ? "انشر" : "Publish post")}
             </Text>
           </Pressable>
         </ScrollView>
@@ -282,6 +281,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     minHeight: 160,
   },
+  inputArabic: { textAlign: "right", writingDirection: "rtl" },
   count: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 11, textAlign: "right" },
   avatarControl: {
     alignItems: "center",

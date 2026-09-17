@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import PurePosixPath
 
+from PIL import Image, ImageOps, UnidentifiedImageError
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
@@ -13,6 +15,7 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 MAX_PDF_BYTES = 12 * 1024 * 1024
 MAX_UPLOAD_BYTES = max(MAX_IMAGE_BYTES, MAX_PDF_BYTES)
 MAX_PDF_PAGES = 25
+MAX_REPORT_IMAGES = 3
 SUPPORTED_CONTENT_TYPES = {
     "image/jpeg",
     "image/png",
@@ -27,6 +30,11 @@ _UNIT_ALIASES = {
     "lbs": "lb",
     "pounds": "lb",
     "cm.": "cm",
+    "سم": "cm",
+    "كجم": "kg",
+    "كغ": "kg",
+    "لتر": "l",
+    "٪": "%",
     "%": "%",
     "percent": "%",
     "percentage": "%",
@@ -89,6 +97,47 @@ def is_supported_upload(content_type: str, byte_size: int, content: bytes) -> bo
     if content_type == "image/webp":
         return content.startswith(b"RIFF") and content[8:12] == b"WEBP"
     return False
+
+
+def assemble_image_pages_pdf(pages: list[tuple[str, bytes]]) -> bytes:
+    if not 1 <= len(pages) <= MAX_REPORT_IMAGES:
+        raise ValueError("Choose between one and three report images.")
+    images: list[Image.Image] = []
+    try:
+        for content_type, content in pages:
+            if not content_type.startswith("image/") or not is_supported_upload(
+                content_type, len(content), content
+            ):
+                raise ValueError("Upload readable report images.")
+            try:
+                source = Image.open(BytesIO(content))
+                source.load()
+            except (OSError, UnidentifiedImageError) as exc:
+                raise ValueError("Upload readable report images.") from exc
+            image = ImageOps.exif_transpose(source).convert("RGB")
+            source.close()
+            images.append(image)
+
+        output = BytesIO()
+        timestamp = datetime(2000, 1, 1, tzinfo=UTC)
+        images[0].save(
+            output,
+            "PDF",
+            append_images=images[1:],
+            creationDate=timestamp.timetuple(),
+            modDate=timestamp.timetuple(),
+            resolution=150.0,
+            save_all=True,
+            subject="BONYAN multipart report v1",
+            title="InBody report",
+        )
+        content = output.getvalue()
+        if not is_supported_upload("application/pdf", len(content), content):
+            raise ValueError("The combined report is too large or unreadable.")
+        return content
+    finally:
+        for image in images:
+            image.close()
 
 
 def _has_valid_pdf_page_count(content: bytes) -> bool:

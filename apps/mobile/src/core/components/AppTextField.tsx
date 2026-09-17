@@ -1,6 +1,9 @@
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { DirectionalText as Text , LanguageDirection } from "./DirectionalText";
+import { StyleSheet, TextInput, View, type TextInputProps } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../theme/tokens";
+import { useContext } from "react";
+
 
 type AppTextFieldProps = TextInputProps & {
   error?: string;
@@ -10,6 +13,7 @@ type AppTextFieldProps = TextInputProps & {
 
 export function AppTextField({ error, hint, label, style, ...props }: AppTextFieldProps) {
   const helpText = error ?? hint;
+  const arabic = useContext(LanguageDirection);
 
   return (
     <View style={styles.field}>
@@ -19,7 +23,7 @@ export function AppTextField({ error, hint, label, style, ...props }: AppTextFie
         accessibilityLabel={props.accessibilityLabel ?? label}
         accessibilityState={{ disabled: props.editable === false }}
         placeholderTextColor={colors.muted}
-        style={[styles.input, error ? styles.inputError : undefined, style]}
+        style={[styles.input, error ? styles.inputError : undefined, style, {textAlign: arabic ? "right" : "left", writingDirection: arabic ? "rtl" : "ltr"}]}
       />
       {helpText ? (
         <Text accessibilityLiveRegion={error ? "polite" : "none"} style={error ? styles.error : styles.hint}>

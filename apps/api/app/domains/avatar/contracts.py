@@ -29,6 +29,8 @@ class BodyMetricsSource(StrEnum):
 
 
 class BodyAvatarStyle(StrEnum):
+    PHOTO_MEASURED = "photo_measured"
+    # Retained for avatars generated before the image-only release.
     CINEMATIC_3D = "cinematic_3d"
 
 

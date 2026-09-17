@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
+import { useContext } from "react";
+import { StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import type { InBodyMeasurement } from "../types";
@@ -15,19 +17,48 @@ const labels: Record<string, string> = {
   inbody_score: "InBody score",
 };
 
+const labelsArabic: Record<string, string> = {
+  height: "الطول",
+  weight: "الوزن",
+  skeletal_muscle_mass: "الكتلة العضلية",
+  body_fat_mass: "كتلة الدهون",
+  body_fat_percentage: "نسبة الدهون",
+  bmi: "مؤشر كتلة الجسم",
+  total_body_water: "مياه الجسم",
+  visceral_fat_level: "الدهون الحشوية",
+  inbody_score: "نتيجة InBody",
+};
+
+export function measurementLabel(key: string, arabic: boolean): string {
+  return (arabic ? labelsArabic : labels)[key] ?? key;
+}
+
+function reviewFlag(flag: string, arabic: boolean): string {
+  if (!arabic) return flag.replaceAll("_", " ");
+  return ({
+    derived: "محسوب من قياسات أخرى",
+    implausible_value: "قيمة غير منطقية",
+    low_confidence: "ثقة القراءة منخفضة",
+    missing: "غير موجود",
+    negative_value: "قيمة سالبة",
+    unknown_unit: "وحدة غير معروفة",
+  } as Record<string, string>)[flag] ?? flag.replaceAll("_", " ");
+}
+
 export function MeasurementRow({ measurement }: { measurement: InBodyMeasurement }) {
+  const arabic = useContext(LanguageDirection);
   const flags = measurement.metadata.flags;
   const needsReview = flags.length > 0;
   const value =
     measurement.value === null
-      ? "Missing"
-      : `${measurement.value.toFixed(1)}${measurement.unit ? ` ${measurement.unit}` : ""}`;
+      ? arabic ? "غير موجود" : "Missing"
+      : `${measurement.value.toFixed(1)}${measurement.unit ? ` ${arabic && measurement.unit === "score" ? "نقطة" : measurement.unit}` : ""}`;
 
   return (
     <View style={styles.row}>
       <View style={styles.copy}>
-        <Text style={styles.label}>{labels[measurement.key] ?? measurement.key}</Text>
-        {needsReview ? <Text style={styles.flag}>{flags.join(", ")}</Text> : null}
+        <Text style={styles.label}>{measurementLabel(measurement.key, arabic)}</Text>
+        {needsReview ? <Text style={styles.flag}>{flags.map((flag) => reviewFlag(flag, arabic)).join("، ")}</Text> : null}
       </View>
       <View style={[styles.badge, needsReview ? styles.reviewBadge : styles.readyBadge]}>
         <Text style={[styles.value, needsReview ? styles.reviewText : styles.readyText]}>{value}</Text>

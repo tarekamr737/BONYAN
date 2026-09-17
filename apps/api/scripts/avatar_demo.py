@@ -67,7 +67,7 @@ async def create_avatar(request: Request) -> dict[str, object]:
     body = await request.json()
     presentation = BodyAvatarPresentation(body.get("presentation", "men"))
     result = await MockAvatarProvider(model="bonyan-cinematic-demo").generate(
-        AvatarGenerationRequest(metrics, BodyAvatarStyle.CINEMATIC_3D, presentation)
+        AvatarGenerationRequest(metrics, BodyAvatarStyle.PHOTO_MEASURED, presentation)
     )
     avatar_id = str(uuid4())
     images[avatar_id] = result.content
@@ -75,7 +75,7 @@ async def create_avatar(request: Request) -> dict[str, object]:
     avatar = {
         "id": avatar_id,
         "state": "ready_for_review",
-        "style": "cinematic_3d",
+        "style": "photo_measured",
         "presentation": presentation.value,
         "shape_profile": classify_body_shape(metrics, presentation).value,
         "preview_url": f"http://127.0.0.1:8000/demo/{avatar_id}.png",

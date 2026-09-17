@@ -10,6 +10,4 @@ async def delete_training_account_data(session: AsyncSession, user_id: str) -> N
     await session.execute(
         delete(WorkoutSessionRecord).where(WorkoutSessionRecord.owner_id == user_id)
     )
-    await session.execute(
-        delete(WorkoutPlanRecord).where(WorkoutPlanRecord.owner_id == user_id)
-    )
+    await session.execute(delete(WorkoutPlanRecord).where(WorkoutPlanRecord.owner_id == user_id))

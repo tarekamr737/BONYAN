@@ -77,7 +77,8 @@ class ProductionAvatarProvider:
             avatar_request.metrics, avatar_request.presentation
         ).value
         prompt = (
-            "Create a polished, cinematic 3D fitness avatar based on this private source photo. "
+            "Create a photorealistic full-body progress portrait based on this private source "
+            "photo. "
             "Preserve the person's recognizable facial identity, skin tone, and natural "
             "proportions. "
             f"Presentation: {avatar_request.presentation.value}. Body profile: {shape}. "
@@ -99,7 +100,6 @@ class ProductionAvatarProvider:
                 "aspect_ratio": "1:1",
                 "image_size": "1K",
                 "mime_type": "image/jpeg",
-                "delivery": "inline",
             },
         }
 

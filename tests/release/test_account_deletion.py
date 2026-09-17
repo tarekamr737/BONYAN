@@ -30,6 +30,8 @@ class FakeSession:
             return ["avatars/private-object"]
         if "avatar_source_photos.object_key" in rendered:
             return ["avatars/private-source-photo"]
+        if "user_profiles.profile_photo_object_key" in rendered:
+            return ["profile-photos/private-profile-photo"]
         return []
 
     async def execute(self, statement: object) -> FakeResult:
@@ -63,6 +65,7 @@ def test_account_deletion_removes_private_objects_and_all_owned_domains() -> Non
             "inbody/private-object",
             "avatars/private-object",
             "avatars/private-source-photo",
+            "profile-photos/private-profile-photo",
         ]
         for table in (
             "community_post_reports",
@@ -70,6 +73,7 @@ def test_account_deletion_removes_private_objects_and_all_owned_domains() -> Non
             "community_posts",
             "training_workout_sessions",
             "training_workout_plans",
+            "nutrition_food_logs",
             "avatars",
             "avatar_manual_body_metrics",
             "avatar_source_photos",

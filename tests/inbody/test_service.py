@@ -24,8 +24,10 @@ from app.domains.inbody.service import InBodyService
 class FakeOcrProvider:
     def __init__(self, result: InBodyResult | Exception) -> None:
         self.result = result
+        self.calls = 0
 
     async def extract(self, *, content: bytes, content_type: str, filename: str) -> InBodyResult:
+        self.calls += 1
         if isinstance(self.result, Exception):
             raise self.result
         return self.result
@@ -123,6 +125,8 @@ class FakeRepository:
     ) -> SimpleNamespace:
         scan.status = status
         scan.result = result.model_dump(mode="json")
+        scan.failure_code = None
+        scan.failure_message = None
         scan.updated_at = datetime.now(UTC)
         return scan
 
@@ -205,6 +209,40 @@ def test_duplicate_upload_returns_existing_scan() -> None:
 
     assert duplicate.duplicate is True
     assert duplicate.scan.id == first.scan.id
+
+
+@pytest.mark.parametrize("recovery", [True, False])
+def test_reupload_retries_failed_ocr_without_duplicating_scan(recovery: bool) -> None:
+    service, repository, storage = service_with(RuntimeError("temporary failure"))
+    payload = {
+        "user_id": "user-1",
+        "filename": "scan.pdf",
+        "content_type": "application/pdf",
+        "content": valid_pdf(),
+    }
+    first = run(service.upload_scan(**payload))
+    assert first.scan.status == InBodyScanStatus.FAILED
+    provider = service.ocr_provider
+    if recovery:
+        provider.result = InBodyResult(
+            measurements=[InBodyMeasurement(key=InBodyMetricKey.WEIGHT, value=82, unit="kg")]
+        )
+    retried = run(service.upload_scan(**payload))
+    assert provider.calls == 2
+    assert retried.scan.id == first.scan.id
+    assert retried.duplicate is True
+    assert len(repository.scans) == len(storage.objects) == 1
+    if recovery:
+        assert retried.scan.status == InBodyScanStatus.REVIEW_REQUIRED
+        assert retried.scan.failure_code is None
+        assert retried.scan.failure_message is None
+        run(service.confirm_scan(user_id="user-1", scan_id=first.scan.id))
+        confirmed = run(service.upload_scan(**payload))
+        assert confirmed.scan.status == InBodyScanStatus.CONFIRMED
+        assert provider.calls == 2
+    else:
+        assert retried.scan.status == InBodyScanStatus.FAILED
+        assert retried.scan.failure_code == "ocr_provider_failed"
 
 
 def test_failed_private_upload_is_cleaned_up_before_ocr() -> None:

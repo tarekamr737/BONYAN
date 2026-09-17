@@ -4,18 +4,21 @@ import {
   approveAvatar,
   createAvatar,
   deleteAvatar,
+  deleteAvatarSourcePhoto,
   getAvatarMeasurementStatus,
   listAvatars,
   regenerateAvatar,
   rejectAvatar,
   saveManualBodyMeasurements,
   setAvatarCommunityUse,
+  uploadAvatarSourcePhoto,
 } from "./api";
 import type {
   AvatarListView,
   AvatarPresentation,
   AvatarView,
   CreateAvatarPayload,
+  LocalAvatarSourcePhoto,
 } from "./types";
 
 export const avatarQueryKey = ["avatars"] as const;
@@ -58,6 +61,12 @@ export function useAvatarMutations() {
     mutationFn: (payload: CreateAvatarPayload) => createAvatar(payload),
     onSuccess: storeAvatar,
   });
+  const sourcePhotoMutation = useMutation({
+    mutationFn: (photo: LocalAvatarSourcePhoto) => uploadAvatarSourcePhoto(photo),
+  });
+  const deleteSourcePhotoMutation = useMutation({
+    mutationFn: deleteAvatarSourcePhoto,
+  });
   const approveMutation = useMutation({
     mutationFn: approveAvatar,
     onSuccess: storeAvatar,
@@ -89,8 +98,10 @@ export function useAvatarMutations() {
     communityUseMutation.reset();
     createMutation.reset();
     deleteMutation.reset();
+    deleteSourcePhotoMutation.reset();
     regenerateMutation.reset();
     rejectMutation.reset();
+    sourcePhotoMutation.reset();
   }
 
   return {
@@ -98,8 +109,10 @@ export function useAvatarMutations() {
     communityUseMutation,
     createMutation,
     deleteMutation,
+    deleteSourcePhotoMutation,
     regenerateMutation,
     rejectMutation,
+    sourcePhotoMutation,
     resetErrors,
   };
 }

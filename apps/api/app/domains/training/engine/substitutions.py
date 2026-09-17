@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.domains.training.schemas import ExercisePrescription
-from app.integrations.musclewiki.provider import ExerciseDetails
+from app.integrations.exercises.provider import ExerciseDetails
 
 
 def choose_substitution(
@@ -10,7 +10,7 @@ def choose_substitution(
     *,
     available_equipment: tuple[str, ...],
 ) -> ExerciseDetails | None:
-    original_id = original.musclewiki_id
+    original_id = original.exercise_id
     original_muscles = set(original.muscles)
 
     eligible = [

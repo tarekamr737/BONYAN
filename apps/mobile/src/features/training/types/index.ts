@@ -1,4 +1,4 @@
-export type TrainingGoal = "strength" | "hypertrophy" | "fat_loss" | "general_fitness";
+export type TrainingGoal = "strength" | "hypertrophy" | "fat_loss" | "general_fitness" | "military_preparation";
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 export type PlanStatus = "draft" | "active" | "archived";
 export type WorkoutSessionStatus = "active" | "completed";
@@ -11,7 +11,7 @@ export type ProgressionRule = {
 };
 
 export type ExercisePrescription = {
-  musclewiki_id: string;
+  exercise_id: string;
   name: string;
   muscles: string[];
   equipment: string[];
@@ -22,6 +22,11 @@ export type ExercisePrescription = {
   intensity_target: string | null;
   notes: string | null;
   progression: ProgressionRule;
+};
+
+export type ExerciseMediaAccess = {
+  url: string;
+  expires_at: string | null;
 };
 
 export type WorkoutDay = {
@@ -95,4 +100,34 @@ export type CoachToolCall = {
     | "generate_workout_plan"
     | "log_workout";
   arguments?: Record<string, unknown>;
+};
+
+export type ExerciseSearchItem = {
+  id: string;
+  name: string;
+  muscles: string[];
+  equipment: string[];
+  difficulty: string;
+};
+
+export type ExerciseSearchResponse = {
+  items: ExerciseSearchItem[];
+  page: number;
+  page_size: number;
+  total: number | null;
+  next_page: number | null;
+};
+
+export type ManualPlanRequest = {
+  name: string;
+  goal: TrainingGoal;
+  experience: ExperienceLevel;
+  exercises: {
+    exercise_id: string;
+    sets: number;
+    reps_min: number;
+    reps_max: number;
+    rest_seconds: number;
+  }[];
+  activate: boolean;
 };

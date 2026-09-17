@@ -103,6 +103,20 @@ class FakeInBodyProvider:
         return self.latest if user_id == "user-1" else None
 
 
+class FakeProfileRepository:
+    async def get(self, owner_id: str):
+        if owner_id != "user-1":
+            return None
+        return SimpleNamespace(
+            training_goal="strength",
+            experience_level="beginner",
+            available_training_days=3,
+            available_equipment=["dumbbell"],
+            preferred_language="ar-EG",
+            timezone="Africa/Cairo",
+        )
+
+
 class FakeRepository:
     def __init__(self) -> None:
         self.plans: dict[uuid.UUID, SimpleNamespace] = {}
@@ -196,6 +210,28 @@ class ToolCallingLLM:
         return LLMResponse(text="Your validated plan is ready.", model="gpt-5.6-terra")
 
 
+class InBodyToolCallingLLM:
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        if not request.tool_results:
+            assert any(tool.name == CoachToolName.GET_LATEST_INBODY for tool in request.tools)
+            return LLMResponse(
+                text="",
+                model="sovereigneg-test",
+                tool_calls=(
+                    ProviderToolCall(
+                        call_id="call-inbody",
+                        name=CoachToolName.GET_LATEST_INBODY.value,
+                        arguments={},
+                    ),
+                ),
+            )
+        assert request.tool_results[0].output["result"]["latest_confirmed_inbody"] == {
+            "weight": 75.0,
+            "scan_date": "2026-09-16",
+        }
+        return LLMResponse(text="I used your confirmed assessment.", model="sovereigneg-test")
+
+
 class HangingLLM:
     async def complete(self, request: LLMRequest):
         await asyncio.Event().wait()
@@ -243,6 +279,26 @@ def test_service_preserves_no_inbody_fallback() -> None:
     plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
 
     assert plan.generation_snapshot["optional_inbody_used"] is False
+
+
+def test_manual_plan_uses_provider_exercises_and_is_startable() -> None:
+    from app.domains.training.schemas import ManualExerciseInput, ManualPlanRequest
+
+    service, _ = make_service()
+    plan = run(
+        service.create_manual_plan(
+            user_id="user-1",
+            request=ManualPlanRequest(
+                name="Focused session",
+                exercises=[ManualExerciseInput(exercise_id="squat")],
+            ),
+        )
+    )
+
+    assert plan.generation_snapshot == {"source": "manual", "exercise_count": 1}
+    assert plan.days[0].prescriptions[0].exercise_id == "squat"
+    session = run(service.start_session(user_id="user-1", plan_id=plan.id, day_key="manual-day-1"))
+    assert session.status == WorkoutSessionStatus.ACTIVE
 
 
 def test_service_rejects_cross_user_mutations() -> None:
@@ -411,6 +467,67 @@ def test_invalid_coach_tool_call_is_rejected() -> None:
         )
 
 
+def test_coach_profile_and_confirmed_inbody_tools_are_owner_scoped() -> None:
+    service, _ = make_service()
+    executor = CoachToolExecutor(
+        service,
+        profile_repository=FakeProfileRepository(),
+        inbody_provider=FakeInBodyProvider(
+            {"weight": 75.0, "percent_body_fat": 20.0, "scan_date": "2026-09-16"}
+        ),
+    )
+
+    profile = run(
+        executor.execute(
+            user_id="user-1",
+            call=CoachToolCall(name=CoachToolName.GET_PROFILE),
+        )
+    )
+    inbody = run(
+        executor.execute(
+            user_id="user-1",
+            call=CoachToolCall(name=CoachToolName.GET_LATEST_INBODY),
+        )
+    )
+    other_user = run(
+        executor.execute(
+            user_id="user-2",
+            call=CoachToolCall(name=CoachToolName.GET_LATEST_INBODY),
+        )
+    )
+
+    assert profile.result["profile"] == {
+        "training_goal": "strength",
+        "experience_level": "beginner",
+        "available_training_days": 3,
+        "available_equipment": ["dumbbell"],
+        "preferred_language": "ar-EG",
+        "timezone": "Africa/Cairo",
+    }
+    assert inbody.result["latest_confirmed_inbody"]["weight"] == 75.0
+    assert other_user.result["latest_confirmed_inbody"] is None
+
+
+def test_coach_returns_confirmed_inbody_only_after_provider_requests_tool() -> None:
+    service, _ = make_service()
+    coach = CoachService(
+        llm_provider=InBodyToolCallingLLM(),
+        tool_executor=CoachToolExecutor(
+            service,
+            inbody_provider=FakeInBodyProvider(
+                {"weight": 75.0, "scan_date": "2026-09-16"}
+            ),
+        ),
+    )
+
+    response = run(
+        coach.respond(user_id="user-1", message="Use my latest assessment for training progress")
+    )
+
+    assert response.response == "I used your confirmed assessment."
+    assert response.tool_results[0]["name"] == CoachToolName.GET_LATEST_INBODY
+
+
 def test_coach_uses_mock_llm_and_validated_tool_results() -> None:
     service, _ = make_service()
     provider = ToolCallingLLM()
@@ -439,6 +556,36 @@ def test_coach_accepts_egyptian_arabic_training_scope() -> None:
     coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
 
     response = run(coach.respond(user_id="user-1", message="عايز خطة تمرين للجيم"))
+
+    assert response.model == "TBD"
+
+
+def test_coach_accepts_nutrition_scope_and_includes_authorized_context() -> None:
+    class ContextLLM:
+        async def complete(self, request: LLMRequest):
+            assert '"goal": "fat_loss"' in request.prompt
+            assert '"meals_logged": 1' in request.prompt
+            return LLMResponse(text="Keep the next meal protein-led.", model="test")
+
+    service, _ = make_service()
+    coach = CoachService(llm_provider=ContextLLM(), tool_executor=CoachToolExecutor(service))
+    response = run(
+        coach.respond(
+            user_id="user-1",
+            message="What should I eat next?",
+            user_context={"goal": "fat_loss", "today_nutrition": {"meals_logged": 1}},
+        )
+    )
+
+    assert response.response == "Keep the next meal protein-led."
+
+
+@pytest.mark.parametrize("message", ["Why hold this weight?", "Find a swap"])
+def test_coach_accepts_its_mobile_suggested_prompts(message: str) -> None:
+    service, _ = make_service()
+    coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
+
+    response = run(coach.respond(user_id="user-1", message=message))
 
     assert response.model == "TBD"
 

@@ -38,3 +38,127 @@ def test_scanned_pdf_missing_fields_remain_null() -> None:
 
     assert values[InBodyMetricKey.WEIGHT] == 77
     assert values[InBodyMetricKey.HEIGHT] is None
+
+
+def test_arabic_smart_lab_receipt_maps_without_inventing_water_liters() -> None:
+    result = map_mistral_ocr_to_inbody(
+        {
+            "pages": [
+                {
+                    "markdown": """
+                    الطول: 181.7 سم
+                    الوزن: 73.7 كجم
+                    مؤشر كتلة الجسم (BMI): 22.3
+                    نسبة دهون الجسم: 15.1 %
+                    وزن الدهون: 11.1 كجم
+                    دهون منطقة البطن: 6.5
+                    نسبة الماء في الجسم: 62.8 %
+                    كتلة العضلات: 59.4 كجم
+                    """
+                }
+            ]
+        }
+    )
+    measurements = {item.key: item for item in result.measurements}
+
+    assert measurements[InBodyMetricKey.HEIGHT].value == 181.7
+    assert measurements[InBodyMetricKey.HEIGHT].unit == "cm"
+    assert measurements[InBodyMetricKey.WEIGHT].value == 73.7
+    assert measurements[InBodyMetricKey.BMI].value == 22.3
+    assert measurements[InBodyMetricKey.BODY_FAT_PERCENTAGE].value == 15.1
+    assert measurements[InBodyMetricKey.BODY_FAT_MASS].value == 11.1
+    assert measurements[InBodyMetricKey.VISCERAL_FAT_LEVEL].value == 6.5
+    assert measurements[InBodyMetricKey.SKELETAL_MUSCLE_MASS].value == 59.4
+    assert measurements[InBodyMetricKey.TOTAL_BODY_WATER].value is None
+
+
+def test_markdown_table_separators_do_not_hide_measurements() -> None:
+    result = map_mistral_ocr_to_inbody(
+        {
+            "pages": [
+                {
+                    "markdown": """
+                    | ID | **Height** | Age | Gender |
+                    | --- | --- | --- | --- |
+                    | redacted | **139.3 cm** | 12 | unspecified |
+
+                    | Body Composition Analysis | Abbreviation | Unit | Value |
+                    | --- | --- | --- | --- |
+                    | Body weight | **Weight** | (kg) | **42.7 (28.0 ~ 45.0)** |
+                    | Obesity Analysis | **BMI** | (kg/m²) | **22.0** |
+                    """
+                }
+            ]
+        }
+    )
+    values = {item.key: item.value for item in result.measurements}
+
+    assert values[InBodyMetricKey.HEIGHT] == 139.3
+    assert values[InBodyMetricKey.WEIGHT] == 42.7
+    assert values[InBodyMetricKey.BMI] == 22
+
+
+def test_provider_key_value_layout_maps_to_measurements() -> None:
+    result = map_mistral_ocr_to_inbody(
+        {
+            "pages": [
+                {
+                    "markdown": """
+                    height_cm: 181.2
+                    weight_kg: 88.4
+                    skeletal_muscle_mass_kg: 39.1
+                    body_fat_mass_kg: 17.3
+                    percent_body_fat: 19.6
+                    bmi_kg_m2: 27.0
+                    total_body_water_l: 51.2
+                    inbody_score: 84
+                    """
+                }
+            ]
+        }
+    )
+    values = {item.key: item.value for item in result.measurements}
+
+    assert values[InBodyMetricKey.HEIGHT] == 181.2
+    assert values[InBodyMetricKey.SKELETAL_MUSCLE_MASS] == 39.1
+    assert values[InBodyMetricKey.BODY_FAT_PERCENTAGE] == 19.6
+    assert values[InBodyMetricKey.TOTAL_BODY_WATER] == 51.2
+    assert values[InBodyMetricKey.INBODY_SCORE] == 84
+
+
+def test_history_table_uses_latest_value_instead_of_chart_scale() -> None:
+    result = map_mistral_ocr_to_inbody(
+        {
+            "pages": [
+                {
+                    "markdown": """
+                    | PBF Protein Body Fat | (%) | 5 | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 |
+                    | PBF Protein Body Fat | (%) | 18 | 18.4 | 19 | 19.2 | 20 | 20.1 | 20.3 | 21.7 |
+                    """
+                }
+            ]
+        }
+    )
+    values = {item.key: item.value for item in result.measurements}
+
+    assert values[InBodyMetricKey.BODY_FAT_PERCENTAGE] == 21.7
+
+
+def test_chart_scale_is_not_misread_and_missing_bmi_is_derived() -> None:
+    result = map_mistral_ocr_to_inbody(
+        {
+            "pages": [
+                {
+                    "markdown": """
+                    | Height | (cm) | 180 |
+                    | Weight | (kg) | 81 |
+                    | BMI | (kg/m2) | 5 | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 |
+                    """
+                }
+            ]
+        }
+    )
+    measurements = {item.key: item for item in result.measurements}
+
+    assert measurements[InBodyMetricKey.BMI].value == 25
+    assert measurements[InBodyMetricKey.BMI].metadata.flags == ["derived"]

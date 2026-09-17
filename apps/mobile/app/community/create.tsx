@@ -1,14 +1,14 @@
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 
+import { goBackOr } from "../../src/core/navigation/safeNavigation";
 import { CreatePostScreen } from "../../src/features/community/screens/CreatePostScreen";
 
 export default function CreateCommunityPostRoute() {
-  const router = useRouter();
   return (
     <CreatePostScreen
-      onBack={() => router.back()}
-      onManageAvatar={() => router.push("../avatar")}
-      onPosted={() => router.replace("../")}
+      onBack={() => goBackOr("/community")}
+      onManageAvatar={() => router.push("/avatar")}
+      onPosted={() => router.replace("/community")}
     />
   );
 }

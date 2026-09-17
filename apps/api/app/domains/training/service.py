@@ -16,6 +16,7 @@ from app.domains.training.schemas import (
     GeneratePlanRequest,
     LoggedSet,
     LoggedSetInput,
+    ManualPlanRequest,
     PlanningContext,
     PlanStatus,
     SubstituteExerciseRequest,
@@ -23,11 +24,11 @@ from app.domains.training.schemas import (
     WorkoutSessionResponse,
     WorkoutSessionStatus,
 )
-from app.integrations.musclewiki.provider import (
+from app.integrations.exercises.provider import (
     ExerciseDetails,
+    ExerciseProvider,
     ExerciseSearchFilters,
     ExerciseSearchPage,
-    MuscleWikiExerciseProvider,
 )
 
 
@@ -35,7 +36,7 @@ class TrainingService:
     def __init__(
         self,
         repository: TrainingRepository,
-        exercise_provider: MuscleWikiExerciseProvider,
+        exercise_provider: ExerciseProvider,
         inbody_provider: LatestInBodyProvider | None = None,
     ) -> None:
         self.repository = repository
@@ -74,6 +75,59 @@ class TrainingService:
     async def get_current_plan(self, *, user_id: str) -> WorkoutPlan | None:
         record = await self.repository.get_active_plan(owner_id=user_id)
         return self._plan_response(record) if record else None
+
+    async def create_manual_plan(self, *, user_id: str, request: ManualPlanRequest) -> WorkoutPlan:
+        details = [
+            await self.exercise_provider.get_exercise(item.exercise_id)
+            for item in request.exercises
+        ]
+        prescriptions = []
+        equipment: set[str] = set()
+        for selected, exercise in zip(request.exercises, details, strict=True):
+            equipment.update(exercise.equipment)
+            prescriptions.append(
+                {
+                    "exercise_id": exercise.id,
+                    "name": exercise.name,
+                    "muscles": list(exercise.muscles),
+                    "equipment": list(exercise.equipment),
+                    "sets": selected.sets,
+                    "reps_min": selected.reps_min,
+                    "reps_max": selected.reps_max,
+                    "rest_seconds": selected.rest_seconds,
+                    "intensity_target": None,
+                    "notes": None,
+                    "progression": {
+                        "type": "double_progression",
+                        "increment_kg": 2.5,
+                        "hold_after_failures": 1,
+                        "regress_after_failures": 2,
+                    },
+                }
+            )
+        duration = max(20, min(120, len(prescriptions) * 8))
+        record = await self.repository.save_plan(
+            owner_id=user_id,
+            plan={
+                "status": PlanStatus.ACTIVE if request.activate else PlanStatus.DRAFT,
+                "goal": request.goal,
+                "experience": request.experience,
+                "days_per_week": 1,
+                "session_duration_minutes": duration,
+                "equipment": sorted(equipment),
+                "generation_snapshot": {"source": "manual", "exercise_count": len(prescriptions)},
+                "days": [
+                    {
+                        "key": "manual-day-1",
+                        "order": 1,
+                        "name": request.name,
+                        "estimated_minutes": duration,
+                        "prescriptions": prescriptions,
+                    }
+                ],
+            },
+        )
+        return self._plan_response(record)
 
     async def list_recent_sessions(
         self, *, user_id: str, limit: int = 10
@@ -188,7 +242,7 @@ class TrainingService:
             )
         day.prescriptions[request.prescription_index] = original.model_copy(
             update={
-                "musclewiki_id": replacement.id,
+                "exercise_id": replacement.id,
                 "name": replacement.name,
                 "muscles": list(replacement.muscles),
                 "equipment": list(replacement.equipment),

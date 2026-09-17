@@ -1,11 +1,28 @@
 import { apiRequest } from "../../../core/api/client";
 import type {
   CoachMessageResponse,
+  ExerciseMediaAccess,
   GeneratePlanRequest,
   LoggedSetInput,
   WorkoutPlan,
   WorkoutSession,
+  ExerciseSearchResponse,
+  ManualPlanRequest,
 } from "../types";
+
+export function searchExercises(query: string): Promise<ExerciseSearchResponse> {
+  return apiRequest(`/api/v1/training/exercises?query=${encodeURIComponent(query)}&page_size=20`);
+}
+
+export function createManualWorkoutPlan(request: ManualPlanRequest): Promise<WorkoutPlan> {
+  return apiRequest("/api/v1/training/plans/manual", { body: request, method: "POST" });
+}
+
+export function getExerciseMediaAccess(exerciseId: string): Promise<ExerciseMediaAccess> {
+  return apiRequest<ExerciseMediaAccess>(
+    `/api/v1/training/exercises/${encodeURIComponent(exerciseId)}/media`,
+  );
+}
 
 export function generateWorkoutPlan(request: GeneratePlanRequest): Promise<WorkoutPlan> {
   return apiRequest<WorkoutPlan>("/api/v1/training/plans", {

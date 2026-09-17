@@ -1,11 +1,14 @@
 from io import BytesIO
 
-from pypdf import PdfWriter
+import pytest
+from PIL import Image
+from pypdf import PdfReader, PdfWriter
 
 from app.domains.inbody.schemas import InBodyMeasurement, InBodyMetricKey, InBodyResult
 from app.domains.inbody.validation import (
     MAX_IMAGE_BYTES,
     MAX_PDF_PAGES,
+    assemble_image_pages_pdf,
     is_supported_upload,
     normalize_upload_filename,
     validate_measurement,
@@ -77,10 +80,30 @@ def test_upload_filename_is_reduced_to_a_safe_display_name() -> None:
     assert normalize_upload_filename("bad\r\nname.pdf") == "inbody-report"
 
 
+def test_report_images_are_assembled_into_one_valid_multipage_pdf() -> None:
+    pages = [("image/jpeg", jpeg_page(color)) for color in ("white", "gray", "black")]
+
+    content = assemble_image_pages_pdf(pages)
+
+    assert is_supported_upload("application/pdf", len(content), content)
+    assert len(PdfReader(BytesIO(content)).pages) == 3
+
+
+def test_report_image_assembly_rejects_non_image_parts() -> None:
+    with pytest.raises(ValueError, match="report images"):
+        assemble_image_pages_pdf([("application/pdf", pdf_with_pages(1))])
+
+
 def pdf_with_pages(page_count: int) -> bytes:
     writer = PdfWriter()
     for _ in range(page_count):
         writer.add_blank_page(width=100, height=100)
     stream = BytesIO()
     writer.write(stream)
+    return stream.getvalue()
+
+
+def jpeg_page(color: str) -> bytes:
+    stream = BytesIO()
+    Image.new("RGB", (120, 180), color).save(stream, "JPEG")
     return stream.getvalue()

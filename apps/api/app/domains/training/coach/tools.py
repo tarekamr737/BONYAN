@@ -7,10 +7,12 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.core.errors import AppError
 from app.core.providers.contracts import LLMToolDefinition
+from app.domains.inbody.contracts import LatestInBodyProvider
 from app.domains.training.coach.schemas import CoachToolCall, CoachToolName, CoachToolResult
 from app.domains.training.schemas import GeneratePlanRequest, LoggedSetInput
 from app.domains.training.service import TrainingService
-from app.integrations.musclewiki.provider import ExerciseSearchFilters
+from app.domains.users.repository import ProfileRepository
+from app.integrations.exercises.provider import ExerciseSearchFilters
 
 
 class SearchExercisesArgs(BaseModel):
@@ -28,8 +30,16 @@ class LogWorkoutArgs(LoggedSetInput):
 
 
 class CoachToolExecutor:
-    def __init__(self, training_service: TrainingService) -> None:
+    def __init__(
+        self,
+        training_service: TrainingService,
+        *,
+        profile_repository: ProfileRepository | None = None,
+        inbody_provider: LatestInBodyProvider | None = None,
+    ) -> None:
         self.training_service = training_service
+        self.profile_repository = profile_repository
+        self.inbody_provider = inbody_provider
 
     @staticmethod
     def definitions() -> tuple[LLMToolDefinition, ...]:
@@ -39,6 +49,14 @@ class CoachToolExecutor:
             "additionalProperties": False,
         }
         models = {
+            CoachToolName.GET_PROFILE: (
+                "Read the user's fitness preferences and profile settings.",
+                empty_parameters,
+            ),
+            CoachToolName.GET_LATEST_INBODY: (
+                "Read the user's latest confirmed InBody measurements, if available.",
+                empty_parameters,
+            ),
             CoachToolName.GET_CURRENT_PLAN: (
                 "Read the user's current workout plan summary.",
                 empty_parameters,
@@ -85,14 +103,26 @@ class CoachToolExecutor:
         return CoachToolResult(name=call.name, result=result)
 
     async def _execute_validated(self, *, user_id: str, call: CoachToolCall) -> dict[str, object]:
+        if call.name == CoachToolName.GET_PROFILE:
+            profile = (
+                await self.profile_repository.get(user_id)
+                if self.profile_repository is not None
+                else None
+            )
+            return {"profile": _profile_summary(profile) if profile else None}
+        if call.name == CoachToolName.GET_LATEST_INBODY:
+            latest = (
+                await self.inbody_provider.get_latest_inbody(user_id)
+                if self.inbody_provider is not None
+                else None
+            )
+            return {"latest_confirmed_inbody": latest}
         if call.name == CoachToolName.GET_CURRENT_PLAN:
             plan = await self.training_service.get_current_plan(user_id=user_id)
             return {"plan": _plan_summary(plan) if plan else None}
         if call.name == CoachToolName.GET_TRAINING_HISTORY:
             sessions = await self.training_service.list_recent_sessions(user_id=user_id, limit=5)
-            return {
-                "sessions": [_session_summary(item) for item in sessions]
-            }
+            return {"sessions": [_session_summary(item) for item in sessions]}
         if call.name == CoachToolName.SEARCH_EXERCISES:
             args = SearchExercisesArgs.model_validate(call.arguments)
             page = await self.training_service.search_exercises(
@@ -142,6 +172,17 @@ def _plan_summary(plan) -> dict[str, object]:
             }
             for day in plan.days
         ],
+    }
+
+
+def _profile_summary(profile) -> dict[str, object]:
+    return {
+        "training_goal": profile.training_goal,
+        "experience_level": profile.experience_level,
+        "available_training_days": profile.available_training_days,
+        "available_equipment": list(profile.available_equipment or []),
+        "preferred_language": profile.preferred_language,
+        "timezone": profile.timezone,
     }
 
 

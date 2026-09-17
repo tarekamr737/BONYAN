@@ -10,7 +10,7 @@
 - [x] Add migrations.
 - [x] Add user-scoped repositories and auth tests.
 
-## C. MuscleWiki
+## C. Exercise Provider
 - [x] Add backend-only client boundary.
 - [x] Implement search/details.
 - [x] Add pagination/filtering.
@@ -26,7 +26,7 @@
 
 ## E. Exercise Selection
 - [x] Define movement/muscle coverage rules.
-- [x] Retrieve eligible MuscleWiki candidates.
+- [x] Retrieve eligible provider candidates.
 - [x] Filter incompatible exercises.
 - [x] Select deterministically.
 - [x] Validate final references.
@@ -65,11 +65,12 @@
 
 ## K. Coach Provider
 - [x] Wire `LLMProvider` + mock.
-- [x] Keep `CHAT_MODEL=TBD`.
+- [x] Keep model selection provider-neutral; release locks SovereignEG
+  `glm-5.3-flash`.
 - [x] Define compact coach schemas.
 
 ## L. Coach Tools
-- [ ] Add profile/InBody read tools after central user/profile contract is merged.
+- [x] Add owner-scoped profile and latest-confirmed-InBody read tools.
 - [x] Add plan/history read tools.
 - [x] Add exercise search/details tools.
 - [x] Add plan generate/log tools.
@@ -83,7 +84,7 @@
 ## N. Final
 - [x] Test no-InBody fallback.
 - [x] Test beginner/advanced/equipment cases.
-- [x] Test MuscleWiki and LLM outages.
+- [x] Test exercise-provider and LLM outages.
 - [x] Test invalid coach tool call.
 - [x] Lint passes.
 - [x] Typecheck passes.
@@ -91,4 +92,5 @@
 
 ## Blockers / Next Step
 - Person 01 central registration is required for API router inclusion and app-shell navigation.
-- Live MuscleWiki verification is blocked until backend credentials are available.
+- ExerciseDB live search, detail, filters, and media retrieval are verified; public-service
+  availability and rate limits remain operational risks.

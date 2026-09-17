@@ -12,24 +12,26 @@ from app.domains.training.schemas import (
     PlanningContext,
     PlanStatus,
     ProgressionRule,
+    TrainingGoal,
     WorkoutDay,
     WorkoutPlan,
 )
-from app.integrations.musclewiki.errors import MuscleWikiError
-from app.integrations.musclewiki.provider import (
+from app.integrations.exercises.errors import ExerciseProviderError
+from app.integrations.exercises.provider import (
     ExerciseDetails,
+    ExerciseProvider,
     ExerciseSearchFilters,
-    MuscleWikiExerciseProvider,
 )
 
 
 class WorkoutPlanner:
-    def __init__(self, exercise_provider: MuscleWikiExerciseProvider) -> None:
+    def __init__(self, exercise_provider: ExerciseProvider) -> None:
         self.exercise_provider = exercise_provider
 
     async def generate(self, context: PlanningContext, *, activate: bool = True) -> WorkoutPlan:
         equipment = normalize_equipment(context.equipment)
         split = SPLITS[context.days_per_week]
+        military = context.goal == TrainingGoal.MILITARY_PREPARATION
         per_day = prescriptions_per_day(context.session_duration_minutes)
         defaults = prescription_defaults(context.goal, context.experience)
         used_ids: set[str] = set()
@@ -37,7 +39,12 @@ class WorkoutPlanner:
 
         for order, day_name in enumerate(split, start=1):
             prescriptions: list[ExercisePrescription] = []
-            for muscle in DAY_MUSCLES[day_name][:per_day]:
+            muscles = (
+                ("chest", "back", "quadriceps", "core", "hamstrings")
+                if military
+                else DAY_MUSCLES[day_name]
+            )
+            for muscle in muscles[:per_day]:
                 exercise = await self._select_exercise(
                     muscle=muscle,
                     equipment=equipment,
@@ -48,7 +55,7 @@ class WorkoutPlanner:
                 sets, reps_min, reps_max, rest_seconds, intensity = defaults
                 prescriptions.append(
                     ExercisePrescription(
-                        musclewiki_id=exercise.id,
+                        exercise_id=exercise.id,
                         name=exercise.name,
                         muscles=list(exercise.muscles or (muscle,)),
                         equipment=list(exercise.equipment),
@@ -65,7 +72,7 @@ class WorkoutPlanner:
                 WorkoutDay(
                     key=f"day-{order}",
                     order=order,
-                    name=day_name,
+                    name=f"Preparation {order}: strength endurance" if military else day_name,
                     estimated_minutes=min(
                         context.session_duration_minutes, 10 + len(prescriptions) * 9
                     ),
@@ -109,7 +116,7 @@ class WorkoutPlanner:
                 for item in page.items
                 if item.id not in used_ids and set(item.equipment).issubset(set(equipment))
             ]
-        except MuscleWikiError:
+        except ExerciseProviderError:
             candidates = []
         if candidates:
             return sorted(candidates, key=lambda item: (item.name.lower(), item.id))[0]

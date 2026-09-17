@@ -482,7 +482,7 @@ def test_unexpected_provider_failure_becomes_retryable_state() -> None:
     asyncio.run(scenario())
 
 
-def test_regeneration_uses_latest_confirmed_metrics_and_replaces_asset() -> None:
+def test_regeneration_uses_latest_metrics_and_preserves_previous_version() -> None:
     async def scenario() -> None:
         service, repository, storage, reader = make_service()
         created = await service.create("user-1", create_request())
@@ -497,13 +497,15 @@ def test_regeneration_uses_latest_confirmed_metrics_and_replaces_asset() -> None
         )
 
         regenerated = await service.regenerate("user-1", created.id)
-        new_key = repository.items[created.id].generated_object_key
+        new_key = repository.items[regenerated.id].generated_object_key
 
         assert regenerated.state is AvatarState.READY_FOR_REVIEW
+        assert regenerated.id != created.id
         assert reader.snapshot is not None
         assert regenerated.measurements_recorded_at == reader.snapshot.recorded_at
         assert new_key != old_key
-        assert old_key in storage.deleted
+        assert old_key not in storage.deleted
+        assert old_key in storage.items
         assert new_key in storage.items
 
     asyncio.run(scenario())

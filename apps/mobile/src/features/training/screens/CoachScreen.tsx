@@ -1,188 +1,32 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-import { ApiError } from "../../../core/api/errors";
-import { SurfaceCard } from "../../../core/components/SurfaceCard";
-import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
+import { View } from "react-native";
+import { DirectionalText as Text } from "../../../core/components/DirectionalText";
+import { AppButton, AppTextField } from "../../../core/components";
+import { getMyProfile } from "../../auth/api/profileApi";
+import { CoachingPage, GlassCard, ui } from "../../auth/components/CoachingUI";
 import { sendCoachMessage } from "../api/trainingApi";
-import { TrainingHeader } from "../components/TrainingHeader";
+import { readableCoachText } from "../coachText";
 
-const prompts = ["Explain today's plan", "Find a swap", "Why hold this weight?"];
+type Message = {role: "user" | "coach"; text: string};
 
 export function CoachScreen() {
-  const [message, setMessage] = useState("Explain today's workout plan");
-  const [reply, setReply] = useState<string | null>(null);
-  const [model, setModel] = useState<string | null>(null);
-  const [toolCount, setToolCount] = useState(0);
-
-  const sendMutation = useMutation({
-    mutationFn: () => sendCoachMessage(message),
-    onSuccess: (response) => {
-      setReply(response.response);
-      setModel(response.model);
-      setToolCount(response.tool_results.length);
-    },
-  });
-
-  return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <TrainingHeader
-          title="Coach"
-          subtitle="Ask about training, plan context, swaps, and logging while deterministic BONYAN tools handle state."
-        />
-
-        <SurfaceCard>
-          <Text style={styles.coachLabel}>{model ? `MODEL / ${model}` : "BONYAN COACH"}</Text>
-          <Text style={styles.coachText}>
-            {reply ??
-              "I can explain your active plan, search exercises, or log workout details through validated tools."}
-          </Text>
-          {toolCount > 0 ? <Text style={styles.toolText}>{toolCount} tool result loaded</Text> : null}
-        </SurfaceCard>
-
-        {sendMutation.isError ? (
-          <SurfaceCard>
-            <Text style={styles.errorTitle}>Message not sent</Text>
-            <Text style={styles.errorText}>
-              {sendMutation.error instanceof ApiError
-                ? sendMutation.error.message
-                : "Could not connect to BONYAN. Check your connection and try again."}
-            </Text>
-          </SurfaceCard>
-        ) : null}
-
-        <View style={styles.promptRow}>
-          {prompts.map((prompt) => (
-            <Pressable
-              accessibilityRole="button"
-              key={prompt}
-              onPress={() => setMessage(prompt)}
-              style={styles.prompt}
-            >
-              <Text style={styles.promptText}>{prompt}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.inputWrap}>
-          <TextInput
-            accessibilityLabel="Coach message"
-            multiline
-            onChangeText={setMessage}
-            placeholder="Ask about your training"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={message}
-          />
-          <Pressable
-            accessibilityRole="button"
-            disabled={sendMutation.isPending || !message.trim()}
-            onPress={() => sendMutation.mutate()}
-            style={[styles.sendButton, (sendMutation.isPending || !message.trim()) && styles.disabledAction]}
-          >
-            <Text style={styles.sendButtonText}>{sendMutation.isPending ? "Sending..." : "Send"}</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  const client = useQueryClient();
+  const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
+  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>(() => client.getQueryData<Message[]>(["coach-conversation"]) ?? []);
+  const send = useMutation({mutationFn: (text: string) => sendCoachMessage(text), onSuccess: (response, text) => {
+    setMessages(current => {const next: Message[] = [...current, {role: "user", text}, {role: "coach", text: response.response}]; client.setQueryData(["coach-conversation"], next); return next;});
+    setMessage("");
+    void client.invalidateQueries({queryKey: ["training"]});
+  }});
+  return <CoachingPage arabic={arabic} footer={<View style={{gap: 8}}><AppTextField label={arabic ? "رسالتك لبنيان" : "Your message to Bonyan"} multiline value={message} editable={!send.isPending} onChangeText={setMessage} maxLength={4000} placeholder={arabic ? "اسأل عن تدريبك…" : "Ask about your training?"} /><AppButton label={arabic ? "إرسال" : "Send"} loading={send.isPending} disabled={!message.trim()} onPress={() => send.mutate(message.trim())} /></View>}>
+    <Text style={ui.title}>{arabic ? "الكوتش بنيان" : "Bonyan Coach"}</Text>
+    <Text style={ui.text}>{arabic ? "خلينا ناخد تدريبك خطوة بخطوة. اسأل عن خطتك أو بديل لتمرين." : "Let's take training one step at a time. Ask about your plan or an exercise alternative."}</Text>
+    {messages.length === 0 ? <GlassCard><Text style={ui.heading}>{arabic ? "نبدأ بإيه؟" : "Where shall we start?"}</Text>{(arabic ? ["اشرح لي خطة تمريني", "ساعدني أختار بديل لتمرين"] : ["Explain my training plan", "Help me find an exercise alternative"]).map(prompt => <AppButton key={prompt} label={prompt} variant="secondary" onPress={() => setMessage(prompt)} />)}</GlassCard> : null}
+    {messages.map((entry, index) => <GlassCard key={index}><Text style={ui.small}>{entry.role === "coach" ? arabic ? "بنيان" : "Bonyan" : arabic ? "أنت" : "You"}</Text><Text selectable style={ui.text}>{entry.role === "coach" ? readableCoachText(entry.text) : entry.text}</Text></GlassCard>)}
+    {send.isPending ? <Text accessibilityLiveRegion="polite" style={ui.small}>{arabic ? "بنيان بيجهّز الرد…" : "Bonyan is preparing a reply…"}</Text> : null}
+    {send.isError ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذّر إرسال الرسالة. كلامك موجود؛ حاول تاني." : "Couldn't send your message. Your text is still here; please retry."}</Text> : null}
+  </CoachingPage>;
 }
-
-const styles = StyleSheet.create({
-  coachLabel: {
-    color: colors.bronze,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-  },
-  coachText: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 24,
-    marginTop: spacing.sm,
-  },
-  content: {
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  disabledAction: {
-    opacity: 0.55,
-  },
-  errorText: {
-    color: colors.mutedLight,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 22,
-    marginTop: spacing.xs,
-  },
-  errorTitle: {
-    color: colors.error,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
-  },
-  input: {
-    color: colors.text,
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 16,
-    minHeight: 52,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  inputWrap: {
-    alignItems: "flex-end",
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderRadius: radii.control,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: spacing.sm,
-    padding: spacing.xs,
-  },
-  prompt: {
-    backgroundColor: colors.bronzeSoft,
-    borderColor: colors.bronzeBorder,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  promptRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  promptText: {
-    color: colors.bronze,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12,
-  },
-  safeArea: {
-    backgroundColor: colors.canvas,
-    flex: 1,
-  },
-  sendButton: {
-    alignItems: "center",
-    backgroundColor: colors.bronze,
-    borderRadius: radii.control,
-    justifyContent: "center",
-    minHeight: 52,
-    paddingHorizontal: spacing.lg,
-  },
-  sendButtonText: {
-    color: colors.canvas,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-  },
-  toolText: {
-    color: colors.mutedLight,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    marginTop: spacing.md,
-  },
-});

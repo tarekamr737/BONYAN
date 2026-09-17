@@ -1,46 +1,26 @@
-# Production Provider Decisions
+# Final Production Provider Decisions
 
-Status as of 2026-09-04: implementation-complete, no final Coach or Avatar
-production model selected. Live benchmark evidence is still required.
+Status as of 2026-09-12: provider choices are locked for this release candidate.
 
-## Coach
+| Capability | Active provider/model | Why selected | Release risk |
+|---|---|---|---|
+| Exercises | ExerciseDB V1 Free API | Normalized exercise metadata and hosted GIFs without an API key | Public free service availability and rate limits are not guaranteed |
+| Coach | SovereignEG / `glm-5.3-flash` | OpenAI-compatible endpoint, live authenticated catalog entry, three healthy routed backends, tool support, and EGP billing | Standard routing is not Egypt data residency; live BONYAN language/tool scoring is pending and usage is paid |
+| Avatar | OpenRouter / `meta/muse-image` | Best identity preservation in the two-photo private comparison; 4.30/5 weighted and 4.33/5 average identity | Only one identity was available; OpenRouter routing/privacy acceptance and broader identity coverage remain release risks |
+| OCR | Mistral / `mistral-ocr-4-1` | Existing validated OCR boundary and locked production model | Representative private-fixture accuracy remains a release gate |
 
-No production Coach model is selected yet. The benchmark candidates are OpenAI
-`gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`; `gpt-5.6-terra` is only the
-balanced candidate in the shortlist, not the winner. The adapter uses the
-Responses API, `strict: true` function schemas, one bounded tool round,
-`store: false`, and a hashed safety identifier.
+Training and Avatar domains remain provider-neutral. Cloudflare, Gemini, MuscleWiki, and Puter stay
+as explicit legacy adapters, but production never silently falls back to them. During upstream outages BONYAN returns
+cached exercise metadata when present or a safe unavailable state; it never incurs an unapproved
+paid-model charge.
 
-The final Coach decision must wait until every candidate has run against
-`coach-test-set.json`, human Arabic scoring is complete, and comparable latency,
-cost, tool-call validity, hallucination, and reliability metrics are recorded.
-Any candidate below 98% valid tool arguments, or any candidate that invents
-authoritative user state, is ineligible.
+All credentials remain backend-only. ExerciseDB accepts no secret. Exercise media URLs are accepted
+only from `https://static.exercisedb.dev/media/`; source photos and generated avatars retain the
+private upload, preview, explicit approval, and explicit publication lifecycle.
 
-An OpenRouter candidate configured for the 2026-09-10 integration review returned
-HTTP 404 in all seven live cases. That result does not select or disqualify the
-underlying model; its current OpenRouter model slug/availability must be corrected
-before a comparable benchmark can run.
-
-Sources: https://developers.openai.com/api/docs/models and https://developers.openai.com/api/reference/cli/resources/responses/methods/create
-
-## Avatar
-
-No production Avatar model is selected yet. The benchmark candidates are Google
-`gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image`, and
-`gemini-3-pro-image`; `gemini-3.1-flash-image` is only the balanced candidate in
-the shortlist, not the winner. The adapter accepts private image input and
-returns normalized private image bytes.
-
-The final Avatar decision must wait until every candidate has run against the
-same consented private fixtures and human scoring covers identity, facial
-consistency, body realism, prompt adherence, regeneration consistency,
-privacy/safety behavior, latency, cost, and reliability.
-
-Sources: https://ai.google.dev/gemini-api/docs/image-generation and https://ai.google.dev/gemini-api/docs/pricing
-
-## Locked Integrations
-
-Mistral OCR remains `mistral-ocr-4-1`, currently GA at $4 per 1,000 pages. MuscleWiki remains the exercise/media provider. Its API uses `X-API-Key`, `/search?q=...`, and `limit`/`offset`; permanent keys stay in the backend and media reaches clients only through BONYAN's user-bound short-lived relay token.
-
-Sources: https://docs.mistral.ai/models/ocr-4-1 and https://api.musclewiki.com/documentation
+Sources: https://docs.ascendapi.com/products/edb-v1/overview,
+https://sovereigneg.com/docs,
+https://sovereigneg.com/docs/function-calling,
+https://openrouter.ai/docs/guides/overview/multimodal/image-generation,
+https://developers.cloudflare.com/workers-ai/models/flux-2-klein-4b/,
+and https://docs.mistral.ai/models/ocr-4-1.

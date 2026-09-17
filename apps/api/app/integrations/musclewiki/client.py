@@ -7,7 +7,13 @@ from urllib import error, parse, request
 
 from app.core.config import Settings
 from app.core.logging import get_logger
-from app.integrations.musclewiki.cache import MetadataCache
+from app.integrations.exercises.cache import MetadataCache
+from app.integrations.exercises.provider import (
+    ExerciseDetails,
+    ExerciseSearchFilters,
+    ExerciseSearchPage,
+    MediaAccess,
+)
 from app.integrations.musclewiki.errors import (
     MuscleWikiAuthenticationError,
     MuscleWikiInvalidResponseError,
@@ -15,12 +21,6 @@ from app.integrations.musclewiki.errors import (
     MuscleWikiUnavailableError,
 )
 from app.integrations.musclewiki.media import MuscleWikiMediaSigner
-from app.integrations.musclewiki.provider import (
-    ExerciseDetails,
-    ExerciseSearchFilters,
-    ExerciseSearchPage,
-    MediaAccess,
-)
 
 logger = get_logger("providers")
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -196,7 +196,7 @@ class MuscleWikiClient:
             equipment=equipment,
             difficulty=str(raw.get("difficulty") or raw.get("level") or "intermediate").lower(),
             instructions=instructions,
-            video_url=_media_url(raw.get("video_url") or raw.get("video") or raw.get("videos")),
+            media_url=_media_url(raw.get("video_url") or raw.get("video") or raw.get("videos")),
             thumbnail_url=_optional_url(raw.get("thumbnail_url") or raw.get("image")),
         )
 

@@ -1,8 +1,8 @@
+import { DirectionalText as Text } from "./DirectionalText";
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   type PressableProps,
 } from "react-native";
 
@@ -27,6 +27,7 @@ export function AppButton({
     <Pressable
       {...props}
       accessibilityRole="button"
+      accessibilityLabel={props.accessibilityLabel ?? label}
       accessibilityState={{ busy: loading, disabled: unavailable }}
       disabled={unavailable}
       style={({ pressed }) => [
@@ -69,11 +70,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 50,
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   primary: {
     backgroundColor: colors.bronze,
   },
   secondary: {
+    backgroundColor: "transparent",
     borderColor: colors.bronzeBorder,
     borderWidth: 1,
   },
@@ -83,21 +86,25 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.78,
+    transform: [{scale: 0.985}],
   },
   disabled: {
     opacity: 0.45,
   },
   primaryLabel: {
+    textAlign: "center",
     color: colors.canvas,
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
   },
   secondaryLabel: {
+    textAlign: "center",
     color: colors.bronze,
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
   },
   dangerLabel: {
+    textAlign: "center",
     color: colors.error,
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,

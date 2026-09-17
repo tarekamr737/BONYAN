@@ -112,7 +112,9 @@ def test_private_training_route_rejects_missing_authentication() -> None:
     assert asyncio.run(get_private_route(path)) == status.HTTP_401_UNAUTHORIZED
 
 
-@pytest.mark.parametrize("path", ["/api/v1/avatars", "/api/v1/community/feed"])
+@pytest.mark.parametrize(
+    "path", ["/api/v1/avatars", "/api/v1/community/feed", "/api/v1/me/photo"]
+)
 def test_private_ws4_routes_reject_missing_authentication(path: str) -> None:
     assert asyncio.run(get_private_route(path)) == status.HTTP_401_UNAUTHORIZED
 

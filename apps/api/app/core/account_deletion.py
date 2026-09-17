@@ -9,8 +9,10 @@ from app.core.storage import PrivateObjectStorage
 from app.domains.avatar.lifecycle import delete_avatar_account_data
 from app.domains.community.lifecycle import delete_community_account_data
 from app.domains.inbody.lifecycle import delete_inbody_account_data
+from app.domains.nutrition.lifecycle import delete_nutrition_account_data
 from app.domains.training.lifecycle import delete_training_account_data
 from app.domains.users.lifecycle import delete_user_account_data
+from app.domains.users.profile_photo import delete_profile_photo_account_data
 
 
 @dataclass
@@ -22,6 +24,7 @@ class AccountDeletionService:
         try:
             await delete_inbody_account_data(self.session, self.storage, user_id)
             await delete_avatar_account_data(self.session, self.storage, user_id)
+            await delete_profile_photo_account_data(self.session, self.storage, user_id)
         except Exception as exc:
             raise AppError(
                 "account_deletion_failed",
@@ -30,6 +33,7 @@ class AccountDeletionService:
             ) from exc
 
         await delete_community_account_data(self.session, user_id)
+        await delete_nutrition_account_data(self.session, user_id)
         await delete_training_account_data(self.session, user_id)
         await delete_user_account_data(self.session, user_id)
         await self.session.flush()

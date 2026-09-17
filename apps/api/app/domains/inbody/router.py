@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
 from app.core.database import get_db_session
+from app.core.errors import AppError
 from app.core.rate_limit import limit_ocr
 from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.inbody.repository import InBodyRepository
@@ -19,7 +20,11 @@ from app.domains.inbody.schemas import (
     UploadResponse,
 )
 from app.domains.inbody.service import InBodyService
-from app.domains.inbody.validation import MAX_UPLOAD_BYTES
+from app.domains.inbody.validation import (
+    MAX_REPORT_IMAGES,
+    MAX_UPLOAD_BYTES,
+    assemble_image_pages_pdf,
+)
 
 router = APIRouter(prefix="/inbody", tags=["inbody"])
 
@@ -32,21 +37,48 @@ async def get_inbody_service(
 
 
 InBodyServiceDep = Annotated[InBodyService, Depends(get_inbody_service)]
-ReportFile = Annotated[UploadFile, File()]
+ReportFiles = Annotated[list[UploadFile], File()]
 
 
 @router.post("/scans", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_scan(
-    report: ReportFile,
+    report: ReportFiles,
     current_user: CurrentUserDep,
     service: InBodyServiceDep,
     _: Annotated[None, Depends(limit_ocr)],
 ) -> UploadResponse:
-    content = await report.read(MAX_UPLOAD_BYTES + 1)
+    if not 1 <= len(report) <= MAX_REPORT_IMAGES:
+        raise AppError(
+            "invalid_inbody_file",
+            "Upload one PDF or between one and three report images.",
+            status.HTTP_400_BAD_REQUEST,
+        )
+    contents = [await item.read(MAX_UPLOAD_BYTES + 1) for item in report]
+    if len(report) == 1:
+        selected = report[0]
+        content = contents[0]
+        filename = selected.filename or "inbody-report"
+        content_type = selected.content_type or "application/octet-stream"
+    else:
+        try:
+            content = assemble_image_pages_pdf(
+                [
+                    (item.content_type or "application/octet-stream", item_content)
+                    for item, item_content in zip(report, contents, strict=True)
+                ]
+            )
+        except ValueError as exc:
+            raise AppError(
+                "invalid_inbody_file",
+                "Upload one PDF or between one and three readable report images.",
+                status.HTTP_400_BAD_REQUEST,
+            ) from exc
+        filename = f"inbody-{len(report)}-pages.pdf"
+        content_type = "application/pdf"
     return await service.upload_scan(
         user_id=current_user.id,
-        filename=report.filename or "inbody-report",
-        content_type=report.content_type or "application/octet-stream",
+        filename=filename,
+        content_type=content_type,
         content=content,
     )
 

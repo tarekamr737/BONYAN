@@ -1,36 +1,23 @@
 # Workstream 05 Status
 
-## Complete Offline
+## Final provider lock — 2026-09-12
 
-- Latest `main` baseline recorded and feature branch created.
-- Existing Mistral, MuscleWiki, Coach mock, and Avatar mock tests verified.
-- Reproducible Coach and Avatar candidate sets, test sets, rubrics, and cost model added.
-- `ProductionLLMProvider` and `ProductionAvatarProvider` implemented with configurable models and backend-only credentials.
-- Timeout, bounded retry, auth, rate-limit, malformed-output, secret-redaction, typed-tool, and Avatar privacy behavior covered by unit tests.
-- Mistral OCR and MuscleWiki clients aligned with current locked-provider documentation.
-- Opt-in live and full-staging suites added; normal CI skips them without credentials.
-- Integration handoff documented.
-- Backend validation after rebasing onto WS6: Ruff clean; 184 offline tests passed; 27 live cases skipped only
-  for their documented environment gates.
-- Repository validation: mobile lint, routes, typecheck, 27 tests, and the 19-route
-  Expo Android/iOS/web release export passed. Alembic has one head, rendered cleanly,
-  upgraded a fresh PostgreSQL 17 database, passed `alembic check`, downgraded to 0006,
-  and upgraded to `20260904_0007` again.
-- WS6 rate limiting, safe logging, upload hardening, release environment validation, and
-  account deletion behavior were preserved. Account deletion now includes Avatar source-photo
-  records and private objects.
+- Exercises: ExerciseDB V1 Free API; active adapter and live search/detail/media pass.
+- Coach: SovereignEG `glm-5.3-flash`; authenticated model discovery and adapter regression pass.
+  The first live Coach run passed 5/7 in 65.82 seconds; mixed-language and unknown-state tool
+  selection failed. Repeated scoring and human Arabic review remain pending. Standard routing is
+  not an Egypt data-residency guarantee.
+- Avatar: OpenRouter `meta/muse-image`; dedicated adapter/security tests pass. Against the maximum
+  available consented set (two photos of one identity, three generations each), it scored 4.30/5
+  weighted with 4.33 average identity and 4.0 lowest identity, passing the defined gate. Qwen Image
+  3 scored 3.78/5 and failed on identity drift. Cloudflare FLUX remains historical at 2.75/5.
+- OCR: Mistral `mistral-ocr-4-1`; the private nine-case suite passes. Six cases have ground-truth
+  accuracy assertions; three hardest multipart images pass extraction but still need labels.
 
-## Blocked Externally
-
-- Coach candidate quality/tool benchmark: the locally configured OpenRouter candidate returned
-  HTTP 404 in all seven attempted cases; its model availability/configuration and human Arabic
-  scoring remain open.
-- Avatar candidate identity/realism benchmark: missing Gemini key and consented private fixtures.
-- Mistral six-format validation: missing Mistral key and private InBody fixtures/ground truth.
-- MuscleWiki live search/media validation: the local credential returned HTTP 403 and needs valid
-  access or the required subscription tier.
-- Full staging flow: missing deployed staging URL, disposable user token, all provider keys, and private fixture manifests.
-
-The balanced shortlist candidates are `gpt-5.6-terra` and
-`gemini-3.1-flash-image`. They are not final production selections and must not
-be promoted until the live gates above pass.
+Provider abstractions, backend-only secrets, private Avatar lifecycle, safe errors, and no-automatic-
+paid-fallback policy are preserved. Normal backend/mobile/export/migration gates pass. Release remains
+blocked by the replacement Coach score, limited one-identity Avatar coverage, labels for the three
+hardest OCR images, provider-outage checks, and native-device QA. The disposable-user full staging
+flow passes through the temporary HTTPS QA tunnel, including cleanup and account deletion. EAS
+Android build `30d5a4b3-0131-4ac2-b8d7-96ba15d2e0bc` completed; installation QA is pending, while
+iOS remains blocked on an Apple Developer team, registered device, and distribution credentials.

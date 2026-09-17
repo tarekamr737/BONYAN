@@ -133,7 +133,7 @@ def test_musclewiki_outage_degrades_to_bodyweight_fallback() -> None:
     )
 
     assert all(
-        item.musclewiki_id.startswith("fallback-")
+        item.exercise_id.startswith("fallback-")
         for day in plan.days
         for item in day.prescriptions
     )
@@ -142,7 +142,7 @@ def test_musclewiki_outage_degrades_to_bodyweight_fallback() -> None:
 
 def test_progression_increases_holds_and_regresses() -> None:
     prescription = ExercisePrescription(
-        musclewiki_id="ex-1",
+        exercise_id="ex-1",
         name="Bench Press",
         muscles=["chest"],
         equipment=["barbell"],
@@ -177,7 +177,7 @@ def test_progression_increases_holds_and_regresses() -> None:
 
 def test_substitution_respects_equipment_and_muscle_overlap() -> None:
     original = ExercisePrescription(
-        musclewiki_id="old",
+        exercise_id="old",
         name="Old Press",
         muscles=["chest"],
         equipment=["barbell"],
