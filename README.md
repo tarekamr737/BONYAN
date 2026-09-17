@@ -1,94 +1,140 @@
 # BONYAN
 
-BONYAN is a modular Expo + FastAPI fitness application integrating authentication and
-profiles, InBody OCR and progress, deterministic training, avatar generation, and a
-privacy-aware community experience.
+BONYAN is a mobile-first fitness app built with Expo, React Native, and FastAPI.
+It brings a member's profile, InBody report review, training, AI Coach,
+image-based Avatar, nutrition, and privacy-aware Community into one experience.
+The app supports English and Egyptian Arabic.
 
-## Prerequisites
+> **Project status:** `main` is the shared development baseline for team testing,
+> not a store-ready release. The previous Android staging build is older than
+> `main`, and its temporary API tunnel was unavailable at the last check. Run
+> the app locally for now; see the [team device guide](docs/release/team-device-installation.md)
+> before distributing a new build.
+
+## Repository at a glance
+
+| Path | Purpose |
+| --- | --- |
+| `apps/mobile` | Expo Router app for Android, iOS, and web |
+| `apps/api` | FastAPI backend, domain services, provider adapters, and migrations |
+| `infra` | Local PostgreSQL Compose configuration |
+| `docs` | Architecture, provider decisions, team testing, and release procedures |
+
+The backend owns authentication, private files, OCR, provider calls, and
+business rules. The mobile app contains no provider credentials. API routes
+are versioned under `/api/v1`.
+
+## Requirements
 
 - Node.js 24 and npm 11
 - Python 3.12–3.14
-- Docker (recommended for the local PostgreSQL database)
+- Docker with Compose for the documented local PostgreSQL setup
+- Expo Go or an Android emulator for mobile testing
 
-## Install
+Keep the repository and local tooling on a drive with enough free space. On
+Windows, a D:-resident checkout avoids using a full system drive.
 
-From the repository root:
+## Quickstart
+
+Run these commands from the repository root. The PowerShell examples assume a
+new checkout; use equivalent `cp` and virtual-environment activation commands
+on macOS or Linux.
 
 ```powershell
-npm install
+npm ci
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-npm run api:install
+python -m pip install -e "apps/api[dev]"
 Copy-Item apps/api/.env.example apps/api/.env
 Copy-Item apps/mobile/.env.example apps/mobile/.env
 ```
 
-Before starting the API, set `AUTH_JWT_SECRET` in `apps/api/.env` to a random value of at
-least 32 bytes. Do not commit that value. For example, generate one with
-`python -c "import secrets; print(secrets.token_urlsafe(48))"` and paste the output into
-the copied environment file.
+In `apps/api/.env`, set a unique `AUTH_JWT_SECRET` of at least 32 bytes.
+Generate one locally with
+`python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+For an initial setup without private provider credentials, also set:
 
-On macOS/Linux, activate Python with `source .venv/bin/activate` and copy the
-environment examples with `cp`.
+```dotenv
+CHAT_PROVIDER=mock
+CHAT_MODEL=TBD
+AVATAR_PROVIDER=mock
+AVATAR_MODEL=TBD
+```
 
-## Run locally
+Mock mode supports local development and CI; it does **not** provide real Coach
+or Avatar generation. Real InBody OCR needs a server-side `MISTRAL_API_KEY`.
+See [provider configuration](docs/providers/CONFIGURATION.md) before enabling
+live providers. Never put backend keys in `apps/mobile/.env` or any
+`EXPO_PUBLIC_*` variable.
 
-Start PostgreSQL and migrate once:
+Start the database and apply migrations:
 
 ```powershell
 docker compose -f infra/compose.yaml up -d postgres
-npm run api:migration
+python -m alembic -c apps/api/alembic.ini upgrade head
 ```
 
-Run the API and mobile app in separate terminals with the virtual environment active:
+Start the API and Expo in separate terminals, with the virtual environment activated in the API terminal:
 
 ```powershell
-npm run api:dev
+python -m uvicorn app.main:app --reload --app-dir apps/api
+```
+
+```powershell
 npm run mobile:dev
 ```
 
-The public health check is `GET http://127.0.0.1:8000/health`. Expo prints the
-device, emulator, and web launch options when it starts.
+Check `http://127.0.0.1:8000/health` for the API. Expo prints launch options
+and a QR code for the mobile app.
 
-## Validate
+### Test on a phone or emulator
+
+`apps/mobile/.env.example` uses `http://127.0.0.1:8000`, which is not a
+reachable API address from a separate device. For an Android emulator, set
+`EXPO_PUBLIC_API_URL=http://10.0.2.2:8000` in `apps/mobile/.env`.
+
+For a physical phone, set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` and
+`API_PUBLIC_URL` in `apps/api/.env` to `http://<computer-LAN-IPv4>:8000`.
+Run Uvicorn with `--host 0.0.0.0`. Keep the phone and computer on the same
+trusted network, allow port 8000 only on that network, and restart Expo after
+changing its environment file. A phone cannot reach your computer through
+`127.0.0.1`.
+
+The [team device guide](docs/release/team-device-installation.md) has the
+complete pre-hosting Expo Go and staging-build instructions. An Expo build or
+QR code does not host the API or database.
+
+## Quality checks
 
 ```powershell
 npm run mobile:lint
 npm run mobile:routes
 npm run mobile:typecheck
 npm run mobile:test
-npm run api:lint
-npm run api:test
+python -m ruff check --config apps/api/pyproject.toml apps/api/app tests deployment
+python -m pytest -c apps/api/pyproject.toml
 ```
 
-Mobile dependencies are managed by the root npm workspace. Backend dependencies
-are declared in `apps/api/pyproject.toml`.
+GitHub CI also exports Android, iOS, and web bundles, checks migrations against
+PostgreSQL, and builds the API container. Live provider tests are opt-in and
+need explicitly authorized credentials and private fixtures; a skipped live
+test is not a live-service pass.
 
-## Architecture
+## Work together safely
 
-- `apps/mobile/app`: Expo Router composition owned by Workstream 01.
-- `apps/mobile/src/core`: shared mobile providers, API client, tokens, and primitives.
-- `apps/mobile/src/features`: workstream-owned feature modules.
-- `apps/api/app/core`: FastAPI bootstrap, routing, settings, DB sessions, errors, and logging.
-- `apps/api/app/domains`: workstream-owned domain packages.
-- `apps/api/app/integrations`: workstream-owned production provider adapters.
+Create feature branches from the latest `main` and open PRs back to `main`.
+The branch requires a PR plus passing mobile, API, and container checks;
+force-pushes to `main` are blocked. Follow [CONTRIBUTING.md](CONTRIBUTING.md)
+for ownership, validation, and issue-reporting rules.
 
-Provider selection is locked for the release candidate while domain code remains provider-neutral.
-Local development and CI can explicitly use `MockLLMProvider` and `MockAvatarProvider` without
-production credentials.
+This is a public repository. Do not commit `.env` files, tokens, body reports,
+source photos, generated avatars, or unredacted provider responses. InBody
+values must be reviewed by the user before confirmation, and Avatar publication
+is a separate explicit choice.
 
-Current provider status:
+## Further reading
 
-- OCR: Mistral `mistral-ocr-4-1` (`MISTRAL_API_KEY` is optional for mock/test flows).
-- Exercises and media: ExerciseDB V1 Free API; no credential is required.
-- Coach LLM: SovereignEG `glm-5.3-flash`; `MockLLMProvider` is available for offline development.
-- Avatar model: OpenRouter `meta/muse-image`; `MockAvatarProvider` is available for offline
-  development. Source photos stay private and require explicit approval before publication.
-
-See `docs/providers/CONFIGURATION.md` for current backend-only environment variables and
-`docs/providers/DECISIONS.md` for provider rationale and remaining release risks.
-
-See `docs/workstreams/01-core/INTEGRATION.md` before opening a feature PR.
-
-For the current shared-`main` branch workflow and team testing rules, see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+- [Provider configuration](docs/providers/CONFIGURATION.md) and [decisions](docs/providers/DECISIONS.md)
+- [Architecture and workstream integration](docs/workstreams/01-core/INTEGRATION.md)
+- [Team device testing](docs/release/team-device-installation.md)
+- [Release checklist](docs/release/checklist.md)
