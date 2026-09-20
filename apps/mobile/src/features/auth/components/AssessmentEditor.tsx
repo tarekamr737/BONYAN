@@ -2,7 +2,7 @@ import { DirectionalText as Text } from "../../../core/components/DirectionalTex
 import { coachingCopy } from "../coachingCopy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 
 import { AppButton, AppTextField } from "../../../core/components";
@@ -13,6 +13,7 @@ import { GlassCard, SelectableCard, ui } from "./CoachingUI";
 
 export function AssessmentEditor({onSaved, height = "", arabic = false}: {onSaved?: () => void; height?: string; arabic?: boolean}) {
   const client = useQueryClient();
+  const busy = useRef(false);
   const [source, setSource] = useState<"manual" | "inbody">("manual");
   const [values, setValues] = useState({height, weight: "", fat: ""});
   const [scan, setScan] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export function AssessmentEditor({onSaved, height = "", arabic = false}: {onSave
   if (!restored) return <Text style={ui.text}>{arabic ? "جاري استعادة القياسات…" : "Loading your measurements…"}</Text>;
   return <View style={ui.stack}>
     <Text style={ui.heading}>{arabic ? "كيف تضيف قياسات جسمك؟" : "How would you like to add your body data?"}</Text>
-    <View style={ui.stack}>{(["manual", "inbody"] as const).map(value => <SelectableCard key={value} selected={source === value} disabled={mutation.isPending} onPress={() => {setSource(value); setRequestId(null); mutation.reset();}} title={value === "manual" ? arabic ? "إدخال يدوي" : "Enter measurements" : "InBody"} description={value === "manual" ? "Add height and weight. Body fat is optional." : "Use a real report you have reviewed and confirmed."} />)}</View>
+    <View style={ui.stack}>{(["manual", "inbody"] as const).map(value => <SelectableCard key={value} selected={source === value} disabled={mutation.isPending} onPress={() => {setSource(value); setRequestId(null); mutation.reset();}} title={value === "manual" ? arabic ? "إدخال يدوي" : "Enter measurements" : "InBody"} arabic={arabic} description={value === "manual" ? arabic ? "سجّل الطول والوزن. نسبة الدهون اختيارية." : "Add height and weight. Body fat is optional." : arabic ? "ارفع تقرير واضح وراجع القيم قبل تأكيدها." : "Use a real report you have reviewed and confirmed."} />)}</View>
     {source === "manual" ? <GlassCard>{field("height", arabic ? "الطول (سم)" : "Height · cm")}{field("weight", arabic ? "الوزن الحالي (كجم)" : "Current weight · kg")}{field("fat", arabic ? "نسبة الدهون — اختياري" : "Body fat · % · optional")}<Text style={ui.small}>{coachingCopy("Height 80\u2013250 cm \u00b7 Weight 30\u2013350 kg \u00b7 Body fat 2\u201370% when known.", arabic)}</Text></GlassCard> : <View style={ui.stack}>
       {history.isPending ? <Text style={ui.text}>{coachingCopy("Loading your confirmed reports\u2026", arabic)}</Text> : null}
       {history.isError ? <AppButton label={coachingCopy("Retry loading reports", arabic)} onPress={() => void history.refetch()} variant="secondary" /> : null}
@@ -53,6 +54,6 @@ export function AssessmentEditor({onSaved, height = "", arabic = false}: {onSave
     </View>}
     {mutation.isError ? <Text accessibilityRole="alert" style={ui.error}>{coachingCopy("Couldn\u2019t save this assessment. Your entries are still here. Check the values and try again.", arabic)}</Text> : null}
     {mutation.isSuccess ? <Text accessibilityLiveRegion="polite" style={ui.success}>{coachingCopy("Assessment saved to your profile and history.", arabic)}</Text> : null}
-    <AppButton label={arabic ? "حفظ التقييم" : "Save assessment"} disabled={!valid} loading={mutation.isPending} onPress={() => mutation.mutate()} />
+    <AppButton label={arabic ? "حفظ التقييم" : "Save assessment"} disabled={!valid} loading={mutation.isPending} onPress={() => {if (busy.current) return; busy.current = true; void mutation.mutateAsync().catch(() => {}).finally(() => {busy.current = false;}); }} />
   </View>;
 }

@@ -11,6 +11,7 @@ from app.core.time import local_day_bounds
 from app.domains.nutrition.repository import NutritionRepository
 from app.domains.nutrition.schemas import (
     AnalyzeFoodRequest,
+    ConfirmFoodRequest,
     DailyDashboard,
     DailyScoreComponent,
     FoodAnalysis,
@@ -24,6 +25,19 @@ class NutritionService:
         self.llm_provider = llm_provider
 
     async def analyze_and_log(self, *, user_id: str, request: AnalyzeFoodRequest) -> FoodLogView:
+        analysis = await self.preview(user_id=user_id, request=request)
+        record = await self.repository.save_food(
+            owner_id=user_id,
+            values={
+                "description": request.description.strip(),
+                "meal_type": request.meal_type.value,
+                **analysis.model_dump(),
+                "source": "ai",
+            },
+        )
+        return _view(record)
+
+    async def preview(self, *, user_id: str, request: AnalyzeFoodRequest) -> FoodAnalysis:
         prompt = (
             "Estimate nutrition for the described meal. Return only one JSON object with numeric "
             "calories, protein_g, carbs_g, fat_g and a concise summary (maximum 20 words). "
@@ -43,13 +57,15 @@ class NutritionService:
                 "Food analysis is unavailable right now.",
                 status.HTTP_503_SERVICE_UNAVAILABLE,
             ) from exc
-        record = await self.repository.save_food(
+        return analysis
+
+    async def confirm(self, *, user_id: str, request: ConfirmFoodRequest) -> FoodLogView:
+        record = await self.repository.save_reviewed_food(
             owner_id=user_id,
+            request_id=request.request_id,
             values={
-                "description": request.description.strip(),
-                "meal_type": request.meal_type.value,
-                **analysis.model_dump(),
-                "source": "ai",
+                **request.model_dump(exclude={"request_id"}),
+                "source": "user_reviewed",
             },
         )
         return _view(record)

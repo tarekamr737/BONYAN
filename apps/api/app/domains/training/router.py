@@ -115,6 +115,27 @@ async def get_current_plan(
     return await service.get_current_plan(user_id=current_user.id)
 
 
+@router.get("/plans/{plan_id}", response_model=WorkoutPlan)
+async def get_plan(
+    plan_id: UUID, current_user: CurrentUserDep, service: TrainingServiceDep
+) -> WorkoutPlan:
+    return await service.get_plan(user_id=current_user.id, plan_id=plan_id)
+
+
+@router.post("/plans/{plan_id}/activate", response_model=WorkoutPlan)
+async def activate_plan(
+    plan_id: UUID, current_user: CurrentUserDep, service: TrainingServiceDep
+) -> WorkoutPlan:
+    return await service.activate_plan(user_id=current_user.id, plan_id=plan_id)
+
+
+@router.get("/sessions/{session_id}", response_model=WorkoutSessionResponse)
+async def get_session(
+    session_id: UUID, current_user: CurrentUserDep, service: TrainingServiceDep
+) -> WorkoutSessionResponse:
+    return await service.get_session(user_id=current_user.id, session_id=session_id)
+
+
 @router.post("/plans/manual", response_model=WorkoutPlan, status_code=status.HTTP_201_CREATED)
 async def create_manual_plan(
     request: ManualPlanRequest,
@@ -210,6 +231,15 @@ async def substitute_exercise(
     service: TrainingServiceDep,
 ) -> WorkoutPlan:
     return await service.substitute(user_id=current_user.id, request=request)
+
+
+@router.post("/substitutions/preview", response_model=WorkoutPlan)
+async def preview_substitution(
+    request: SubstituteExerciseRequest,
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+) -> WorkoutPlan:
+    return await service.substitute(user_id=current_user.id, request=request, preview=True)
 
 
 @router.get("/exercises/{exercise_id}/media", response_model=ExerciseMediaAccessResponse)

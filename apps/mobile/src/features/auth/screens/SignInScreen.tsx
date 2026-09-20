@@ -1,5 +1,5 @@
-import { DirectionalText as Text } from "../../../core/components/DirectionalText";
-import { useState } from "react";
+import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
+import { createContext, useContext, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,72 +14,83 @@ import { useAuthSession } from "../../../core/auth/session";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
 import { login, register } from "../api/authApi";
 
-export function SignInScreen() {
+import { useLocalSearchParams } from "expo-router";
+
+export const AuthEntryPreferences = createContext<{mode: string; language: string} | null>(null);
+
+export function SignInScreen({initialMode, initialLanguage}: {initialMode?: string; initialLanguage?: string} = {}) {
+  const params = useLocalSearchParams();
+  const entry = useContext(AuthEntryPreferences);
+  const busy = useRef(false);
+  const [arabic, setArabic] = useState((entry?.language ?? params.language ?? initialLanguage) === "ar");
   const { signIn } = useAuthSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState((entry?.mode ?? params.mode ?? initialMode) === "register");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function submit() {
+    if (busy.current) return;
     setError(null);
     if (!email.trim()) {
-      setError("Enter your email address.");
+      setError(arabic ? "اكتب بريدك الإلكتروني." : "Enter your email address.");
       return;
     }
     if (password.length < 12) {
-      setError("Password must be at least 12 characters.");
+      setError(arabic ? "كلمة المرور لازم تكون ١٢ حرف على الأقل." : "Password must be at least 12 characters.");
       return;
     }
     if (creatingAccount && password !== passwordConfirmation) {
-      setError("Passwords do not match.");
+      setError(arabic ? "كلمتا المرور غير متطابقتين." : "Passwords do not match.");
       return;
     }
+    busy.current = true;
     setLoading(true);
     try {
       const authenticate = creatingAccount ? register : login;
       const session = await authenticate({ email: email.trim(), password });
       await signIn(session.access_token);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Sign-in failed. Try again.");
+      setError(arabic ? "تعذر تسجيل الدخول. راجع بياناتك واتصالك وحاول مرة أخرى." : caught instanceof Error ? caught.message : "Sign-in failed. Try again.");
     } finally {
+      busy.current = false;
       setLoading(false);
     }
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <LanguageDirection.Provider value={arabic}><SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.intro}>
+          <View style={styles.intro}><AppButton variant="secondary" label={arabic ? "English" : "العربية"} onPress={() => setArabic(!arabic)} />
             <Text accessibilityRole="header" style={styles.wordmark}>
               BONYAN
             </Text>
-            <Text style={styles.eyebrow}>BUILD HUMAN POTENTIAL</Text>
+            <Text style={styles.eyebrow}>{arabic ? "تأهيل بدني عسكري + جيم" : "MILITARY PREPARATION + GYM"}</Text>
             <Text style={styles.copy}>
-              Sign in to keep your reports, training, and profile private.
+              {arabic ? "ابنِ روتين تدريبك وتابع تمريناتك وتقدمك في مكان واحد." : "Build your training routine. Keep your workouts and progress together."}
             </Text>
           </View>
 
           <SurfaceCard>
             <View style={styles.form}>
               <Text style={styles.cardLabel}>
-                {creatingAccount ? "CREATE YOUR ACCOUNT" : "WELCOME BACK"}
+                {creatingAccount ? arabic ? "إنشاء حسابك" : "CREATE YOUR ACCOUNT" : arabic ? "أهلًا بعودتك" : "WELCOME BACK"}
               </Text>
               <AppTextField
                 autoCapitalize="none"
                 autoComplete="email"
                 autoCorrect={false}
                 keyboardType="email-address"
-                label="Email"
+                label={arabic ? "البريد الإلكتروني" : "Email"}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
                 textContentType="emailAddress"
@@ -89,7 +100,7 @@ export function SignInScreen() {
                 autoCapitalize="none"
                 autoComplete={creatingAccount ? "new-password" : "current-password"}
                 clearTextOnFocus={false}
-                label="Password"
+                label={arabic ? "كلمة المرور" : "Password"}
                 onChangeText={setPassword}
                 placeholder="At least 12 characters"
                 secureTextEntry
@@ -101,7 +112,7 @@ export function SignInScreen() {
                   autoCapitalize="none"
                   autoComplete="new-password"
                   clearTextOnFocus={false}
-                  label="Confirm password"
+                  label={arabic ? "تأكيد كلمة المرور" : "Confirm password"}
                   onChangeText={setPasswordConfirmation}
                   secureTextEntry
                   textContentType="newPassword"
@@ -114,13 +125,13 @@ export function SignInScreen() {
                 </Text>
               ) : null}
               <AppButton
-                label={creatingAccount ? "Create account" : "Sign in"}
+                label={creatingAccount ? arabic ? "إنشاء حساب" : "Create account" : arabic ? "تسجيل الدخول" : "Sign in"}
                 loading={loading}
                 onPress={() => void submit()}
               />
               <AppButton
                 disabled={loading}
-                label={creatingAccount ? "I already have an account" : "Create an account"}
+                label={creatingAccount ? arabic ? "لدي حساب بالفعل" : "I already have an account" : arabic ? "إنشاء حساب جديد" : "Create an account"}
                 onPress={() => {
                   setCreatingAccount((current) => !current);
                   setError(null);
@@ -128,13 +139,13 @@ export function SignInScreen() {
                 variant="secondary"
               />
               <Text style={styles.hint}>
-                Your identity is verified by BONYAN. The app never sends a selectable user ID.
+                {arabic ? "تمريناتك وقياساتك خاصة بيك." : "Your training and measurements stay private."}
               </Text>
             </View>
           </SurfaceCard>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </SafeAreaView></LanguageDirection.Provider>
   );
 }
 

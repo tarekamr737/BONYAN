@@ -76,6 +76,25 @@ class TrainingService:
         record = await self.repository.get_active_plan(owner_id=user_id)
         return self._plan_response(record) if record else None
 
+    async def get_plan(self, *, user_id: str, plan_id: UUID) -> WorkoutPlan:
+        return self._plan_response(await self._owned_plan(user_id=user_id, plan_id=plan_id))
+
+    async def activate_plan(self, *, user_id: str, plan_id: UUID) -> WorkoutPlan:
+        await self.repository.lock_plan_activation(owner_id=user_id)
+        plan = await self._owned_plan(user_id=user_id, plan_id=plan_id)
+        if plan.status == PlanStatus.ACTIVE:
+            return self._plan_response(plan)
+        if plan.status != PlanStatus.DRAFT:
+            raise AppError("plan_not_draft", "Only a draft plan can be approved.", 409)
+        await self.repository.archive_active_plans(owner_id=user_id)
+        plan.status = PlanStatus.ACTIVE
+        return self._plan_response(plan)
+
+    async def get_session(self, *, user_id: str, session_id: UUID) -> WorkoutSessionResponse:
+        return self._session_response(
+            await self._owned_session(user_id=user_id, session_id=session_id)
+        )
+
     async def create_manual_plan(self, *, user_id: str, request: ManualPlanRequest) -> WorkoutPlan:
         details = [
             await self.exercise_provider.get_exercise(item.exercise_id)
@@ -156,6 +175,9 @@ class TrainingService:
             raise AppError(
                 "training_day_not_found", "Workout day not found.", status.HTTP_404_NOT_FOUND
             )
+        await self.repository.lock_session_start(
+            owner_id=user_id, plan_id=plan_id, day_key=day_key
+        )
         return self._session_response(
             await self.repository.create_session(owner_id=user_id, plan_id=plan_id, day_key=day_key)
         )
@@ -218,7 +240,9 @@ class TrainingService:
         }
         return self._session_response(session)
 
-    async def substitute(self, *, user_id: str, request: SubstituteExerciseRequest) -> WorkoutPlan:
+    async def substitute(
+        self, *, user_id: str, request: SubstituteExerciseRequest, preview: bool = False
+    ) -> WorkoutPlan:
         plan = await self._owned_plan(user_id=user_id, plan_id=request.plan_id)
         plan_schema = self._plan_response(plan)
         day = next((item for item in plan_schema.days if item.key == request.day_key), None)
@@ -240,6 +264,10 @@ class TrainingService:
                 "No compatible substitution is available.",
                 status.HTTP_409_CONFLICT,
             )
+        if request.expected_exercise_id and replacement.id != request.expected_exercise_id:
+            raise AppError(
+                "substitution_changed", "The alternative changed. Please review it again.", 409
+            )
         day.prescriptions[request.prescription_index] = original.model_copy(
             update={
                 "exercise_id": replacement.id,
@@ -248,6 +276,8 @@ class TrainingService:
                 "equipment": list(replacement.equipment),
             }
         )
+        if preview:
+            return plan_schema
         plan.days = [item.model_dump(mode="json") for item in plan_schema.days]
         return self._plan_response(plan)
 

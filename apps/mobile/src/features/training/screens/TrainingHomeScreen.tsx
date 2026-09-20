@@ -1,9 +1,9 @@
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { getMyProfile } from "../../auth/api/profileApi";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -30,7 +30,7 @@ function weeklyDays(value: number, arabic: boolean): string { if (!arabic) retur
 function dayName(value: string, arabic: boolean): string { return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value; }
 function firstDay(plan: WorkoutPlan | null | undefined): WorkoutDay | undefined { return plan?.days.slice().sort((a,b) => a.order-b.order)[0]; }
 export function TrainingHomeScreen() {
-  const queryClient = useQueryClient();
+  const generating = useRef(false);
   const [planJustPrepared, setPlanJustPrepared] = useState(false);
   const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
   const planQuery = useQuery({
@@ -46,10 +46,10 @@ export function TrainingHomeScreen() {
     mutationFn: () => {
       if (!profile.data) throw new Error("Your profile is still loading.");
       const p = profile.data;
-      return generateWorkoutPlan({goal: p.training_goal ?? "general_fitness", experience: p.experience_level ?? "beginner", days_per_week: p.available_training_days ?? 3, session_duration_minutes: 45, equipment: p.available_equipment, activate: true});
+      return generateWorkoutPlan({goal: p.training_goal ?? "general_fitness", experience: p.experience_level ?? "beginner", days_per_week: p.available_training_days ?? 3, session_duration_minutes: 45, equipment: p.available_equipment, activate: false});
     },
     onSuccess: (createdPlan) => {
-      queryClient.setQueryData(["training", "current-plan"], createdPlan);
+      router.push({pathname: "/training/review", params: {planId: createdPlan.id}});
       setPlanJustPrepared(true);
       if (Platform.OS === "ios") {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -114,7 +114,7 @@ export function TrainingHomeScreen() {
             <Pressable
               accessibilityRole="button"
               disabled={generateMutation.isPending || !profile.data}
-              onPress={() => generateMutation.mutate()}
+              onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
               style={[styles.primaryAction, generateMutation.isPending && styles.disabledAction]}
             >
               <Text style={styles.primaryActionText}>
@@ -191,7 +191,7 @@ export function TrainingHomeScreen() {
           <Pressable
             accessibilityRole="button"
             disabled={generateMutation.isPending || !profile.data}
-            onPress={() => generateMutation.mutate()}
+            onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
             style={styles.secondaryAction}
           >
             <Text style={styles.secondaryActionText}>
@@ -207,6 +207,7 @@ export function TrainingHomeScreen() {
 const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     marginTop: spacing.lg,
   },

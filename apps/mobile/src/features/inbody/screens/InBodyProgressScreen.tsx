@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useQuery } from "@tanstack/react-query";
 import { useContext } from "react";
@@ -15,8 +16,8 @@ type InBodyProgressScreenProps = {
 };
 
 export function InBodyProgressScreen({
-  onDone,
-  onUploadAnother,
+  onDone = () => router.replace("/"),
+  onUploadAnother = () => router.push("/inbody"),
 }: InBodyProgressScreenProps = {}) {
   const arabic = useContext(LanguageDirection);
   const { data, isLoading, isError, refetch } = useQuery({
@@ -52,12 +53,12 @@ export function InBodyProgressScreen({
               {arabic ? "أول تقرير مؤكد هو نقطة البداية. ضيف تقرير تاني بعدين علشان تتابع تغير كل قياس مع الوقت." : "Your first confirmed report is your baseline. Add another report later to see how each measurement changes over time."}
             </Text>
           ) : null}
-          <View style={styles.trends}>
+          {scans.length > 0 && !isError ? <View style={styles.trends}>
             <MetricTrend label={arabic ? "الوزن" : "Weight"} metric="weight" scans={scans} />
             <MetricTrend label={arabic ? "الكتلة العضلية" : "Skeletal Muscle"} metric="skeletal_muscle_mass" scans={scans} />
             <MetricTrend label={arabic ? "نسبة الدهون" : "Body Fat %"} metric="body_fat_percentage" scans={scans} />
             <MetricTrend label={arabic ? "كتلة الدهون" : "Body Fat Mass"} metric="body_fat_mass" scans={scans} />
-          </View>
+          </View> : null}
         </SurfaceCard>
 
         {!isLoading && !isError ? (

@@ -90,3 +90,13 @@ def test_daily_score_uses_only_real_today_actions() -> None:
     assert complete.completed_workouts == 1
     assert complete.meals_logged == 3
     assert len(logs) == 3
+
+
+def test_preview_leaves_food_history_unchanged():
+    repository = FakeRepository()
+    service = NutritionService(repository, FakeLLM())
+    preview = run(service.preview(
+        user_id="user-1", request=AnalyzeFoodRequest(description="Chicken and rice")
+    ))
+    assert preview.calories == 520
+    assert repository.foods == []

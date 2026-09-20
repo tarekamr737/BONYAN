@@ -118,6 +118,12 @@ class FakeProfileRepository:
 
 
 class FakeRepository:
+    async def lock_plan_activation(self, *, owner_id: str) -> None:
+        pass
+
+    async def lock_session_start(self, *, owner_id: str, plan_id, day_key: str) -> None:
+        pass
+
     def __init__(self) -> None:
         self.plans: dict[uuid.UUID, SimpleNamespace] = {}
         self.sessions: dict[uuid.UUID, SimpleNamespace] = {}
@@ -623,3 +629,42 @@ def test_coach_rejects_out_of_scope_medical_question() -> None:
 
     with pytest.raises(AppError):
         run(coach.respond(user_id="user-1", message="diagnose my knee injury"))
+
+
+def test_draft_requires_owner_approval_and_preserves_previous_plan():
+    service, repository = make_service()
+    active = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    draft = run(service.generate_plan(
+        user_id="user-1", request=GeneratePlanRequest(activate=False)
+    ))
+    assert run(service.get_current_plan(user_id="user-1")).id == active.id
+    with pytest.raises(AppError):
+        run(service.activate_plan(user_id="other", plan_id=draft.id))
+    approved = run(service.activate_plan(user_id="user-1", plan_id=draft.id))
+    assert approved.status == PlanStatus.ACTIVE
+    assert repository.plans[active.id].status == PlanStatus.ARCHIVED
+    assert run(service.activate_plan(user_id="user-1", plan_id=draft.id)).id == draft.id
+
+
+def test_coach_cannot_activate_a_plan_even_when_model_requests_it():
+    service, _ = make_service()
+    executor = CoachToolExecutor(service)
+    result = run(executor.execute(user_id="user-1", call=CoachToolCall(
+        name=CoachToolName.GENERATE_WORKOUT_PLAN,
+        arguments=GeneratePlanRequest(activate=True).model_dump(mode="json"),
+    )))
+    assert result.result["requires_approval"] is True
+    assert result.result["plan"]["status"] == PlanStatus.DRAFT
+    assert run(service.get_current_plan(user_id="user-1")) is None
+
+
+def test_alternative_preview_does_not_change_the_saved_plan():
+    service, repository = make_service()
+    plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    before = repository.plans[plan.id].days[0]["prescriptions"][0]["exercise_id"]
+    request = SubstituteExerciseRequest(
+        plan_id=plan.id, day_key=plan.days[0].key, prescription_index=0
+    )
+    preview = run(service.substitute(user_id="user-1", request=request, preview=True))
+    assert repository.plans[plan.id].days[0]["prescriptions"][0]["exercise_id"] == before
+    assert preview.days[0].prescriptions[0].exercise_id != before

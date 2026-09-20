@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
 import { AppButton, AppTextField, DirectionalText as Text, MotionReveal } from "../../core/components";
@@ -8,7 +8,7 @@ import { goBackOr } from "../../core/navigation/safeNavigation";
 import { colors, fonts, radii, spacing } from "../../core/theme/tokens";
 import { getMyProfile } from "../auth/api/profileApi";
 import { CoachingPage, GlassCard, ui } from "../auth/components/CoachingUI";
-import { analyzeFood, getTodayFoodLogs } from "./api";
+import { previewFood, confirmFood, type FoodPreview, getTodayFoodLogs } from "./api";
 import type { MealType } from "./types";
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -19,15 +19,22 @@ const labels = {
 
 export function NutritionScreen() {
   const client = useQueryClient();
+  const busy = useRef(false);
+  const [preview, setPreview] = useState<FoodPreview | null>(null);
   const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
   const logs = useQuery({ queryFn: getTodayFoodLogs, queryKey: ["nutrition", "logs", "today"] });
   const [description, setDescription] = useState("");
   const [mealType, setMealType] = useState<MealType>("snack");
   const mutation = useMutation({
-    mutationFn: () => analyzeFood(description.trim(), mealType),
+    mutationFn: () => previewFood(description.trim(), mealType),
+    onSuccess: setPreview,
+  });
+  const confirm = useMutation({
+    mutationFn: () => confirmFood(preview!, description.trim(), mealType),
     onSuccess: async () => {
       setDescription("");
+      setPreview(null);
       await Promise.all([
         client.invalidateQueries({ queryKey: ["nutrition", "logs", "today"] }),
         client.invalidateQueries({ queryKey: ["nutrition", "today"] }),
@@ -41,21 +48,25 @@ export function NutritionScreen() {
     </Pressable>
     <View style={styles.heading}>
       <Text accessibilityRole="header" style={[ui.title, arabic && ui.rtl]}>{arabic ? "حلّل وجبتك" : "Analyze food"}</Text>
-      <Text style={[ui.text, arabic && ui.rtl]}>{arabic ? "اكتب مكونات الوجبة والكميات التقريبية. النتيجة تقديرية وتُحفظ في يومك." : "Describe the meal and approximate portions. The estimate is saved to your day."}</Text>
+      <Text style={[ui.text, arabic && ui.rtl]}>{arabic ? "اكتب مكونات الوجبة والكميات التقريبية. راجع التقديرات وعدّلها قبل الحفظ." : "Describe the meal and approximate portions. Review and edit the estimate before saving."}</Text>
     </View>
     <GlassCard>
-      <View style={[styles.chips, arabic && styles.reverse]}>{mealTypes.map(type => <Pressable key={type} accessibilityRole="radio" accessibilityState={{selected: mealType === type}} onPress={() => setMealType(type)} style={[styles.chip, mealType === type && styles.chipActive]}><Text style={[styles.chipText, mealType === type && styles.chipTextActive]}>{labels[type][arabic ? 1 : 0]}</Text></Pressable>)}</View>
+      <View style={[styles.chips, arabic && styles.reverse]}>{mealTypes.map(type => <Pressable key={type} accessibilityRole="radio" accessibilityState={{selected: mealType === type}} disabled={mutation.isPending || confirm.isPending || Boolean(preview)} onPress={() => setMealType(type)} style={[styles.chip, mealType === type && styles.chipActive]}><Text style={[styles.chipText, mealType === type && styles.chipTextActive]}>{labels[type][arabic ? 1 : 0]}</Text></Pressable>)}</View>
       <AppTextField
         label={arabic ? "ماذا أكلت؟" : "What did you eat?"}
         multiline
+        editable={!mutation.isPending && !confirm.isPending && !preview}
+        maxLength={1000}
         onChangeText={setDescription}
         placeholder={arabic ? "مثال: 150 جم دجاج، كوب أرز وسلطة" : "Example: 150g chicken, one cup rice and salad"}
         value={description}
       />
-      <AppButton disabled={description.trim().length < 3 || mutation.isPending} label={mutation.isPending ? arabic ? "جاري التحليل…" : "Analyzing…" : arabic ? "تحليل وحفظ" : "Analyze and save"} onPress={() => mutation.mutate()} />
+      {!preview ? <AppButton disabled={description.trim().length < 3 || mutation.isPending} label={mutation.isPending ? arabic ? "جاري التحليل…" : "Analyzing…" : arabic ? "تحليل الوجبة" : "Analyze meal"} onPress={() => {if (busy.current) return; busy.current = true; void mutation.mutateAsync().catch(() => {}).finally(() => {busy.current = false;}); }} /> : null}
       {mutation.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
       {mutation.isError ? <Text style={[ui.error, arabic && ui.rtl]}>{arabic ? "تعذر تحليل الوجبة الآن. وصفك ما زال موجودًا؛ حاول مرة أخرى." : "The meal could not be analyzed. Your description is still here; try again."}</Text> : null}
-      {mutation.isSuccess ? <Text style={[ui.success, arabic && ui.rtl]}>{arabic ? "تم حفظ الوجبة وتحديث نتيجة اليوم." : "Meal saved and today's score updated."}</Text> : null}
+      {preview ? <View style={ui.stack}><Text style={ui.heading}>{arabic ? "راجع التقديرات" : "Review estimates"}</Text><Text style={ui.text}>{preview.summary}</Text>{(["calories", "protein_g", "carbs_g", "fat_g"] as const).map((key, index) => <AppTextField key={key} label={(arabic ? ["السعرات الحرارية", "البروتين · جم", "الكربوهيدرات · جم", "الدهون · جم"] : ["Calories", "Protein · g", "Carbohydrates · g", "Fat · g"])[index] ?? key} keyboardType="numeric" editable={!confirm.isPending} value={String(preview[key])} onChangeText={raw => {if (/^\d*(\.\d*)?$/.test(raw)) setPreview({...preview, [key]: Number(raw)});}} />)}<AppButton label={arabic ? "تأكيد وحفظ الوجبة" : "Confirm and save meal"} loading={confirm.isPending} onPress={() => {if (busy.current) return; busy.current = true; void confirm.mutateAsync().catch(() => {}).finally(() => {busy.current = false;}); }} /><AppButton variant="secondary" disabled={confirm.isPending} label={arabic ? "تعديل الوصف أو إلغاء" : "Edit description or cancel"} onPress={() => {setPreview(null); mutation.reset(); confirm.reset();}} /></View> : null}
+      {confirm.isError ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذر الحفظ. راجع القيم وحاول مرة أخرى." : "Could not save. Check the values and retry."}</Text> : null}
+      {confirm.isSuccess ? <Text style={[ui.success, arabic && ui.rtl]}>{arabic ? "تم حفظ الوجبة وتحديث نتيجة اليوم." : "Meal saved and today's score updated."}</Text> : null}
     </GlassCard>
     <Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "وجبات اليوم" : "Today's meals"}</Text>
     {logs.isPending ? <ActivityIndicator color={colors.bronze} /> : null}

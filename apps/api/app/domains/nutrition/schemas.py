@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
@@ -32,6 +32,16 @@ class FoodLogView(FoodAnalysis):
     meal_type: MealType
     source: str
     logged_at: datetime
+
+
+class ConfirmFoodRequest(FoodAnalysis):
+    request_id: UUID
+    description: str = Field(min_length=3, max_length=1000)
+    meal_type: MealType = MealType.SNACK
+
+
+class FoodPreview(FoodAnalysis):
+    request_id: UUID = Field(default_factory=uuid4)
 
 
 class DailyScoreComponent(BaseModel):

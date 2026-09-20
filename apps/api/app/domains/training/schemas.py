@@ -212,6 +212,7 @@ class SubstituteExerciseRequest(BaseModel):
     day_key: str
     prescription_index: Annotated[int, Field(ge=0, le=20)]
     available_equipment: list[str] = Field(default_factory=list, max_length=20)
+    expected_exercise_id: str | None = Field(default=None, max_length=120)
 
 
 class CoachMessageRequest(BaseModel):

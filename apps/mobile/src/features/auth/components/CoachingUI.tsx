@@ -4,7 +4,7 @@ import { useEffect, useRef, type ComponentProps, type PropsWithChildren, type Re
 import Feather from "@expo/vector-icons/Feather";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassBackdrop, GlassSurface } from "../../../core/components/GlassSurface";
 
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
@@ -29,10 +29,11 @@ export const ui = StyleSheet.create({
 
 export function CoachingPage({ children, arabic = false, footer, step }: PropsWithChildren<{arabic?: boolean; footer?: ReactNode; step?: string}>) {
   const scroll = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
   useEffect(() => {scroll.current?.scrollTo({y: 0, animated: false});}, [step]);
   return <LanguageDirection.Provider value={arabic}><SafeAreaView edges={["top", "left", "right"]} style={ui.page}><GlassBackdrop /><KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}>{children}</ScrollView>
-    {footer ? <View style={{borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 24, paddingVertical: 12}}><View style={{width: "100%", maxWidth: 612, alignSelf: "center", gap: 8}}>{footer}</View></View> : null}
+    {footer ? <View style={{borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 24, paddingTop: 12, paddingBottom: Math.max(12, insets.bottom)}}><View style={{width: "100%", maxWidth: 612, alignSelf: "center", gap: 8}}>{footer}</View></View> : null}
   </KeyboardAvoidingView></SafeAreaView></LanguageDirection.Provider>;
 }
 

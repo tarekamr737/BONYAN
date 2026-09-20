@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { router, type Href } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
-import { CoachingPage, GlassCard, ProgressMeter, ui } from "../../features/auth/components/CoachingUI";
+import { CoachingPage, GlassCard, ProgressMeter, ScoreCard, ui } from "../../features/auth/components/CoachingUI";
 import { goalLabel } from "../../features/auth/journey";
 import { getDailyDashboard } from "../../features/nutrition/api";
 import { AppButton, AvatarJourneyCard, BrandMark, MotionReveal, NotificationBell, ProfileAvatar } from "../components";
@@ -28,16 +28,18 @@ export function HomeScreen() {
     <View style={styles.header}>{arabic ? accountTools : <BrandMark />}{arabic ? <BrandMark /> : accountTools}</View>
     <View style={styles.intro}><Text accessibilityRole="header" style={[ui.title, arabic && ui.rtl]}>{profile.data?.display_name ? `${arabic ? "أهلًا،" : "Hello,"} ${profile.data.display_name}` : arabic ? "يومك يبدأ من هنا" : "Your day starts here."}</Text><Text style={[ui.text, arabic && ui.rtl]}>{goalLabel(profile.data?.training_goal, arabic)}</Text></View>
 
+    <View style={styles.primaryActions}>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/training")} style={({pressed}) => [styles.heroAction, pressed && styles.pressed]}><View style={styles.heroIcon}><Feather color={colors.canvas} name="activity" size={24} /></View><View style={styles.actionCopy}><Text style={styles.heroTitle}>{arabic ? "ابدأ التدريب" : "Start training"}</Text><Text style={styles.heroBody}>{arabic ? "تمرينك وخطتك وخطوتك القادمة" : "Your workout, your plan, your next step"}</Text></View><Feather color={colors.canvas} name={arabic ? "arrow-left" : "arrow-right"} size={20} /></Pressable>
+      <View style={[styles.secondaryActions, arabic && styles.reverse]}><HomeAction arabic={arabic} icon="edit-3" label={arabic ? "حلّل وجبة" : "Analyze food"} onPress={() => router.push("/nutrition")} /><HomeAction arabic={arabic} icon="message-circle" label={arabic ? "الكوتش بنيان" : "Bonyan Coach"} onPress={() => router.push("/training/coach")} /></View>
+    </View>
+
+
+    {profile.data?.training_goal === "military_preparation" ? <><GlassCard><Text style={ui.heading}>{arabic ? "استعدادك البدني" : "Your physical preparation"}</Text><Text style={ui.text}>{arabic ? "الجري بالدقائق / الضغط / العقلة" : "Running minutes / push-ups / pull-ups"}: {profile.data.coaching?.running_minutes ?? "—"} / {profile.data.coaching?.pushups ?? "—"} / {profile.data.coaching?.pullups ?? "—"}</Text>{profile.data.coaching?.target_date ? <Text style={ui.text}>{arabic ? "موعد الاختبار" : "Test date"}: {profile.data.coaching.target_date}</Text> : null}<AppButton variant="secondary" label={arabic ? "تحديث مستوى البداية" : "Update your baseline"} onPress={() => router.push("/profile")} /></GlassCard>{assessment.data ? <ScoreCard score={assessment.data.score} arabic={arabic} /> : null}</> : null}
     <MotionReveal><GlassCard>
       <View style={[styles.scoreHeader, arabic && styles.reverse]}><View style={styles.scoreCopy}><Text style={styles.eyebrow}>{arabic ? "نتيجة اليوم" : "DAILY SCORE"}</Text><Text style={[styles.scoreTitle, arabic && ui.rtl]}>{daily.data ? arabic ? "تقدمك اليوم" : "Today's progress" : arabic ? "بنجهز ملخص يومك" : "Preparing today's view"}</Text></View>{daily.isPending ? <ActivityIndicator color={colors.bronze} /> : <Text style={styles.scoreValue}>{daily.data?.score ?? "—"}<Text style={styles.scoreMax}>/100</Text></Text>}</View>
       {daily.data ? <><ProgressMeter label={arabic ? "نتيجة اليوم" : "Daily score"} value={daily.data.score} /><View style={[styles.metrics, arabic && styles.reverse]}><Text style={ui.small}>{arabic ? `${daily.data.completed_workouts} تمرين مكتمل` : `${daily.data.completed_workouts} workout completed`}</Text><Text style={ui.small}>{arabic ? `${daily.data.meals_logged} وجبات مسجلة` : `${daily.data.meals_logged} meals logged`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? dailyNextAction(daily.data.next_action) : daily.data.next_action}</Text></> : null}
       {daily.isError ? <AppButton label={arabic ? "إعادة تحميل يومي" : "Reload today"} onPress={() => void daily.refetch()} variant="secondary" /> : null}
     </GlassCard></MotionReveal>
-
-    <View style={styles.primaryActions}>
-      <Pressable accessibilityRole="button" onPress={() => router.push("/training/coach")} style={({pressed}) => [styles.heroAction, pressed && styles.pressed]}><View style={styles.heroIcon}><Feather color={colors.canvas} name="message-circle" size={24} /></View><View style={styles.actionCopy}><Text style={styles.heroTitle}>{arabic ? "تحدث مع بنيان" : "Talk to Bunyan"}</Text><Text style={styles.heroBody}>{arabic ? "اسأل عن خطتك أو تمرينك أو تقدمك" : "Ask about your plan, workout or progress"}</Text></View><Feather color={colors.canvas} name={arabic ? "arrow-left" : "arrow-right"} size={20} /></Pressable>
-      <View style={[styles.secondaryActions, arabic && styles.reverse]}><HomeAction arabic={arabic} icon="edit-3" label={arabic ? "حلّل وجبة" : "Analyze food"} onPress={() => router.push("/nutrition")} /><HomeAction arabic={arabic} icon="activity" label={arabic ? "ابدأ تمرين" : "Start workout"} onPress={() => router.push("/training")} /></View>
-    </View>
 
     <View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "صورتك الآن ← خطوتك القادمة" : "Current avatar → next avatar"}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? "تقدم بصري مرتبط بقياساتك الحقيقية" : "Visual progress connected to your real measurements"}</Text></View>
     {avatars.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
@@ -51,7 +53,7 @@ export function HomeScreen() {
   </CoachingPage>;
 }
 
-function HomeAction({ arabic, icon, label, onPress }: { arabic: boolean; icon: "activity" | "edit-3"; label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed}) => [styles.smallAction, pressed && styles.pressed]}><Feather color={colors.bronze} name={icon} size={22} /><Text style={[styles.smallActionText, arabic && ui.rtl]}>{label}</Text></Pressable>; }
+function HomeAction({ arabic, icon, label, onPress }: { arabic: boolean; icon: "activity" | "edit-3" | "message-circle"; label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed}) => [styles.smallAction, pressed && styles.pressed]}><Feather color={colors.bronze} name={icon} size={22} /><Text style={[styles.smallActionText, arabic && ui.rtl]}>{label}</Text></Pressable>; }
 function dailyNextAction(value: string): string { if (value.startsWith("Log")) return "سجّل أو حلّل وجبة."; if (value.startsWith("Complete")) return "أكمل تمرين اليوم."; return "أنجزت خطوات اليوم الأساسية."; }
 
 const styles = StyleSheet.create({

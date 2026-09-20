@@ -10,7 +10,7 @@ import { Redirect, Stack, usePathname } from "expo-router";
 import Head from "expo-router/head";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppTaskbar } from "../src/core/components/AppTaskbar";
 import { LanguageDirection } from "../src/core/components/DirectionalText";
@@ -22,6 +22,10 @@ import { useAuthSession } from "../src/core/auth/session";
 import { colors, spacing } from "../src/core/theme/tokens";
 import { getMyProfile } from "../src/features/auth/api/profileApi";
 import { AuthLoadingScreen } from "../src/features/auth/screens/AuthLoadingScreen";
+
+import { readIntroCompleted, storeIntroCompleted } from "../src/core/auth/introStorage";
+import { AuthEntryPreferences } from "../src/features/auth/screens/SignInScreen";
+import { IntroScreen } from "../src/features/auth/screens/IntroScreen";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -50,7 +54,7 @@ export default function RootLayout() {
       <Head>
         <title>BONYAN</title>
         <meta
-          content="Private body composition insights, deterministic training, avatars, and community."
+          content="Military physical preparation and gym training, with personalized plans and progress tracking."
           name="description"
         />
       </Head>
@@ -63,6 +67,12 @@ export default function RootLayout() {
 function RootNavigator() {
   const { isAuthenticated, isRestoring } = useAuthSession();
   const pathname = usePathname();
+  const [intro, setIntro] = useState<boolean | null>(null);
+  const [authChoice, setAuthChoice] = useState<{mode: string; language: string} | null>(null);
+  const [introError, setIntroError] = useState(false);
+  function restoreIntro() { setIntroError(false); void readIntroCompleted().then(setIntro).catch(() => setIntroError(true)); }
+  useEffect(() => { void readIntroCompleted().then(setIntro).catch(() => setIntroError(true)); }, []);
+  useEffect(() => { if (isAuthenticated && !isRestoring && intro === false) void storeIntroCompleted().then(() => setIntro(true)).catch(() => {}); }, [isAuthenticated, isRestoring, intro]);
   const profile = useQuery({
     enabled: isAuthenticated && !isRestoring,
     queryFn: getMyProfile,
@@ -71,11 +81,13 @@ function RootNavigator() {
   const inAuthGroup = pathname === "/sign-in";
   const inOnboardingGroup = pathname === "/onboarding";
 
-  if (isRestoring) {
+  if (introError) return <SafeAreaView style={styles.gateState}><ScreenState variant="error" title="Startup unavailable" message="Your device preferences could not be loaded." actionLabel="Try again" onAction={restoreIntro} /></SafeAreaView>;
+  if (isRestoring || intro === null) {
     return <AuthLoadingScreen />;
   }
+  if (!intro && !isAuthenticated) return <IntroScreen onComplete={(register, arabic) => { setAuthChoice({mode: register ? "register" : "login", language: arabic ? "ar" : "en"}); setIntro(true); }} />;
   if (!isAuthenticated) {
-    return inAuthGroup ? <AppStack /> : <Redirect href="/sign-in" />;
+    return inAuthGroup ? <AuthEntryPreferences.Provider value={authChoice}><AppStack /></AuthEntryPreferences.Provider> : <Redirect href={{pathname: "/sign-in", params: authChoice ?? {}}} />;
   }
   if (profile.isPending) {
     return <AuthLoadingScreen />;

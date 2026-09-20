@@ -7,7 +7,13 @@ from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.domains.nutrition.repository import NutritionRepository
-from app.domains.nutrition.schemas import AnalyzeFoodRequest, DailyDashboard, FoodLogView
+from app.domains.nutrition.schemas import (
+    AnalyzeFoodRequest,
+    ConfirmFoodRequest,
+    DailyDashboard,
+    FoodLogView,
+    FoodPreview,
+)
 from app.domains.nutrition.service import NutritionService
 from app.domains.users.repository import SqlAlchemyProfileRepository
 from app.integrations.llm.production import ProductionLLMProvider
@@ -64,6 +70,21 @@ async def get_today(
         timezone_name=await _profile_timezone(session, current_user.id),
     )
     return dashboard
+
+
+@router.post("/preview", response_model=FoodPreview)
+async def preview_food(
+    request: AnalyzeFoodRequest, current_user: CurrentUserDep, service: ServiceDep
+) -> FoodPreview:
+    analysis = await service.preview(user_id=current_user.id, request=request)
+    return FoodPreview(**analysis.model_dump())
+
+
+@router.post("/confirm", response_model=FoodLogView, status_code=status.HTTP_201_CREATED)
+async def confirm_food(
+    request: ConfirmFoodRequest, current_user: CurrentUserDep, service: ServiceDep
+) -> FoodLogView:
+    return await service.confirm(user_id=current_user.id, request=request)
 
 
 @router.get("/logs/today", response_model=list[FoodLogView])

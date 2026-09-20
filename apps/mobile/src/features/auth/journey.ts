@@ -7,9 +7,9 @@ export const goalOptions = [
  {value: "fat_loss", title: "Lose fat", ar: "خسارة الدهون", description: "Follow your measurements and stay active.", descriptionAr: "تابع قياساتك وحافظ على نشاطك.", icon: "target"},
  {value: "military_preparation", title: "Military College Preparation", ar: "الاستعداد للكليات العسكرية", description: "Develop strength endurance and track your own targets.", descriptionAr: "طوّر تحمّلك العضلي وتابع أهدافك الشخصية.", icon: "shield"},
 ] as const;
-export type JourneyStep = "welcome" | "name" | "goal" | "military" | "focus" | "body" | "experience" | "performance" | "schedule" | "summary";
+export type JourneyStep = "welcome" | "name" | "goal" | "military" | "focus" | "body" | "experience" | "performance" | "schedule" | "summary" | "gym-goal" | "test-date" | "running" | "pushups" | "pullups" | "equipment";
 export function journeySteps(goal: TrainingGoal): JourneyStep[] {
- return ["welcome", "name", "goal", ...(goal === "military_preparation" ? ["military" as const] : ["focus" as const]), "body", "experience", "schedule", "performance", "summary"];
+ return ["welcome", "name", "goal", ...(goal === "military_preparation" ? ["military", "test-date", "running", "pushups", "pullups"] as const : ["gym-goal", "focus"] as const), "experience", "schedule", "equipment", "body", "performance", "summary"];
 }
 export function performanceFields(goal: TrainingGoal) {
  return {running: ["general_fitness", "fat_loss", "military_preparation"].includes(goal), pushups: ["strength", "hypertrophy", "military_preparation"].includes(goal), pullups: goal === "military_preparation", weightTarget: goal === "fat_loss"};
