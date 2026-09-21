@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getAccessToken, setSessionAccessToken } from "../src/core/auth/session";
-import { login, register } from "../src/features/auth/api/authApi";
+import { login, register, verifyEmail } from "../src/features/auth/api/authApi";
 import {
   deleteMyAccount,
   deleteMyProfilePhoto,
@@ -32,19 +32,20 @@ function jsonResponse(payload: unknown, status = 200): Response {
 }
 
 describe("mobile auth and profile contracts", () => {
-  it("registers and signs in without accepting a client-selected user ID", async () => {
-    const fetchMock = vi.fn().mockImplementation(() =>
-      Promise.resolve(
-        jsonResponse({ access_token: "signed", expires_in: 3600, token_type: "bearer" }),
-      ),
-    );
+  it("registers through email verification without a client-selected user ID", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ challenge_id: "challenge", expires_in: 600 }, 202))
+      .mockResolvedValueOnce(jsonResponse({ access_token: "signed", expires_in: 3600, token_type: "bearer" }, 201))
+      .mockResolvedValueOnce(jsonResponse({ access_token: "signed", expires_in: 3600, token_type: "bearer" }));
     vi.stubGlobal("fetch", fetchMock);
 
     await register({ email: "person@example.com", password: "long-test-password" });
+    await verifyEmail("challenge", "123456");
     await login({ email: "person@example.com", password: "long-test-password" });
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/auth/register");
-    expect(fetchMock.mock.calls[1]?.[0]).toContain("/api/v1/auth/login");
+    expect(fetchMock.mock.calls[1]?.[0]).toContain("/api/v1/auth/verify-email");
+    expect(fetchMock.mock.calls[2]?.[0]).toContain("/api/v1/auth/login");
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(body).toEqual({ email: "person@example.com", password: "long-test-password" });
     expect(body).not.toHaveProperty("user_id");

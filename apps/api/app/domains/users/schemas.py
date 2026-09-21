@@ -35,6 +35,24 @@ class AccessTokenView(BaseModel):
     token_type: str = "bearer"
 
 
+class EmailRegistrationStarted(BaseModel):
+    challenge_id: str
+    expires_in: int
+
+
+class EmailVerificationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    challenge_id: str = Field(min_length=36, max_length=36)
+    code: str = Field(pattern=r"^\d{6}$")
+
+
+class GoogleTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id_token: str = Field(min_length=20, max_length=8192)
+
+
 class Sex(StrEnum):
     FEMALE = "female"
     MALE = "male"

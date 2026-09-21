@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     auth_jwt_issuer: str = "bonyan"
     auth_jwt_audience: str = "bonyan-api"
     auth_access_token_minutes: int = 720
+    email_provider: Literal["console", "resend"] = "console"
+    resend_api_key: SecretStr | None = None
+    email_from: str = "BONYAN <noreply@example.com>"
+    email_verification_minutes: int = 10
+    google_client_ids: str = ""
     cors_allowed_origins: str = ""
     private_storage_root: Path = API_DIRECTORY / ".private-storage"
     api_public_url: str = "http://127.0.0.1:8000"
@@ -88,6 +93,13 @@ class Settings(BaseSettings):
     def validate_access_token_lifetime(cls, value: int) -> int:
         if not 5 <= value <= 1440:
             raise ValueError("AUTH_ACCESS_TOKEN_MINUTES must be between 5 and 1440")
+        return value
+
+    @field_validator("email_verification_minutes")
+    @classmethod
+    def validate_email_verification_lifetime(cls, value: int) -> int:
+        if not 2 <= value <= 30:
+            raise ValueError("EMAIL_VERIFICATION_MINUTES must be between 2 and 30")
         return value
 
     @field_validator(
@@ -175,6 +187,12 @@ class Settings(BaseSettings):
             "https://"
         ):
             raise ValueError("API_PUBLIC_URL must use HTTPS in staging and production")
+        if self.email_provider == "resend" and (
+            self.resend_api_key is None or not self.resend_api_key.get_secret_value().strip()
+        ):
+            raise ValueError("RESEND_API_KEY is required when EMAIL_PROVIDER=resend")
+        if self.api_env in {"staging", "production"} and self.email_provider == "console":
+            raise ValueError("EMAIL_PROVIDER must send real email in staging and production")
         if self.chat_provider != "mock":
             if self.chat_api_key is None or not self.chat_api_key.get_secret_value().strip():
                 raise ValueError(
@@ -244,6 +262,10 @@ class Settings(BaseSettings):
                 "http://127.0.0.1:19006",
             ]
         return []
+
+    @property
+    def google_oauth_client_ids(self) -> set[str]:
+        return {value.strip() for value in self.google_client_ids.split(",") if value.strip()}
 
 
 @lru_cache

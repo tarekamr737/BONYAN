@@ -96,6 +96,18 @@ class UserAccount(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class EmailVerificationChallenge(Base):
+    __tablename__ = "email_verification_challenges"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    code_digest: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class ProfileHistoryRecord(Base):
     __tablename__ = "profile_history"
     __table_args__ = (

@@ -6,7 +6,7 @@ import { SpaceGrotesk_600SemiBold } from "@expo-google-fonts/space-grotesk/600Se
 import { SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk/700Bold";
 import { useFonts } from "expo-font";
 import { useQuery } from "@tanstack/react-query";
-import { Redirect, Stack, usePathname } from "expo-router";
+import { Redirect, Stack, usePathname, useRouter } from "expo-router";
 import Head from "expo-router/head";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -67,6 +67,7 @@ export default function RootLayout() {
 function RootNavigator() {
   const { isAuthenticated, isRestoring } = useAuthSession();
   const pathname = usePathname();
+  const router = useRouter();
   const [intro, setIntro] = useState<boolean | null>(null);
   const [authChoice, setAuthChoice] = useState<{mode: string; language: string} | null>(null);
   const [introError, setIntroError] = useState(false);
@@ -80,14 +81,20 @@ function RootNavigator() {
   });
   const inAuthGroup = pathname === "/sign-in";
   const inOnboardingGroup = pathname === "/onboarding";
+  function completeIntro(register: boolean, arabic: boolean) {
+    const choice = { mode: register ? "register" : "login", language: arabic ? "ar" : "en" };
+    setAuthChoice(choice);
+    setIntro(true);
+    router.replace({ pathname: "/sign-in", params: choice });
+  }
 
   if (introError) return <SafeAreaView style={styles.gateState}><ScreenState variant="error" title="Startup unavailable" message="Your device preferences could not be loaded." actionLabel="Try again" onAction={restoreIntro} /></SafeAreaView>;
   if (isRestoring || intro === null) {
     return <AuthLoadingScreen />;
   }
-  if (!intro && !isAuthenticated) return <IntroScreen onComplete={(register, arabic) => { setAuthChoice({mode: register ? "register" : "login", language: arabic ? "ar" : "en"}); setIntro(true); }} />;
+  if (!intro && !isAuthenticated) return <IntroScreen onComplete={completeIntro} />;
   if (!isAuthenticated) {
-    return inAuthGroup ? <AuthEntryPreferences.Provider value={authChoice}><AppStack /></AuthEntryPreferences.Provider> : <Redirect href={{pathname: "/sign-in", params: authChoice ?? {}}} />;
+    return inAuthGroup ? <AuthEntryPreferences.Provider value={authChoice}><AppStack key={`${authChoice?.mode}-${authChoice?.language}`} /></AuthEntryPreferences.Provider> : <Redirect href={{pathname: "/sign-in", params: authChoice ?? {}}} />;
   }
   if (profile.isPending) {
     return <AuthLoadingScreen />;

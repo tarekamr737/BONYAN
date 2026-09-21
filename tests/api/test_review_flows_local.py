@@ -14,10 +14,14 @@ pytestmark = pytest.mark.skipif(
 
 def test_review_confirmation_and_session_retry(monkeypatch):
     from app.core.config import get_settings
-    from app.core.database import engine
+    from app.core.database import engine, session_factory
+    from app.core.passwords import PasswordHasher
     from app.core.providers.contracts import LLMResponse
     from app.domains.nutrition import router as nutrition_router
     from app.domains.training import router as training_router
+    from app.domains.users.auth_service import AuthService
+    from app.domains.users.repository import SqlAlchemyAccountRepository
+    from app.domains.users.schemas import AuthCredentials
     from app.integrations.exercises.provider import ExerciseDetails
     from app.main import create_app
 
@@ -46,11 +50,15 @@ def test_review_confirmation_and_session_retry(monkeypatch):
         ) as client:
             headers = []
             for _ in range(2):
-                response = await client.post("/api/v1/auth/register", json={
-                    "email": f"review-{uuid4().hex}@example.invalid", "password": uuid4().hex,
-                })
-                assert response.status_code == 201
-                headers.append({"Authorization": f"Bearer {response.json()['access_token']}"})
+                async with session_factory() as session:
+                    auth = await AuthService(
+                        SqlAlchemyAccountRepository(session), PasswordHasher(), get_settings()
+                    ).register(AuthCredentials(
+                        email=f"review-{uuid4().hex}@example.invalid",
+                        password=uuid4().hex,
+                    ))
+                    await session.commit()
+                headers.append({"Authorization": f"Bearer {auth.access_token}"})
             owner, other = headers
             response = await client.post("/api/v1/training/plans/manual", headers=owner, json={
                 "name": "Review fixture", "goal": "strength", "experience": "beginner",

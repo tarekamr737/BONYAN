@@ -22,6 +22,9 @@ from app.domains.users.repository import SqlAlchemyAccountRepository
 from app.domains.users.schemas import (
     AccessTokenView,
     AuthCredentials,
+    EmailRegistrationStarted,
+    EmailVerificationRequest,
+    GoogleTokenRequest,
     ProfileUpdate,
     UserProfileView,
 )
@@ -49,13 +52,31 @@ async def get_auth_service(
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
-@router.post("/auth/register", response_model=AccessTokenView, status_code=201)
+@router.post("/auth/register", response_model=EmailRegistrationStarted, status_code=202)
 async def register(
     request: AuthCredentials,
     service: AuthServiceDep,
     _: Annotated[None, Depends(limit_registration)],
+) -> EmailRegistrationStarted:
+    return await service.start_email_registration(request)
+
+
+@router.post("/auth/verify-email", response_model=AccessTokenView, status_code=201)
+async def verify_email(
+    request: EmailVerificationRequest,
+    service: AuthServiceDep,
+    _: Annotated[None, Depends(limit_login)],
 ) -> AccessTokenView:
-    return await service.register(request)
+    return await service.verify_email_registration(request)
+
+
+@router.post("/auth/google", response_model=AccessTokenView)
+async def google_login(
+    request: GoogleTokenRequest,
+    service: AuthServiceDep,
+    _: Annotated[None, Depends(limit_login)],
+) -> AccessTokenView:
+    return await service.login_with_google(request)
 
 
 @router.post("/auth/login", response_model=AccessTokenView)

@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useRef, useState } from "react";
-import { PanResponder, StyleSheet, View } from "react-native";
+import { PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { AppButton, BrandMark } from "../../../core/components";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { storeIntroCompleted } from "../../../core/auth/introStorage";
@@ -42,7 +42,17 @@ export function IntroScreen({ onComplete }: { onComplete: (register: boolean, ar
     catch { setError(true); }
     finally { busy.current = false; setSaving(false); }
   }
+  const next = () => setPage((current) => Math.min(introSlides.length - 1, current + 1));
+  const skip = () => void finish(false);
   return <CoachingPage arabic={arabic} step={String(page)}>
+    {!last ? <View style={styles.topActions}>
+      <Pressable accessibilityRole="button" disabled={saving} onPress={arabic ? skip : next} hitSlop={12}>
+        <Text style={styles.topAction}>{arabic ? "تخطي" : "Next"}</Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" disabled={saving} onPress={arabic ? next : skip} hitSlop={12}>
+        <Text style={styles.topAction}>{arabic ? "التالي" : "Skip"}</Text>
+      </Pressable>
+    </View> : null}
     <View style={styles.header}><BrandMark /><AppButton variant="secondary" label={arabic ? "English" : "العربية"} disabled={saving} onPress={() => setArabic(!arabic)} /></View>
     <View {...gesture.panHandlers} style={styles.story}>
       <Image source={images[slide.image]} contentFit="cover" style={styles.image} accessibilityLabel={arabic ? slide.ar : slide.en} />
@@ -53,15 +63,19 @@ export function IntroScreen({ onComplete }: { onComplete: (register: boolean, ar
     <View accessibilityRole="progressbar" accessibilityLabel={arabic ? "مقدمة بنيان" : "Bonyan introduction"} accessibilityValue={{ min: 1, max: introSlides.length, now: page + 1 }} style={[styles.indicators, arabic && styles.reverse]}>
       {introSlides.map((_, index) => <View key={index} style={[styles.dot, index === page && styles.current]} />)}
     </View>
-    <Text style={ui.small}>{page + 1} / {introSlides.length}</Text>
+    <View style={styles.progressMeta}>
+      {page > 0 ? <Pressable accessibilityRole="button" disabled={saving} onPress={() => setPage(page - 1)} hitSlop={12}><Text style={styles.back}>{arabic ? "رجوع" : "Back"}</Text></Pressable> : <View />}
+      <Text style={ui.small}>{page + 1} / {introSlides.length}</Text>
+    </View>
     {error ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذر حفظ اختيارك. جرّب مرة تانية." : "Could not save your choice. Please try again."}</Text> : null}
-    <AppButton label={last ? arabic ? "ابدأ الآن" : "Get started" : arabic ? "التالي" : "Next"} loading={saving} onPress={() => last ? void finish(true) : setPage(page + 1)} />
-    {last ? <AppButton variant="secondary" label={arabic ? "لدي حساب بالفعل" : "I already have an account"} disabled={saving} onPress={() => void finish(false)} /> : <AppButton variant="secondary" label={arabic ? "تخطي المقدمة" : "Skip introduction"} disabled={saving} onPress={() => void finish(false)} />}
-    {page > 0 ? <AppButton variant="secondary" label={arabic ? "رجوع" : "Back"} disabled={saving} onPress={() => setPage(page - 1)} /> : null}
+    {last ? <AppButton label={arabic ? "ابدأ الآن" : "Get started"} loading={saving} onPress={() => void finish(true)} /> : null}
+    {last ? <AppButton variant="secondary" label={arabic ? "لدي حساب بالفعل" : "I already have an account"} disabled={saving} onPress={() => void finish(false)} /> : null}
   </CoachingPage>;
 }
 
 const styles = StyleSheet.create({
+  topActions: { flexDirection: "row", justifyContent: "space-between", minHeight: 28, alignItems: "center" },
+  topAction: { color: colors.bronze, fontSize: 12 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
   story: { gap: spacing.lg },
   image: { width: "100%", aspectRatio: 1.5, borderRadius: 16, backgroundColor: colors.surface },
@@ -69,4 +83,6 @@ const styles = StyleSheet.create({
   reverse: { flexDirection: "row-reverse" },
   dot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.line },
   current: { backgroundColor: colors.bronze },
+  progressMeta: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  back: { color: colors.mutedLight, fontSize: 12 },
 });

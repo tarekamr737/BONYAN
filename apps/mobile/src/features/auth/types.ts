@@ -17,6 +17,11 @@ export type AccessTokenResponse = {
   token_type: "bearer";
 };
 
+export type EmailRegistrationStarted = {
+  challenge_id: string;
+  expires_in: number;
+};
+
 export type UserProfile = {
   coaching?: CoachingPreferences;
   available_equipment: string[];
