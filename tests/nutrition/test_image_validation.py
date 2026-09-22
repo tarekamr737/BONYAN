@@ -3,9 +3,10 @@ from __future__ import annotations
 import io
 
 import pytest
+from PIL import Image
+
 from app.core.errors import AppError
 from app.domains.nutrition.image_validation import validate_food_image
-from PIL import Image
 
 
 def _image_bytes(image_format: str = "PNG") -> bytes:

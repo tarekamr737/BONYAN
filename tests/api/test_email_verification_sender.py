@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 import pytest
+
 from app.core.config import Settings
 from app.core.passwords import PasswordHasher
 from app.domains.users.auth_service import AuthService
