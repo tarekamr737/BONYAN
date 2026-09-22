@@ -33,6 +33,8 @@ export type UserProfile = {
   has_profile_photo: boolean;
   height_cm: string | null;
   onboarding_completed: boolean;
+  home_tour_completed: boolean;
+  home_tour_completed_at: string | null;
   preferred_language: string;
   preferred_units: PreferredUnits;
   profile_photo_updated_at: string | null;
@@ -52,6 +54,7 @@ export type ProfileUpdate = Partial<
     | "experience_level"
     | "height_cm"
     | "onboarding_completed"
+    | "home_tour_completed"
     | "preferred_language"
     | "preferred_units"
     | "sex"

@@ -46,6 +46,7 @@ FITNESS_SCOPE_TERMS = (
     "تغذية",
     "سعرات",
 )
+COACH_GREETING_TERMS = {"hi", "hello", "hey", "coach", "coch", "كوتش", "مرحبا", "أهلا"}
 logger = get_logger("providers")
 
 
@@ -64,7 +65,11 @@ class CoachService:
     async def respond(
         self, *, user_id: str, message: str, user_context: dict[str, object] | None = None
     ) -> CoachMessageResponse:
-        if not any(term in message.lower() for term in FITNESS_SCOPE_TERMS):
+        normalized_message = message.lower()
+        words = {word.strip(".,!?؟") for word in normalized_message.split()}
+        if not any(term in normalized_message for term in FITNESS_SCOPE_TERMS) and not (
+            words & COACH_GREETING_TERMS
+        ):
             raise AppError(
                 "coach_scope_error",
                 "Ask the coach about training, nutrition, or your progress.",

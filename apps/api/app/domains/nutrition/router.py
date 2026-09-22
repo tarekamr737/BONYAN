@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
@@ -13,6 +13,7 @@ from app.domains.nutrition.schemas import (
     DailyDashboard,
     FoodLogView,
     FoodPreview,
+    MealType,
 )
 from app.domains.nutrition.service import NutritionService
 from app.domains.users.repository import SqlAlchemyProfileRepository
@@ -80,6 +81,34 @@ async def preview_food(
     return FoodPreview(**analysis.model_dump())
 
 
+@router.post("/preview-image", response_model=FoodPreview)
+async def preview_food_image(
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    photo: Annotated[UploadFile, File()],
+    meal_type: Annotated[MealType, Form()] = MealType.SNACK,
+    description: Annotated[str, Form(max_length=1000)] = "",
+) -> FoodPreview:
+    del meal_type
+    media_type = photo.content_type or "application/octet-stream"
+    if media_type not in {"image/jpeg", "image/png", "image/webp"}:
+        from app.core.errors import AppError
+
+        raise AppError("food_image_type_invalid", "Choose a JPEG, PNG, or WebP image.", 422)
+    content = await photo.read(8 * 1024 * 1024 + 1)
+    if not content or len(content) > 8 * 1024 * 1024:
+        from app.core.errors import AppError
+
+        raise AppError("food_image_size_invalid", "Choose an image smaller than 8 MB.", 422)
+    analysis = await service.preview_image(
+        user_id=current_user.id,
+        image=content,
+        media_type=media_type,
+        description=description,
+    )
+    return FoodPreview(**analysis.model_dump())
+
+
 @router.post("/confirm", response_model=FoodLogView, status_code=status.HTTP_201_CREATED)
 async def confirm_food(
     request: ConfirmFoodRequest, current_user: CurrentUserDep, service: ServiceDep
@@ -98,3 +127,12 @@ async def get_today_logs(
         timezone_name=await _profile_timezone(session, current_user.id),
     )
     return logs
+
+
+@router.get("/logs", response_model=list[FoodLogView])
+async def get_recent_logs(
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> list[FoodLogView]:
+    return await service.recent(user_id=current_user.id, limit=limit)

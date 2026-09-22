@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.training.models import WorkoutPlanRecord, WorkoutSessionRecord
+from app.domains.training.models import CoachMessageRecord, WorkoutPlanRecord, WorkoutSessionRecord
 from app.domains.training.schemas import PlanStatus, WorkoutSessionStatus
 
 
@@ -105,3 +105,27 @@ class TrainingRepository:
             .limit(limit)
         )
         return list(result.scalars())
+
+    async def list_coach_messages(
+        self, *, owner_id: str, limit: int = 50
+    ) -> list[CoachMessageRecord]:
+        result = await self.session.execute(
+            select(CoachMessageRecord)
+            .where(CoachMessageRecord.owner_id == owner_id)
+            .order_by(CoachMessageRecord.created_at.desc(), CoachMessageRecord.id.desc())
+            .limit(limit)
+        )
+        return list(reversed(list(result.scalars())))
+
+    async def add_coach_message(
+        self, *, owner_id: str, role: str, content: str, model: str | None = None
+    ) -> CoachMessageRecord:
+        record = CoachMessageRecord(
+            owner_id=owner_id,
+            role=role,
+            content=content,
+            model=model,
+        )
+        self.session.add(record)
+        await self.session.flush()
+        return record

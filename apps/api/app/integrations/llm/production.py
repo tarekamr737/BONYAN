@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from collections.abc import Callable
 from typing import Any, Literal
@@ -70,9 +71,24 @@ class ProductionLLMProvider:
                 f"{json.dumps(results, ensure_ascii=False, separators=(',', ':'))}\n"
                 "Answer the user using only these validated results. Do not request another tool."
             )
+        responses_input: object = prompt
+        if llm_request.images:
+            responses_input = [{
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": prompt},
+                    *[
+                        {
+                            "type": "input_image",
+                            "image_url": _image_data_url(image.data, image.media_type),
+                        }
+                        for image in llm_request.images
+                    ],
+                ],
+            }]
         payload: dict[str, Any] = {
             "model": self._model,
-            "input": prompt,
+            "input": responses_input,
             "store": False,
             "max_output_tokens": 800,
             "parallel_tool_calls": False,
@@ -92,9 +108,21 @@ class ProductionLLMProvider:
             ]
             payload["tool_choice"] = "auto"
         if self._provider in {"puter", "openrouter", "sovereigneg"}:
+            chat_content: object = prompt
+            if llm_request.images:
+                chat_content = [
+                    {"type": "text", "text": prompt},
+                    *[
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": _image_data_url(image.data, image.media_type)},
+                        }
+                        for image in llm_request.images
+                    ],
+                ]
             chat_payload: dict[str, Any] = {
                 "model": self._model,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [{"role": "user", "content": chat_content}],
                 "max_completion_tokens": 800,
                 "stream": False,
             }
@@ -381,6 +409,10 @@ def _provider_request_url(
 
 def _non_negative_int(value: object) -> int:
     return value if isinstance(value, int) and value >= 0 else 0
+
+
+def _image_data_url(data: bytes, media_type: str) -> str:
+    return f"data:{media_type};base64,{base64.b64encode(data).decode('ascii')}"
 
 
 def _estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float | None:

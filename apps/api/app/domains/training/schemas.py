@@ -227,6 +227,16 @@ class CoachMessageResponse(BaseModel):
     tool_results: list[dict[str, object]] = Field(default_factory=list)
 
 
+class CoachMessageView(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    role: str
+    content: str
+    model: str | None = None
+    created_at: datetime
+
+
 class ExerciseMediaAccessResponse(BaseModel):
     url: str
     expires_at: datetime | None = None

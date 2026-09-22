@@ -1,4 +1,4 @@
-const key = "bonyan.intro.completed.v1";
+const key = "bonyan.intro.completed.v2";
 
 // This non-private installation preference survives sign-out and web tab closure.
 export async function readIntroCompleted(): Promise<boolean> {

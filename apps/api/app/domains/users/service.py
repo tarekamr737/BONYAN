@@ -20,6 +20,10 @@ class ProfileService:
     async def update(self, owner_id: str, request: ProfileUpdate) -> UserProfileView:
         existing = await self.get(owner_id)
         changes = request.model_dump(exclude_unset=True, mode="python")
+        if changes.get("home_tour_completed") and not existing.home_tour_completed:
+            from datetime import UTC, datetime
+
+            changes["home_tour_completed_at"] = datetime.now(UTC)
         if "coaching" in changes:
             changes["coaching"] = (
                 {

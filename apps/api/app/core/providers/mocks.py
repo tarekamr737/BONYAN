@@ -19,7 +19,14 @@ class MockLLMProvider:
         self._model = model
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
-        del request
+        if "Estimate nutrition" in request.prompt:
+            return LLMResponse(
+                text=(
+                    '{"calories":420,"protein_g":28,"carbs_g":46,"fat_g":14,'
+                    '"summary":"Development estimate; review every value before saving."}'
+                ),
+                model=self._model,
+            )
         return LLMResponse(
             text="Mock response: BONYAN processed the validated training context.",
             model=self._model,

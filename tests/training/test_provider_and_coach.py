@@ -596,6 +596,16 @@ def test_coach_accepts_its_mobile_suggested_prompts(message: str) -> None:
     assert response.model == "TBD"
 
 
+@pytest.mark.parametrize("message", ["hi coach", "hi coch", "hello"])
+def test_coach_accepts_conversational_openers(message: str) -> None:
+    service, _ = make_service()
+    coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
+
+    response = run(coach.respond(user_id="user-1", message=message))
+
+    assert response.model == "TBD"
+
+
 def test_coach_llm_outage_does_not_mutate_without_valid_tool() -> None:
     service, repo = make_service()
     coach = CoachService(llm_provider=FailingLLM(), tool_executor=CoachToolExecutor(service))

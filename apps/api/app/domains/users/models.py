@@ -74,6 +74,10 @@ class UserProfile(Base):
     onboarding_completed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
+    home_tour_completed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
+    home_tour_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     profile_photo_object_key: Mapped[str | None] = mapped_column(String(512))
     profile_photo_media_type: Mapped[str | None] = mapped_column(String(64))
     profile_photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

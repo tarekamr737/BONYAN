@@ -32,8 +32,15 @@ class LLMUsage:
 
 
 @dataclass(frozen=True, slots=True)
+class LLMImage:
+    data: bytes = field(repr=False)
+    media_type: str = "image/jpeg"
+
+
+@dataclass(frozen=True, slots=True)
 class LLMRequest:
     prompt: str
+    images: tuple[LLMImage, ...] = ()
     tools: tuple[LLMToolDefinition, ...] = ()
     tool_results: tuple[LLMToolResult, ...] = ()
     safety_identifier: str | None = None

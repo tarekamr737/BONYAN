@@ -1,6 +1,7 @@
 import { apiRequest } from "../../../core/api/client";
 import type {
   CoachMessageResponse,
+  CoachMessage,
   ExerciseMediaAccess,
   GeneratePlanRequest,
   LoggedSetInput,
@@ -82,6 +83,14 @@ export function sendCoachMessage(
     body: { message },
     method: "POST",
   });
+}
+
+export function getCoachMessages(): Promise<CoachMessage[]> {
+  return apiRequest<CoachMessage[]>("/api/v1/training/coach/messages?limit=50");
+}
+
+export function getWorkoutSessions(limit = 20): Promise<WorkoutSession[]> {
+  return apiRequest<WorkoutSession[]>(`/api/v1/training/sessions?limit=${limit}`);
 }
 
 export function getWorkoutPlan(planId: string): Promise<WorkoutPlan> {

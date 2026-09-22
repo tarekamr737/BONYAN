@@ -94,6 +94,8 @@ class ProfileFields(BaseModel):
     preferred_units: PreferredUnits = PreferredUnits.METRIC
     timezone: str = Field(default="UTC", min_length=1, max_length=64)
     onboarding_completed: bool = False
+    home_tour_completed: bool = False
+    home_tour_completed_at: datetime | None = None
 
     @field_validator("display_name")
     @classmethod
@@ -155,6 +157,7 @@ class ProfileUpdate(BaseModel):
     preferred_units: PreferredUnits | None = None
     timezone: str | None = Field(default=None, min_length=1, max_length=64)
     onboarding_completed: bool | None = None
+    home_tour_completed: bool | None = None
 
     @field_validator("display_name")
     @classmethod

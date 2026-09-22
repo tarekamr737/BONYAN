@@ -69,6 +69,7 @@ def profile_record() -> UserProfile:
         owner_id="user-1",
         available_equipment=[],
         coaching={},
+        home_tour_completed=False,
         onboarding_completed=False,
         preferred_language="en",
         preferred_units="metric",

@@ -15,6 +15,8 @@ const profile: UserProfile = {
   experience_level: "beginner",
   has_profile_photo: false,
   height_cm: "178",
+  home_tour_completed: false,
+  home_tour_completed_at: null,
   onboarding_completed: true,
   preferred_language: "en",
   preferred_units: "metric",

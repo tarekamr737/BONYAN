@@ -54,6 +54,17 @@ class NutritionRepository:
         )
         return list(result.scalars())
 
+    async def list_recent_food(
+        self, *, owner_id: str, limit: int = 50
+    ) -> list[FoodLogRecord]:
+        result = await self.session.execute(
+            select(FoodLogRecord)
+            .where(FoodLogRecord.owner_id == owner_id)
+            .order_by(FoodLogRecord.logged_at.desc(), FoodLogRecord.id.desc())
+            .limit(limit)
+        )
+        return list(result.scalars())
+
     async def session_counts_between(
         self, *, owner_id: str, start: datetime, end: datetime
     ) -> tuple[int, int]:

@@ -14,7 +14,7 @@ import {
   accountDeletionConfirmationActions,
   usesInlineAccountDeletionConfirmation,
 } from "../accountDeletionConfirmation";
-import { deleteMyAccount, getMyProfile } from "../api/profileApi";
+import { deleteMyAccount, getMyProfile, updateMyProfile } from "../api/profileApi";
 import { CoachingJourney } from "../components/CoachingJourney";
 import { ProfileOverview } from "../components/ProfileOverview";
 import { ProfilePhotoEditor } from "../components/ProfilePhotoEditor";
@@ -33,6 +33,13 @@ export function ProfileScreen() {
       queryClient.clear();
       await signOut();
       router.replace("/(auth)/sign-in");
+    },
+  });
+  const replayTour = useMutation({
+    mutationFn: () => updateMyProfile({home_tour_completed: false}),
+    onSuccess: updated => {
+      queryClient.setQueryData(["profile", "me"], updated);
+      router.replace("/");
     },
   });
 
@@ -106,6 +113,7 @@ export function ProfileScreen() {
           <ProfileOverview profile={profile.data} onEdit={() => setEditing(true)} />
         </View>
         <View style={styles.sessionActions}>
+          <AppButton label={arabic ? "إعادة جولة الصفحة الرئيسية" : "Replay Home tour"} loading={replayTour.isPending} onPress={() => replayTour.mutate()} variant="secondary" />
           <AppButton label={coachingCopy("Back to BONYAN", profile.data.preferred_language.startsWith("ar"))} onPress={() => router.canGoBack() ? router.back() : router.replace("/")} variant="secondary" />
           <AppButton
             label={coachingCopy("Sign out", profile.data.preferred_language.startsWith("ar"))}

@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { MotionReveal } from "../../../core/components/MotionReveal";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
-import { generateWorkoutPlan, getCurrentWorkoutPlan, startWorkoutSession } from "../api/trainingApi";
+import { generateWorkoutPlan, getCurrentWorkoutPlan, getWorkoutSessions, startWorkoutSession } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { TrainingHeader } from "../components/TrainingHeader";
 import type { WorkoutDay, WorkoutPlan } from "../types";
@@ -37,9 +37,15 @@ export function TrainingHomeScreen() {
     queryFn: getCurrentWorkoutPlan,
     queryKey: ["training", "current-plan"],
   });
+  const sessions = useQuery({
+    queryFn: () => getWorkoutSessions(20),
+    queryKey: ["training", "sessions"],
+  });
   const plan = planQuery.data;
   const today = firstDay(plan);
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const completedSessions = sessions.data?.filter(item => item.status === "completed") ?? [];
+  const totalVolume = completedSessions.reduce((sum, item) => sum + Number(item.summary.volume_kg ?? 0), 0);
 
   const generateMutation = useMutation({
     onMutate: () => setPlanJustPrepared(false),
@@ -173,6 +179,14 @@ export function TrainingHomeScreen() {
           </>
         ) : null}
 
+        <SurfaceCard>
+          <Text style={styles.stateTitle}>{arabic ? "تحليل التدريب" : "Training analysis"}</Text>
+          {sessions.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
+          {sessions.isError ? <><Text style={styles.stateCopy}>{arabic ? "تعذّر تحميل سجل التمرين." : "Your workout history could not be loaded."}</Text><Pressable accessibilityRole="button" onPress={() => sessions.refetch()} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text></Pressable></> : null}
+          {sessions.data?.length === 0 ? <Text style={styles.stateCopy}>{arabic ? "أكمل أول تمرين لتظهر هنا تحليلات التقدم والسجل." : "Complete your first workout to unlock progress insights and history."}</Text> : null}
+          {completedSessions.length > 0 ? <><View style={styles.planStats}><Text style={styles.stat}>{arabic ? `${completedSessions.length} تمرين مكتمل` : `${completedSessions.length} completed`}</Text><Text style={styles.stat}>{arabic ? `${Math.round(totalVolume)} كجم حجم تدريبي` : `${Math.round(totalVolume)} kg volume`}</Text></View>{completedSessions.slice(0, 5).map(session => <Pressable accessibilityRole="button" key={session.id} onPress={() => router.push({pathname: "/training/day", params: {dayKey: session.day_key, sessionId: session.id}})} style={styles.historyRow}><View style={styles.titleWrap}><Text style={styles.historyTitle}>{session.day_key.replaceAll("-", " ")}</Text><Text style={styles.stateCopy}>{new Intl.DateTimeFormat(arabic ? "ar-EG" : "en", {day: "numeric", month: "short", year: "numeric"}).format(new Date(session.completed_at ?? session.started_at))}</Text></View><Text style={styles.historyMeta}>{Number(session.summary.sets ?? session.logged_sets.length)} {arabic ? "مجموعات" : "sets"}</Text></Pressable>)}</> : null}
+        </SurfaceCard>
+
         <View style={styles.actions}>
           <Pressable
             accessibilityRole="button"
@@ -222,6 +236,9 @@ const styles = StyleSheet.create({
   feedbackCopy: { flex: 1 },
   feedbackRow: { alignItems: "center", flexDirection: "row", gap: spacing.md },
   feedbackTitle: { color: colors.positive, fontFamily: fonts.displaySemiBold, fontSize: 19, lineHeight: 25 },
+  historyMeta: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 12 },
+  historyRow: { alignItems: "center", borderTopColor: colors.line, borderTopWidth: 1, flexDirection: "row", gap: spacing.md, justifyContent: "space-between", minHeight: 58, paddingTop: spacing.sm },
+  historyTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14, textTransform: "capitalize" },
   rowReverse: { flexDirection: "row-reverse" },
   successIcon: { alignItems: "center", backgroundColor: "rgba(111,207,151,0.12)", borderColor: "rgba(111,207,151,0.35)", borderRadius: 18, borderWidth: 1, height: 52, justifyContent: "center", width: 52 },
   successIconText: { color: colors.positive, fontFamily: fonts.displayBold, fontSize: 22 },
