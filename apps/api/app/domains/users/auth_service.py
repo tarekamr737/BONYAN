@@ -57,7 +57,11 @@ class AuthService:
                 status.HTTP_409_CONFLICT,
             )
         challenge_id = str(uuid4())
-        code = f"{secrets.randbelow(1_000_000):06d}"
+        code = (
+            self.settings.email_console_code.get_secret_value()
+            if self.settings.email_provider == "console"
+            else f"{secrets.randbelow(1_000_000):06d}"
+        )
         password_hash = await self.password_hasher.hash(credentials.password.get_secret_value())
         challenge = EmailVerificationChallenge(
             id=challenge_id,
@@ -76,9 +80,7 @@ class AuthService:
             expires_in=self.settings.email_verification_minutes * 60,
         )
 
-    async def verify_email_registration(
-        self, request: EmailVerificationRequest
-    ) -> AccessTokenView:
+    async def verify_email_registration(self, request: EmailVerificationRequest) -> AccessTokenView:
         challenge = await self.repository.get_verification(request.challenge_id)
         now = datetime.now(UTC)
         if challenge is None or challenge.expires_at <= now or challenge.attempts >= 5:

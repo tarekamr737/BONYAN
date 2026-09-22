@@ -43,7 +43,7 @@ export function HomeScreen() {
     onSuccess: updated => { client.setQueryData(["profile", "me"], updated); setTourStep(null); },
   });
   const tourTarget = activeTourStep === null ? null : tourSteps[activeTourStep]?.target;
-  const profileButton = <View style={tourTarget === "profile" && styles.tourTarget}><ProfileAvatar accessibilityLabel={arabic ? "??? ????" : "Open my profile"} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} onPress={() => router.push("/profile")} photoUpdatedAt={profile.data?.profile_photo_updated_at} size={54} /></View>;
+  const profileButton = <View style={tourTarget === "profile" && styles.tourTarget}><ProfileAvatar accessibilityLabel={arabic ? "فتح ملفي الشخصي" : "Open my profile"} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} onPress={() => router.push("/profile")} photoUpdatedAt={profile.data?.profile_photo_updated_at} size={54} /></View>;
   const accountTools = <View style={styles.accountTools}><NotificationBell arabic={arabic} count={state.requiresActionCount} onPress={() => router.push("/notifications")} />{profileButton}</View>;
 
   return <CoachingPage arabic={arabic}>

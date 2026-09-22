@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
+from app.domains.nutrition.image_validation import MAX_FOOD_IMAGE_BYTES, validate_food_image
 from app.domains.nutrition.repository import NutritionRepository
 from app.domains.nutrition.schemas import (
     AnalyzeFoodRequest,
@@ -90,20 +91,12 @@ async def preview_food_image(
     description: Annotated[str, Form(max_length=1000)] = "",
 ) -> FoodPreview:
     del meal_type
-    media_type = photo.content_type or "application/octet-stream"
-    if media_type not in {"image/jpeg", "image/png", "image/webp"}:
-        from app.core.errors import AppError
-
-        raise AppError("food_image_type_invalid", "Choose a JPEG, PNG, or WebP image.", 422)
-    content = await photo.read(8 * 1024 * 1024 + 1)
-    if not content or len(content) > 8 * 1024 * 1024:
-        from app.core.errors import AppError
-
-        raise AppError("food_image_size_invalid", "Choose an image smaller than 8 MB.", 422)
+    content = await photo.read(MAX_FOOD_IMAGE_BYTES + 1)
+    image = validate_food_image(content, photo.content_type or "application/octet-stream")
     analysis = await service.preview_image(
         user_id=current_user.id,
-        image=content,
-        media_type=media_type,
+        image=image.content,
+        media_type=image.media_type,
         description=description,
     )
     return FoodPreview(**analysis.model_dump())

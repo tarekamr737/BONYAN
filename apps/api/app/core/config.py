@@ -19,9 +19,7 @@ class Settings(BaseSettings):
     )
 
     api_env: Literal["development", "test", "staging", "production"] = "development"
-    database_url: SecretStr = SecretStr(
-        "postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan"
-    )
+    database_url: SecretStr = SecretStr("postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     chat_provider: Literal["mock", "openai", "puter", "openrouter", "sovereigneg"] = "mock"
     chat_model: str = "TBD"
@@ -45,6 +43,7 @@ class Settings(BaseSettings):
     auth_jwt_audience: str = "bonyan-api"
     auth_access_token_minutes: int = 720
     email_provider: Literal["console", "resend"] = "console"
+    email_console_code: SecretStr = SecretStr("000000")
     resend_api_key: SecretStr | None = None
     email_from: str = "BONYAN <noreply@example.com>"
     email_verification_minutes: int = 10
@@ -100,6 +99,14 @@ class Settings(BaseSettings):
     def validate_email_verification_lifetime(cls, value: int) -> int:
         if not 2 <= value <= 30:
             raise ValueError("EMAIL_VERIFICATION_MINUTES must be between 2 and 30")
+        return value
+
+    @field_validator("email_console_code")
+    @classmethod
+    def validate_email_console_code(cls, value: SecretStr) -> SecretStr:
+        code = value.get_secret_value()
+        if len(code) != 6 or not code.isdigit():
+            raise ValueError("EMAIL_CONSOLE_CODE must contain exactly six digits")
         return value
 
     @field_validator(
@@ -159,9 +166,7 @@ class Settings(BaseSettings):
             or parsed.query
             or parsed.fragment
         ):
-            raise ValueError(
-                "OPENROUTER_BASE_URL must use the official OpenRouter HTTPS API"
-            )
+            raise ValueError("OPENROUTER_BASE_URL must use the official OpenRouter HTTPS API")
         return normalized
 
     @field_validator("auth_jwt_secret", mode="before")
@@ -203,8 +208,7 @@ class Settings(BaseSettings):
                     f"CHAT_MODEL must be explicitly set when CHAT_PROVIDER={self.chat_provider}"
                 )
         if self.avatar_provider == "gemini" and (
-            self.avatar_api_key is None
-            or not self.avatar_api_key.get_secret_value().strip()
+            self.avatar_api_key is None or not self.avatar_api_key.get_secret_value().strip()
         ):
             raise ValueError("AVATAR_API_KEY is required when AVATAR_PROVIDER=gemini")
         if self.avatar_provider == "gemini" and self.avatar_model.strip().upper() == "TBD":
@@ -218,9 +222,7 @@ class Settings(BaseSettings):
                 self.cloudflare_api_token is None
                 or not self.cloudflare_api_token.get_secret_value().strip()
             ):
-                raise ValueError(
-                    "CLOUDFLARE_API_TOKEN is required when AVATAR_PROVIDER=cloudflare"
-                )
+                raise ValueError("CLOUDFLARE_API_TOKEN is required when AVATAR_PROVIDER=cloudflare")
             if self.avatar_model.strip().upper() == "TBD":
                 raise ValueError(
                     "AVATAR_MODEL must be explicitly set when AVATAR_PROVIDER=cloudflare"
@@ -234,9 +236,7 @@ class Settings(BaseSettings):
                     "OPENROUTER_AVATAR_API_KEY is required when AVATAR_PROVIDER=openrouter"
                 )
             if self.avatar_model not in {"meta/muse-image", "qwen/qwen-image-3"}:
-                raise ValueError(
-                    "AVATAR_MODEL must be an approved OpenRouter avatar candidate"
-                )
+                raise ValueError("AVATAR_MODEL must be an approved OpenRouter avatar candidate")
         return self
 
     @property

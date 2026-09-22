@@ -18,7 +18,9 @@ class VerificationEmailSender:
 
     async def send(self, email: str, code: str) -> None:
         if self.settings.email_provider == "console":
-            logger.info("development_email_verification email=%s code=%s", email, code)
+            # Local development uses EMAIL_CONSOLE_CODE. Never place the address or
+            # authentication code in logs, where either value may be retained or exported.
+            logger.info("development_email_verification_requested")
             return
         await asyncio.to_thread(self._send_resend, email, code)
 
