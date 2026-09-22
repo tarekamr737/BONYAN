@@ -14,8 +14,9 @@ describe("connected coaching journey", () => {
   it("asks for relevant performance while preserving shared answers on a goal change", () => {
     expect(performanceFields("strength").running).toBe(false);
     expect(performanceFields("military_preparation").pullups).toBe(true);
-    const updated = cleanCoaching("general_fitness", {military_subtype: "other", pullups: 4, active_days_per_week: 3, running_minutes: 12, target_weight_kg: 70});
-    expect(updated).toMatchObject({military_subtype: null, pullups: null, target_weight_kg: null, active_days_per_week: 3, running_minutes: 12});
+    expect(performanceFields("military_preparation").situps).toBe(true);
+    const updated = cleanCoaching("general_fitness", {military_subtype: "other", situps: 20, pullups: 4, limitations: "knee", active_days_per_week: 3, running_minutes: 12, target_weight_kg: 70});
+    expect(updated).toMatchObject({military_subtype: null, situps: null, pullups: null, limitations: null, target_weight_kg: null, active_days_per_week: 3, running_minutes: 12});
   });
   it("provides real Arabic goal and measurement labels", () => {
     expect(goalLabel("military_preparation", true)).toMatch(/[\u0600-\u06ff]/);

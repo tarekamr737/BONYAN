@@ -73,6 +73,20 @@ def test_invalid_assessment_and_target_inputs_rejected():
         )
 
 
+def test_optional_military_baselines_are_validated():
+    preferences = CoachingPreferences(
+        situps=25,
+        situps_target=45,
+        limitations="Avoid deep knee flexion",
+    )
+    assert preferences.situps == 25
+    assert preferences.situps_target == 45
+    assert preferences.limitations == "Avoid deep knee flexion"
+
+    with pytest.raises(ValidationError):
+        CoachingPreferences(situps_target=0)
+
+
 def test_goal_change_clears_incompatible_fields_and_preserves_owner():
     from app.domains.users.schemas import ProfileUpdate
     from app.domains.users.service import ProfileService
@@ -85,7 +99,10 @@ def test_goal_change_clears_incompatible_fields_and_preserves_owner():
             ProfileUpdate(
                 training_goal="military_preparation",
                 coaching=CoachingPreferences(
-                    military_subtype="military_college", pullups=3
+                    military_subtype="military_college",
+                    situps=20,
+                    pullups=3,
+                    limitations="knee",
                 ),
             ),
         )
@@ -93,7 +110,9 @@ def test_goal_change_clears_incompatible_fields_and_preserves_owner():
             "a", ProfileUpdate(training_goal="general_fitness")
         )
         assert result.coaching.military_subtype is None
+        assert result.coaching.situps is None
         assert result.coaching.pullups is None
+        assert result.coaching.limitations is None
         assert (await service.get("b")).training_goal is None
         await service.update("a", ProfileUpdate(coaching=CoachingPreferences(running_minutes=12)))
         updated = await service.update(

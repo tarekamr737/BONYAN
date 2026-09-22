@@ -57,7 +57,7 @@ export function HomeScreen() {
     </View>
 
 
-    {profile.data?.training_goal === "military_preparation" ? <><GlassCard><Text style={ui.heading}>{arabic ? "استعدادك البدني" : "Your physical preparation"}</Text><Text style={ui.text}>{arabic ? "الجري بالدقائق / الضغط / العقلة" : "Running minutes / push-ups / pull-ups"}: {profile.data.coaching?.running_minutes ?? "—"} / {profile.data.coaching?.pushups ?? "—"} / {profile.data.coaching?.pullups ?? "—"}</Text>{profile.data.coaching?.target_date ? <Text style={ui.text}>{arabic ? "موعد الاختبار" : "Test date"}: {profile.data.coaching.target_date}</Text> : null}<AppButton variant="secondary" label={arabic ? "تحديث مستوى البداية" : "Update your baseline"} onPress={() => router.push("/profile")} /></GlassCard>{assessment.data ? <ScoreCard score={assessment.data.score} arabic={arabic} /> : null}</> : null}
+    {profile.data?.training_goal === "military_preparation" ? <><GlassCard><Text style={ui.heading}>{arabic ? "استعدادك البدني" : "Your physical preparation"}</Text><Text style={ui.text}>{arabic ? "الجري / الضغط / البطن / العقلة" : "Running / push-ups / sit-ups / pull-ups"}: {profile.data.coaching?.running_minutes ?? "—"} / {profile.data.coaching?.pushups ?? "—"} / {profile.data.coaching?.situps ?? "—"} / {profile.data.coaching?.pullups ?? "—"}</Text>{profile.data.coaching?.target_date ? <Text style={ui.text}>{militaryDateCopy(profile.data.coaching.target_date, arabic)}</Text> : <Text style={ui.small}>{arabic ? "أضف موعد الاختبار لعرض الأيام المتبقية." : "Add your test date to see the days remaining."}</Text>}<AppButton variant="secondary" label={arabic ? "تحديث مستوى البداية" : "Update your baseline"} onPress={() => router.push("/profile")} /></GlassCard>{assessment.data ? <ScoreCard score={assessment.data.score} arabic={arabic} /> : null}</> : null}
     <View style={tourTarget === "score" && styles.tourTarget}><MotionReveal><GlassCard>
       <View style={[styles.scoreHeader, arabic && styles.reverse]}><View style={styles.scoreCopy}><Text style={styles.eyebrow}>{arabic ? "نتيجة اليوم" : "DAILY SCORE"}</Text><Text style={[styles.scoreTitle, arabic && ui.rtl]}>{daily.data ? arabic ? "تقدمك اليوم" : "Today's progress" : arabic ? "بنجهز ملخص يومك" : "Preparing today's view"}</Text></View>{daily.isPending ? <ActivityIndicator color={colors.bronze} /> : <Text style={styles.scoreValue}>{daily.data?.score ?? "—"}<Text style={styles.scoreMax}>/100</Text></Text>}</View>
       {daily.data ? <><ProgressMeter label={arabic ? "نتيجة اليوم" : "Daily score"} value={daily.data.score} /><View style={[styles.metrics, arabic && styles.reverse]}><Text style={ui.small}>{arabic ? `${daily.data.completed_workouts} تمرين مكتمل` : `${daily.data.completed_workouts} workout completed`}</Text><Text style={ui.small}>{arabic ? `${daily.data.meals_logged} وجبات مسجلة` : `${daily.data.meals_logged} meals logged`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? dailyNextAction(daily.data.next_action) : daily.data.next_action}</Text></> : null}
@@ -78,6 +78,16 @@ export function HomeScreen() {
 
 function HomeAction({ arabic, highlighted, icon, label, onPress }: { arabic: boolean; highlighted?: boolean; icon: "activity" | "edit-3" | "message-circle"; label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" onPress={onPress} style={({pressed}) => [styles.smallAction, highlighted && styles.tourTarget, pressed && styles.pressed]}><Feather color={colors.bronze} name={icon} size={22} /><Text style={[styles.smallActionText, arabic && ui.rtl]}>{label}</Text></Pressable>; }
 function dailyNextAction(value: string): string { if (value.startsWith("Log")) return "سجّل أو حلّل وجبة."; if (value.startsWith("Complete")) return "أكمل تمرين اليوم."; return "أنجزت خطوات اليوم الأساسية."; }
+function militaryDateCopy(value: string, arabic: boolean): string {
+  const target = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return `${arabic ? "موعد الاختبار" : "Test date"}: ${value}`;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0) return arabic ? `انتهى الموعد منذ ${Math.abs(days)} يومًا · حدّث الموعد` : `Test date passed ${Math.abs(days)} days ago · update it`;
+  if (days === 0) return arabic ? "موعد الاختبار اليوم" : "Your test date is today";
+  return arabic ? `${days} يومًا متبقيًا · ${value}` : `${days} days remaining · ${value}`;
+}
 
 const styles = StyleSheet.create({
   accountTools: { alignItems: "center", flexDirection: "row", gap: spacing.sm }, actionCopy: { flex: 1, gap: spacing.xxs },

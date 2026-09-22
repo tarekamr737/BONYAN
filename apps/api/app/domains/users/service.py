@@ -38,7 +38,13 @@ class ProfileService:
             coaching = dict(changes.get("coaching", existing.coaching.model_dump(mode="json")))
             if changes["training_goal"] != "military_preparation":
                 coaching.update(
-                    military_subtype=None, target_date=None, pullups=None, pullups_target=None
+                    military_subtype=None,
+                    target_date=None,
+                    situps=None,
+                    situps_target=None,
+                    pullups=None,
+                    pullups_target=None,
+                    limitations=None,
                 )
             if changes["training_goal"] != "fat_loss":
                 coaching["target_weight_kg"] = None

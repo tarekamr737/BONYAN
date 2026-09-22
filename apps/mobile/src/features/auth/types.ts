@@ -75,8 +75,11 @@ export type CoachingPreferences = {
   running_target_minutes?: number | null;
   pushups?: number | null;
   pushups_target?: number | null;
+  situps?: number | null;
+  situps_target?: number | null;
   pullups?: number | null;
   pullups_target?: number | null;
+  limitations?: string | null;
   target_weight_kg?: number | null;
 };
 export type Measurements = {height_cm: number | null; weight_kg: number | null; body_fat_percentage?: number | null; skeletal_muscle_mass_kg?: number | null};
