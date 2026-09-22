@@ -1,12 +1,10 @@
-import Feather from "@expo/vector-icons/Feather";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
-import { AppButton, AppTextField, DirectionalText as Text, MotionReveal } from "../../core/components";
-import { goBackOr } from "../../core/navigation/safeNavigation";
+import { AppButton, AppTextField, CinematicHero, DirectionalText as Text, MotionReveal } from "../../core/components";
 import { colors, fonts, radii, spacing } from "../../core/theme/tokens";
 import { getMyProfile } from "../auth/api/profileApi";
 import { CoachingPage, GlassCard, ui } from "../auth/components/CoachingUI";
@@ -86,14 +84,7 @@ export function NutritionScreen() {
   const canAnalyze = Boolean(photo) || description.trim().length >= 3;
 
   return <CoachingPage arabic={arabic}>
-    <Pressable accessibilityRole="button" onPress={() => goBackOr("/")} style={styles.back}>
-      <Feather color={colors.bronze} name={arabic ? "arrow-right" : "arrow-left"} size={20} />
-      <Text style={styles.backText}>{arabic ? "الرئيسية" : "Home"}</Text>
-    </Pressable>
-    <View style={styles.heading}>
-      <Text accessibilityRole="header" style={[ui.title, arabic && ui.rtl]}>{arabic ? "حلّل وجبتك" : "Analyze food"}</Text>
-      <Text style={[ui.text, arabic && ui.rtl]}>{arabic ? "التقط صورة أو اكتب مكونات الوجبة. راجع التقديرات قبل الحفظ." : "Take a photo or describe the meal. Review every estimate before saving."}</Text>
-    </View>
+    <CinematicHero arabic={arabic} source={require("../../../assets/heroes/nutrition.jpg")} title={arabic ? "غذّي مهمتك" : "Fuel your mission"} subtitle={arabic ? "حلّل وجبتك وراجع كل تقدير قبل الحفظ." : "Analyze your meal and review every estimate before saving."} />
     <GlassCard>
       <View style={[styles.chips, arabic && styles.reverse]}>{mealTypes.map(type => <Pressable key={type} accessibilityRole="radio" accessibilityState={{ selected: mealType === type }} disabled={mutation.isPending || confirm.isPending || Boolean(preview)} onPress={() => setMealType(type)} style={[styles.chip, mealType === type && styles.chipActive]}><Text style={[styles.chipText, mealType === type && styles.chipTextActive]}>{labels[type][arabic ? 1 : 0]}</Text></Pressable>)}</View>
       <AppTextField

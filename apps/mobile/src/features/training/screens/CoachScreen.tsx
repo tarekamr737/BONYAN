@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { View } from "react-native";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
-import { AppButton, AppTextField } from "../../../core/components";
+import { AppButton, AppTextField, CinematicHero } from "../../../core/components";
 import { getMyProfile } from "../../auth/api/profileApi";
 import { CoachingPage, GlassCard, ui } from "../../auth/components/CoachingUI";
 import { getCoachMessages, sendCoachMessage } from "../api/trainingApi";
@@ -27,8 +27,7 @@ export function CoachScreen() {
     void client.invalidateQueries({queryKey: ["training"]});
   }});
   return <CoachingPage arabic={arabic} footer={<View style={{gap: 8}}><AppTextField label={arabic ? "رسالتك لبنيان" : "Your message to Bonyan"} multiline value={message} editable={!send.isPending} onChangeText={setMessage} maxLength={1000} placeholder={arabic ? "اسأل عن تدريبك…" : "Ask about your training…"} /><AppButton label={arabic ? "إرسال" : "Send"} loading={send.isPending} disabled={!message.trim()} onPress={() => { if (busy.current) return; busy.current = true; void send.mutateAsync(message.trim()).catch(() => {}).finally(() => {busy.current = false;}); }} /></View>}>
-    <Text style={ui.title}>{arabic ? "الكوتش بنيان" : "Bonyan Coach"}</Text>
-    <Text style={ui.text}>{arabic ? "خلينا ناخد تدريبك خطوة بخطوة. اسأل عن خطتك أو بديل لتمرين." : "Let's take training one step at a time. Ask about your plan or an exercise alternative."}</Text>
+    <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/coach.jpg")} title={arabic ? "الكوتش بنيان" : "Bonyan Coach"} subtitle={arabic ? "توجيه ذكي مبني على خطتك وتقدمك الحقيقي." : "Intelligent guidance grounded in your real plan and progress."} />
     {history.isPending ? <Text accessibilityLiveRegion="polite" style={ui.small}>{arabic ? "جارٍ تحميل المحادثة…" : "Loading conversation…"}</Text> : null}
     {history.isError ? <GlassCard><Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذر تحميل محادثتك المحفوظة." : "Couldn't load your saved conversation."}</Text><AppButton label={arabic ? "إعادة المحاولة" : "Retry"} variant="secondary" onPress={() => void history.refetch()} /></GlassCard> : null}
     {history.data?.length === 0 ? <GlassCard><Text style={ui.heading}>{arabic ? "نبدأ منين؟" : "Where shall we start?"}</Text>{(arabic ? ["اشرح لي خطة التمرين", "ساعدني ألاقي بديل لتمرين"] : ["Explain my training plan", "Help me find an exercise alternative"]).map(prompt => <AppButton key={prompt} label={prompt} variant="secondary" onPress={() => setMessage(prompt)} />)}</GlassCard> : null}

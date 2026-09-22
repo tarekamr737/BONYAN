@@ -7,12 +7,12 @@ import { useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CinematicHero } from "../../../core/components/CinematicHero";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { MotionReveal } from "../../../core/components/MotionReveal";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { generateWorkoutPlan, getCurrentWorkoutPlan, getWorkoutSessions, startWorkoutSession } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
-import { TrainingHeader } from "../components/TrainingHeader";
 import type { WorkoutDay, WorkoutPlan } from "../types";
 
 function formatLabel(value: string): string { return value.replaceAll("_", " "); }
@@ -84,10 +84,7 @@ export function TrainingHomeScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <TrainingHeader
-          title={arabic ? "نظام تمرينك" : "Your training"}
-          subtitle={arabic ? "خطتك وتمارينك والكوتش بنيان متصلين بهدفك وبياناتك الحالية." : "Your plan, live workout log and Bonyan Coach stay connected to your current goal and profile."}
-        />
+        <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/training.jpg")} title={arabic ? "نظام تمرينك" : "Your training plan"} subtitle={arabic ? "انضباط اليوم. نتائج بكرة." : "Discipline today. Results tomorrow."} />
 
         {planJustPrepared && plan ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{arabic ? "الخطة جاهزة" : "Your plan is ready"}</Text><Text style={styles.stateCopy}>{arabic ? "جهزنا نظامك ويمكنك بدء أول تمرين الآن." : "Your training system is prepared and the first workout is ready."}</Text></View></View></SurfaceCard></MotionReveal> : null}
 
@@ -188,6 +185,7 @@ export function TrainingHomeScreen() {
         </SurfaceCard>
 
         <View style={styles.actions}>
+          {profile.data?.training_goal === "military_preparation" ? <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "تحديث مستوى البداية" : "Update baseline"}</Text></Pressable> : null}
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/training/manual")}
