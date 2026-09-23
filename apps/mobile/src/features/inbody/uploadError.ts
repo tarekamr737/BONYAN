@@ -2,6 +2,8 @@ export function getUploadErrorMessage(error: unknown, arabic = false): string {
   if (arabic) {
     const message = error instanceof Error ? error.message : "";
     if (/network request failed|failed to fetch/i.test(message)) return "تعذّر الاتصال بالخادم. راجع الاتصال وحاول تاني.";
+    if (/usage limit|quota|rate limit/i.test(message)) return "خدمة قراءة التقارير وصلت لحد الاستخدام الحالي. جرّب بعد تجدد حصة Mistral أو زيادتها.";
+    if (/credentials were rejected|API key/i.test(message)) return "مفتاح خدمة قراءة التقارير مرفوض. حدّث مفتاح Mistral على الخادم ثم جرّب تاني.";
     if (/Multi-page image uploads/i.test(message)) return "لرفع صور متعددة استخدم تطبيق الموبايل، أو اختار ملف PDF واحد هنا.";
     if (/between one and three|one PDF|three images/i.test(message)) return "اختار ملف PDF واحد أو من صورة إلى ٣ صور لنفس التقرير.";
     if (/permission|could not read|cannot read|missing.*read/i.test(message)) return "ما قدرناش نقرا ملف أو أكتر. اختار الصفحات من جديد وحاول تاني.";

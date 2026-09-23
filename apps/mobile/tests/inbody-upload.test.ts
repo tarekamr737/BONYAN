@@ -82,6 +82,16 @@ describe("InBody upload feedback", () => {
     expect((options.body as FormData).getAll("report")).toHaveLength(3);
   });
 
+  it("surfaces an OCR quota failure returned inside a created scan", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      duplicate: false,
+      scan: { id: "scan-failed", status: "failed", failure_code: "ocr_rate_limited", failure_message: "The OCR service has reached its current usage limit." },
+    }), { headers: { "Content-Type": "application/json" }, status: 201 })));
+
+    await expect(uploadInBodyReport({ file: new Blob(["report"]), name: "report.pdf", type: "application/pdf", uri: "file:///report.pdf" }))
+      .rejects.toThrow("The OCR service has reached its current usage limit.");
+  });
+
   it("keeps a single report unchanged", async () => {
     const report = {
       file: new Blob(["report"], { type: "application/pdf" }),

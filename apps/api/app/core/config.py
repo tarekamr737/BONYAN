@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     cloudflare_api_token: SecretStr | None = None
     avatar_timeout_seconds: float = 45
     mistral_api_key: SecretStr | None = None
+    mistral_timeout_seconds: float = 45
     musclewiki_api_key: SecretStr | None = None
     auth_jwt_secret: SecretStr | None = None
     auth_jwt_issuer: str = "bonyan"
@@ -73,7 +74,7 @@ class Settings(BaseSettings):
             raise ValueError("provider model markers cannot be empty")
         return value
 
-    @field_validator("chat_timeout_seconds", "avatar_timeout_seconds")
+    @field_validator("chat_timeout_seconds", "avatar_timeout_seconds", "mistral_timeout_seconds")
     @classmethod
     def validate_provider_timeout(cls, value: float) -> float:
         if not 1 <= value <= 120:

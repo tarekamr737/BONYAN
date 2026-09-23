@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUserDep
 from app.core.database import get_db_session
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.core.rate_limit import limit_ocr
 from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.inbody.repository import InBodyRepository
@@ -27,6 +28,7 @@ from app.domains.inbody.validation import (
 )
 
 router = APIRouter(prefix="/inbody", tags=["inbody"])
+logger = get_logger("inbody")
 
 
 async def get_inbody_service(
@@ -54,6 +56,15 @@ async def upload_scan(
             status.HTTP_400_BAD_REQUEST,
         )
     contents = [await item.read(MAX_UPLOAD_BYTES + 1) for item in report]
+    logger.info(
+        "inbody_upload_received",
+        extra={
+            "content_type": ",".join((item.content_type or "unknown") for item in report),
+            "file_count": len(report),
+            "method": "POST",
+            "path": "/api/v1/inbody/scans",
+        },
+    )
     if len(report) == 1:
         selected = report[0]
         content = contents[0]
@@ -106,9 +117,7 @@ async def update_review(
     current_user: CurrentUserDep,
     service: InBodyServiceDep,
 ) -> InBodyScanResponse:
-    return await service.update_review(
-        user_id=current_user.id, scan_id=scan_id, review=review
-    )
+    return await service.update_review(user_id=current_user.id, scan_id=scan_id, review=review)
 
 
 @router.post("/scans/{scan_id}/confirm", response_model=InBodyScanResponse)

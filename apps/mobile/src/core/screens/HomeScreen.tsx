@@ -1,12 +1,11 @@
 import Feather from "@expo/vector-icons/Feather";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { router, type Href } from "expo-router";
-import { useState } from "react";
+import { useRef } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
 import { CoachingPage, GlassCard, ProgressMeter, ScoreCard, ui } from "../../features/auth/components/CoachingUI";
 import { goalLabel } from "../../features/auth/journey";
-import { updateMyProfile } from "../../features/auth/api/profileApi";
 import { getDailyDashboard } from "../../features/nutrition/api";
 import { getWorkoutSessions } from "../../features/training/api/trainingApi";
 import type { WorkoutSession } from "../../features/training/types";
@@ -14,6 +13,7 @@ import { AppButton, AvatarJourneyCard, BrandMark, CinematicHero, MotionReveal, N
 import { DirectionalText as Text } from "../components/DirectionalText";
 import { useAppNotifications } from "../notifications/useAppNotifications";
 import { colors, fonts, radii, spacing } from "../theme/tokens";
+import { useHomeTour } from "../tour/HomeTour";
 
 const recentDestinations = [
   { href: "/profile", icon: "user", en: "Profile and assessment history", ar: "الملف وسجل التقييمات" },
@@ -21,41 +21,28 @@ const recentDestinations = [
   { href: "/community", icon: "users", en: "Training community", ar: "مجتمع التدريب" },
 ] as const;
 
-const tourSteps = [
-  { target: "score", en: "Daily Score combines completed training and logged meals.", ar: "نتيجة اليوم تجمع التمارين المكتملة والوجبات المسجلة." },
-  { target: "avatar", en: "Avatar shows private visual progress from confirmed measurements.", ar: "الـAvatar يعرض تقدمك البصري الخاص من قياسات مؤكدة." },
-  { target: "history", en: "Recent progress opens reports, history, profile and community.", ar: "متابعة التقدم تفتح التقارير والسجل والملف والمجتمع." },
-  { target: "profile", en: "Profile stores your settings, history and the option to replay this tour.", ar: "الملف يحفظ إعداداتك وسجلك ويمكنك إعادة الجولة منه." },
-] as const;
-
 export function HomeScreen() {
-  const client = useQueryClient();
   const state = useAppNotifications();
   const { arabic, assessment, avatars, profile } = state;
   const daily = useQuery({ queryFn: getDailyDashboard, queryKey: ["nutrition", "today"] });
   const sessions = useQuery({ queryFn: () => getWorkoutSessions(60), queryKey: ["training", "sessions", "home"] });
   const stats = homeTrainingStats(sessions.data ?? [], profile.data?.available_training_days, profile.data?.coaching?.target_date);
-  const [tourStep, setTourStep] = useState<number | null | undefined>();
-  const activeTourStep = tourStep === undefined
-    ? profile.data && !profile.data.home_tour_completed ? 0 : null
-    : tourStep;
-  const finishTour = useMutation({
-    mutationFn: () => updateMyProfile({home_tour_completed: true}),
-    onSuccess: updated => { client.setQueryData(["profile", "me"], updated); setTourStep(null); },
-  });
-  const tourTarget = activeTourStep === null ? null : tourSteps[activeTourStep]?.target;
-  const profileButton = <View style={tourTarget === "profile" && styles.tourTarget}><ProfileAvatar accessibilityLabel={arabic ? "فتح ملفي الشخصي" : "Open my profile"} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} onPress={() => router.push("/profile")} photoUpdatedAt={profile.data?.profile_photo_updated_at} size={54} /></View>;
+  const {registerTarget, setHomeScroller} = useHomeTour();
+  const profileRef = useRef<View>(null);
+  const scoreRef = useRef<View>(null);
+  const planRef = useRef<View>(null);
+  const scoreScrollY = useRef(0);
+  const profileButton = <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={arabic ? "فتح ملفي الشخصي" : "Open my profile"} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} onPress={() => router.push("/profile")} photoUpdatedAt={profile.data?.profile_photo_updated_at} size={54} /></View>;
   const accountTools = <View style={styles.accountTools}><NotificationBell arabic={arabic} count={state.requiresActionCount} onPress={() => router.push("/notifications")} />{profileButton}</View>;
 
-  return <CoachingPage arabic={arabic}>
+  return <CoachingPage arabic={arabic} onScrollViewRef={setHomeScroller}>
     <View style={styles.header}>{arabic ? accountTools : <BrandMark />}{arabic ? <BrandMark /> : accountTools}</View>
-    {activeTourStep !== null ? <View accessibilityRole="alert" style={styles.tourCard}><View style={[styles.tourHead, arabic && styles.reverse]}><View style={styles.tourIcon}><Feather color={colors.canvas} name="compass" size={20} /></View><Text style={[styles.tourTitle, arabic && ui.rtl]}>{arabic ? `جولة بنيان · ${activeTourStep + 1}/${tourSteps.length}` : `BONYAN tour · ${activeTourStep + 1}/${tourSteps.length}`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? tourSteps[activeTourStep]?.ar : tourSteps[activeTourStep]?.en}</Text><View style={[styles.tourActions, arabic && styles.reverse]}><AppButton disabled={activeTourStep === 0 || finishTour.isPending} label={arabic ? "السابق" : "Back"} onPress={() => setTourStep(current => Math.max(0, (current ?? 0) - 1))} variant="secondary" /><AppButton loading={finishTour.isPending} label={activeTourStep === tourSteps.length - 1 ? arabic ? "إنهاء" : "Finish" : arabic ? "التالي" : "Next"} onPress={() => activeTourStep === tourSteps.length - 1 ? finishTour.mutate() : setTourStep(current => Math.min(tourSteps.length - 1, (current ?? 0) + 1))} /><AppButton disabled={finishTour.isPending} label={arabic ? "تخطي" : "Skip"} onPress={() => finishTour.mutate()} variant="secondary" /></View></View> : null}
     <CinematicHero arabic={arabic} source={require("../../../assets/heroes/home.jpg")} title={profile.data?.display_name ? `${arabic ? "أهلًا،" : "Hello,"} ${profile.data.display_name}` : arabic ? "يومك يبدأ من هنا" : "Your day starts here"} subtitle={goalLabel(profile.data?.training_goal, arabic)} />
 
 
-    <View style={tourTarget === "score" && styles.tourTarget}><MotionReveal><GlassCard>
+    <View ref={scoreRef} onLayout={event => {scoreScrollY.current = event.nativeEvent.layout.y; registerTarget("daily-score", scoreRef.current, scoreScrollY.current); if (planRef.current) registerTarget("today-plan", planRef.current, scoreScrollY.current);}}><MotionReveal><GlassCard>
       <View style={[styles.scoreHeader, arabic && styles.reverse]}><View style={styles.scoreCopy}><Text style={styles.eyebrow}>{arabic ? "نتيجة اليوم" : "DAILY SCORE"}</Text><Text style={[styles.scoreTitle, arabic && ui.rtl]}>{daily.data ? arabic ? "تقدمك اليوم" : "Today's progress" : arabic ? "بنجهز ملخص يومك" : "Preparing today's view"}</Text></View>{daily.isPending ? <ActivityIndicator color={colors.bronze} /> : <Text style={styles.scoreValue}>{daily.data?.score ?? "—"}<Text style={styles.scoreMax}>/100</Text></Text>}</View>
-      {daily.data ? <><ProgressMeter label={arabic ? "نتيجة اليوم" : "Daily score"} value={daily.data.score} /><View style={[styles.metrics, arabic && styles.reverse]}><Text style={ui.small}>{arabic ? `${daily.data.completed_workouts} تمرين مكتمل` : `${daily.data.completed_workouts} workout completed`}</Text><Text style={ui.small}>{arabic ? `${daily.data.meals_logged} وجبات مسجلة` : `${daily.data.meals_logged} meals logged`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? dailyNextAction(daily.data.next_action) : daily.data.next_action}</Text><AppButton label={arabic ? "عرض تمرين اليوم" : "View today's plan"} onPress={() => router.push("/training")} variant="secondary" /></> : null}
+      {daily.data ? <><ProgressMeter label={arabic ? "نتيجة اليوم" : "Daily score"} value={daily.data.score} /><View style={[styles.metrics, arabic && styles.reverse]}><Text style={ui.small}>{arabic ? `${daily.data.completed_workouts} تمرين مكتمل` : `${daily.data.completed_workouts} workout completed`}</Text><Text style={ui.small}>{arabic ? `${daily.data.meals_logged} وجبات مسجلة` : `${daily.data.meals_logged} meals logged`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? dailyNextAction(daily.data.next_action) : daily.data.next_action}</Text><View ref={planRef} onLayout={() => registerTarget("today-plan", planRef.current, scoreScrollY.current)}><AppButton label={arabic ? "عرض تمرين اليوم" : "View today's plan"} onPress={() => router.push("/training")} variant="secondary" /></View></> : null}
       {daily.isError ? <AppButton label={arabic ? "إعادة تحميل يومي" : "Reload today"} onPress={() => void daily.refetch()} variant="secondary" /> : null}
     </GlassCard></MotionReveal></View>
 
@@ -67,14 +54,14 @@ export function HomeScreen() {
 
     {assessment.data ? <ScoreCard score={assessment.data.score} arabic={arabic} /> : null}
 
-    <View style={tourTarget === "avatar" && styles.tourTarget}><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "صورتك الآن ← خطوتك القادمة" : "Current avatar → next avatar"}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? "تقدم بصري مرتبط بقياساتك الحقيقية" : "Visual progress connected to your real measurements"}</Text></View>
+    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "صورتك الآن ← خطوتك القادمة" : "Current avatar → next avatar"}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? "تقدم بصري مرتبط بقياساتك الحقيقية" : "Visual progress connected to your real measurements"}</Text></View>
     {avatars.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
     {avatars.isError ? <AppButton label={arabic ? "إعادة تحميل الـAvatar" : "Reload avatar"} onPress={() => void avatars.refetch()} variant="secondary" /> : null}
     {avatars.data ? <MotionReveal delay={60}><AvatarJourneyCard arabic={arabic} avatar={avatars.data.items[0]} hasAssessment={Boolean(assessment.data?.latest)} onPress={() => router.push("/avatar")} /></MotionReveal> : null}</View>
 
     {state.requiresActionCount > 0 ? <Pressable accessibilityRole="button" onPress={() => router.push("/notifications")} style={({pressed}) => [styles.attention, pressed && styles.pressed]}><Feather color={colors.bronze} name="bell" size={20} /><View style={{flex: 1}}><Text style={[styles.attentionTitle, arabic && ui.rtl]}>{arabic ? `${state.requiresActionCount} خطوات تحتاج انتباهك` : `${state.requiresActionCount} next steps need you`}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? "راجع ملفك وخطتك والـAvatar" : "Review profile, plan and avatar updates"}</Text></View><Feather color={colors.bronze} name={arabic ? "chevron-left" : "chevron-right"} size={20} /></Pressable> : null}
 
-    <View style={tourTarget === "history" && styles.tourTarget}><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "متابعة التقدم" : "Recent progress"}</Text></View>
+    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "متابعة التقدم" : "Recent progress"}</Text></View>
     <View style={styles.list}>{recentDestinations.map(item => <Pressable key={item.href} accessibilityRole="button" onPress={() => router.push(item.href as Href)} style={({pressed}) => [styles.listRow, arabic && styles.reverse, pressed && styles.pressed]}><View style={styles.listIcon}><Feather color={colors.bronze} name={item.icon} size={19} /></View><Text style={[styles.listText, arabic && ui.rtl]}>{arabic ? item.ar : item.en}</Text><Feather color={colors.muted} name={arabic ? "chevron-left" : "chevron-right"} size={19} /></Pressable>)}</View></View>
   </CoachingPage>;
 }
@@ -112,10 +99,4 @@ const styles = StyleSheet.create({
   statLabel: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 10, lineHeight: 14 },
   statValue: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 24, fontVariant: ["tabular-nums"] },
   secondaryActions: { flexDirection: "row", gap: spacing.sm }, sectionHeading: { gap: spacing.xs }, smallAction: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radii.control, borderWidth: 1, flex: 1, gap: spacing.sm, justifyContent: "center", minHeight: 72, padding: spacing.sm }, smallActionText: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14, textAlign: "center" },
-  tourActions: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  tourCard: { backgroundColor: colors.surface, borderColor: colors.bronze, borderRadius: radii.card, borderWidth: 1, gap: spacing.md, padding: spacing.lg },
-  tourHead: { alignItems: "center", flexDirection: "row", gap: spacing.sm },
-  tourIcon: { alignItems: "center", backgroundColor: colors.bronze, borderRadius: 12, height: 40, justifyContent: "center", width: 40 },
-  tourTarget: { borderColor: colors.bronze, borderRadius: radii.control, borderWidth: 2, padding: 4 },
-  tourTitle: { color: colors.text, flex: 1, fontFamily: fonts.displaySemiBold, fontSize: 18 },
 });

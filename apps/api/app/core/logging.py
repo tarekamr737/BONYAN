@@ -8,7 +8,18 @@ from typing import Any
 
 request_id_context: ContextVar[str | None] = ContextVar("request_id", default=None)
 
-_EXTRA_FIELDS = ("duration_ms", "error_code", "method", "path", "provider", "status_code")
+_EXTRA_FIELDS = (
+    "content_type",
+    "duration_ms",
+    "error_code",
+    "file_count",
+    "method",
+    "path",
+    "provider",
+    "response_shape",
+    "scan_id",
+    "status_code",
+)
 
 
 class JsonFormatter(logging.Formatter):

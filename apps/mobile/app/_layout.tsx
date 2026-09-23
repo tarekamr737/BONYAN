@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppTaskbar } from "../src/core/components/AppTaskbar";
+import { HomeTourProvider } from "../src/core/tour/HomeTour";
 import { LanguageDirection } from "../src/core/components/DirectionalText";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -119,7 +120,7 @@ function RootNavigator() {
     return <Redirect href="/" />;
   }
   const arabic = profile.data.preferred_language.startsWith("ar");
-  return <LanguageDirection.Provider value={arabic}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <AppTaskbar arabic={arabic} /> : null}</View></LanguageDirection.Provider>;
+  return <LanguageDirection.Provider value={arabic}><HomeTourProvider arabic={arabic} profile={profile.data}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <AppTaskbar arabic={arabic} /> : null}</View></HomeTourProvider></LanguageDirection.Provider>;
 }
 
 const styles = StyleSheet.create({
