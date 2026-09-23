@@ -26,10 +26,11 @@ const steps: { target: HomeTourTarget; en: string; ar: string }[] = [
 
 type TourContextValue = {
   registerTarget: (id: HomeTourTarget, node: View | null, scrollY?: number) => void;
+  replayTour: () => void;
   setHomeScroller: (scroll: ScrollView | null) => void;
 };
 
-const HomeTourContext = createContext<TourContextValue>({ registerTarget: () => {}, setHomeScroller: () => {} });
+const HomeTourContext = createContext<TourContextValue>({ registerTarget: () => {}, replayTour: () => {}, setHomeScroller: () => {} });
 export function useHomeTour() { return useContext(HomeTourContext); }
 
 export function HomeTourProvider({ children, profile, arabic }: PropsWithChildren<{profile: UserProfile; arabic: boolean}>) {
@@ -39,10 +40,12 @@ export function HomeTourProvider({ children, profile, arabic }: PropsWithChildre
   const scroller = useRef<ScrollView | null>(null);
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
-  const enabled = pathname === "/" && !profile.home_tour_completed;
+  const [dismissed, setDismissed] = useState(false);
+  const enabled = pathname === "/" && !dismissed && !profile.home_tour_completed;
   const finish = useMutation({
     mutationFn: () => updateMyProfile({ home_tour_completed: true }),
-    onSuccess: updated => { client.setQueryData(["profile", "me"], updated); setRect(null); setStep(0); },
+    onSuccess: updated => client.setQueryData(["profile", "me"], updated),
+    retry: 2,
   });
 
   const registerTarget = useCallback((id: HomeTourTarget, node: View | null, scrollY?: number) => {
@@ -50,6 +53,19 @@ export function HomeTourProvider({ children, profile, arabic }: PropsWithChildre
     else targets.current.delete(id);
   }, []);
   const setHomeScroller = useCallback((scroll: ScrollView | null) => { scroller.current = scroll; }, []);
+  const replayTour = useCallback(() => { setDismissed(false); setRect(null); setStep(0); }, []);
+  const completeTour = useCallback(() => {
+    if (finish.isPending) return;
+    setDismissed(true);
+    setRect(null);
+    setStep(0);
+    client.setQueryData<UserProfile>(["profile", "me"], current => current ? {
+      ...current,
+      home_tour_completed: true,
+      home_tour_completed_at: current.home_tour_completed_at ?? new Date().toISOString(),
+    } : current);
+    finish.mutate();
+  }, [client, finish]);
 
   const measureCurrent = useCallback(() => {
     const registration = targets.current.get(steps[step]!.target);
@@ -72,8 +88,19 @@ export function HomeTourProvider({ children, profile, arabic }: PropsWithChildre
     return () => { clearTimeout(first); clearTimeout(retry); };
   }, [enabled, measureCurrent, step]);
 
-  const value = useMemo(() => ({ registerTarget, setHomeScroller }), [registerTarget, setHomeScroller]);
-  return <HomeTourContext.Provider value={value}>{children}{enabled && rect ? <HomeTourOverlay arabic={arabic} busy={finish.isPending} onBack={() => {setRect(null); setStep(v => Math.max(0, v - 1));}} onFinish={() => finish.mutate()} onNext={() => {if (step === steps.length - 1) finish.mutate(); else {setRect(null); setStep(v => v + 1);}}} rect={rect} step={step} /> : null}</HomeTourContext.Provider>;
+  const value = useMemo(() => ({ registerTarget, replayTour, setHomeScroller }), [registerTarget, replayTour, setHomeScroller]);
+  return <HomeTourContext.Provider value={value}>{children}{enabled && rect ? <HomeTourOverlay
+    arabic={arabic}
+    busy={finish.isPending}
+    onBack={() => {setRect(null); setStep(v => Math.max(0, v - 1));}}
+    onFinish={completeTour}
+    onNext={() => {
+      if (step === steps.length - 1) completeTour();
+      else {setRect(null); setStep(v => v + 1);}
+    }}
+    rect={rect}
+    step={step}
+  /> : null}</HomeTourContext.Provider>;
 }
 
 function HomeTourOverlay({ arabic, busy, onBack, onFinish, onNext, rect, step }: {arabic: boolean; busy: boolean; onBack: () => void; onFinish: () => void; onNext: () => void; rect: Rect; step: number}) {

@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton, ScreenState } from "../../../core/components";
 import { useAuthSession } from "../../../core/auth/session";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
+import { useHomeTour } from "../../../core/tour/HomeTour";
 import {
   accountDeletionConfirmationActions,
   usesInlineAccountDeletionConfirmation,
@@ -25,6 +26,7 @@ export function ProfileScreen() {
   const { signOut } = useAuthSession();
   const [showWebDeletionConfirmation, setShowWebDeletionConfirmation] = useState(false);
   const queryClient = useQueryClient();
+  const {replayTour: resetHomeTour} = useHomeTour();
   const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
   const deletion = useMutation({
@@ -39,6 +41,7 @@ export function ProfileScreen() {
     mutationFn: () => updateMyProfile({home_tour_completed: false}),
     onSuccess: updated => {
       queryClient.setQueryData(["profile", "me"], updated);
+      resetHomeTour();
       router.replace("/");
     },
   });
