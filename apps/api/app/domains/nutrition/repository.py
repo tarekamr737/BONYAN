@@ -1,8 +1,11 @@
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import AppError
 from app.domains.nutrition.models import FoodLogRecord
 from app.domains.training.models import WorkoutSessionRecord
 from app.domains.training.schemas import WorkoutSessionStatus
@@ -18,6 +21,25 @@ class NutritionRepository:
         await self.session.flush()
         return record
 
+    async def save_reviewed_food(
+        self, *, owner_id: str, request_id: UUID, values: dict[str, object]
+    ) -> FoodLogRecord:
+        # The existing primary key makes retrying a confirmation idempotent.
+        await self.session.execute(
+            insert(FoodLogRecord)
+            .values(id=request_id, owner_id=owner_id, **values)
+            .on_conflict_do_nothing(index_elements=[FoodLogRecord.id])
+        )
+        result = await self.session.execute(
+            select(FoodLogRecord).where(
+                FoodLogRecord.id == request_id, FoodLogRecord.owner_id == owner_id
+            )
+        )
+        record = result.scalar_one_or_none()
+        if record is None:
+            raise AppError("food_confirmation_conflict", "Please review the meal again.", 409)
+        return record
+
     async def list_food_between(
         self, *, owner_id: str, start: datetime, end: datetime
     ) -> list[FoodLogRecord]:
@@ -29,6 +51,17 @@ class NutritionRepository:
                 FoodLogRecord.logged_at < end,
             )
             .order_by(FoodLogRecord.logged_at.desc())
+        )
+        return list(result.scalars())
+
+    async def list_recent_food(
+        self, *, owner_id: str, limit: int = 50
+    ) -> list[FoodLogRecord]:
+        result = await self.session.execute(
+            select(FoodLogRecord)
+            .where(FoodLogRecord.owner_id == owner_id)
+            .order_by(FoodLogRecord.logged_at.desc(), FoodLogRecord.id.desc())
+            .limit(limit)
         )
         return list(result.scalars())
 

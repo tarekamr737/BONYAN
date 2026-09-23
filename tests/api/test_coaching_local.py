@@ -27,7 +27,11 @@ pytestmark = pytest.mark.skipif(
 def test_connected_journey_ownership_history_and_goal_changes(goal, source):
     from app.core.config import get_settings
     from app.core.database import engine, session_factory
+    from app.core.passwords import PasswordHasher
     from app.domains.inbody.models import InBodyScan
+    from app.domains.users.auth_service import AuthService
+    from app.domains.users.repository import SqlAlchemyAccountRepository
+    from app.domains.users.schemas import AuthCredentials
     from app.main import create_app
 
     async def scenario():
@@ -50,16 +54,15 @@ def test_connected_journey_ownership_history_and_goal_changes(goal, source):
 
             try:
                 for _ in range(2):
-                    auth = await call(
-                        "POST",
-                        "/api/v1/auth/register",
-                        201,
-                        json={
+                    async with session_factory() as session:
+                        auth = await AuthService(
+                            SqlAlchemyAccountRepository(session), PasswordHasher(), get_settings()
+                        ).register(AuthCredentials(**{
                             "email": f"journey-{uuid4().hex}@example.invalid",
                             "password": uuid4().hex,
-                        },
-                    )
-                    users.append({"Authorization": f"Bearer {auth['access_token']}"})
+                        }))
+                        await session.commit()
+                    users.append({"Authorization": f"Bearer {auth.access_token}"})
                 primary, other = users
                 legacy = await call("GET", "/api/v1/me", headers=primary)
                 assert legacy["onboarding_completed"] is False

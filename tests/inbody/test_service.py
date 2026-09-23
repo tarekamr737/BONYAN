@@ -19,6 +19,7 @@ from app.domains.inbody.schemas import (
     InBodyScanStatus,
 )
 from app.domains.inbody.service import InBodyService
+from app.integrations.mistral.errors import MistralOcrRateLimit
 
 
 class FakeOcrProvider:
@@ -316,6 +317,21 @@ def test_provider_timeout_and_failure_are_safe_states() -> None:
 
     assert timeout_response.scan.failure_code == "ocr_timeout"
     assert failure_response.scan.failure_code == "ocr_provider_failed"
+
+
+def test_provider_rate_limit_is_preserved_as_an_actionable_failure() -> None:
+    service, _, _ = service_with(MistralOcrRateLimit("limited"))
+    response = run(
+        service.upload_scan(
+            user_id="user-1",
+            filename="scan.pdf",
+            content_type="application/pdf",
+            content=valid_pdf(),
+        )
+    )
+
+    assert response.scan.failure_code == "ocr_rate_limited"
+    assert "usage limit" in (response.scan.failure_message or "")
 
 
 def test_cross_user_access_fails_and_delete_hides_scan() -> None:

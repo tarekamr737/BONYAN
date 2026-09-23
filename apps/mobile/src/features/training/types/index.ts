@@ -91,6 +91,14 @@ export type CoachMessageResponse = {
   tool_results: Record<string, unknown>[];
 };
 
+export type CoachMessage = {
+  id: string;
+  role: "user" | "coach";
+  content: string;
+  model: string | null;
+  created_at: string;
+};
+
 export type CoachToolCall = {
   name:
     | "get_current_plan"

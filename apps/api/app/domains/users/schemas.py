@@ -35,6 +35,24 @@ class AccessTokenView(BaseModel):
     token_type: str = "bearer"
 
 
+class EmailRegistrationStarted(BaseModel):
+    challenge_id: str
+    expires_in: int
+
+
+class EmailVerificationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    challenge_id: str = Field(min_length=36, max_length=36)
+    code: str = Field(pattern=r"^\d{6}$")
+
+
+class GoogleTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id_token: str = Field(min_length=20, max_length=8192)
+
+
 class Sex(StrEnum):
     FEMALE = "female"
     MALE = "male"
@@ -76,6 +94,8 @@ class ProfileFields(BaseModel):
     preferred_units: PreferredUnits = PreferredUnits.METRIC
     timezone: str = Field(default="UTC", min_length=1, max_length=64)
     onboarding_completed: bool = False
+    home_tour_completed: bool = False
+    home_tour_completed_at: datetime | None = None
 
     @field_validator("display_name")
     @classmethod
@@ -137,6 +157,7 @@ class ProfileUpdate(BaseModel):
     preferred_units: PreferredUnits | None = None
     timezone: str | None = Field(default=None, min_length=1, max_length=64)
     onboarding_completed: bool | None = None
+    home_tour_completed: bool | None = None
 
     @field_validator("display_name")
     @classmethod

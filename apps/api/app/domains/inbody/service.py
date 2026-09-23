@@ -24,6 +24,11 @@ from app.domains.inbody.validation import (
     normalize_upload_filename,
     validate_measurement,
 )
+from app.integrations.mistral.errors import (
+    MistralOcrAuthenticationError,
+    MistralOcrInvalidResponse,
+    MistralOcrRateLimit,
+)
 from app.integrations.mistral.ocr_provider import MistralOcrProvider, OcrProvider
 
 if TYPE_CHECKING:
@@ -119,11 +124,72 @@ class InBodyService:
         filename: str,
         duplicate: bool,
     ) -> UploadResponse:
+        logger.info(
+            "inbody_processing_started",
+            extra={
+                "content_type": content_type,
+                "provider": "mistral_ocr",
+                "scan_id": str(scan.id),
+            },
+        )
         try:
             result = await self.ocr_provider.extract(
                 content=content,
                 content_type=content_type,
                 filename=filename,
+            )
+        except MistralOcrRateLimit:
+            logger.warning(
+                "provider_request_failed",
+                extra={
+                    "error_code": "ocr_rate_limited",
+                    "provider": "mistral_ocr",
+                    "scan_id": str(scan.id),
+                    "status_code": 429,
+                },
+            )
+            scan = await self.repository.mark_failed(
+                scan,
+                code="ocr_rate_limited",
+                message=(
+                    "The OCR service has reached its current usage limit. "
+                    "Retry after the Mistral quota resets or is increased."
+                ),
+            )
+        except MistralOcrAuthenticationError:
+            logger.warning(
+                "provider_request_failed",
+                extra={
+                    "error_code": "ocr_authentication_failed",
+                    "provider": "mistral_ocr",
+                    "scan_id": str(scan.id),
+                    "status_code": 401,
+                },
+            )
+            scan = await self.repository.mark_failed(
+                scan,
+                code="ocr_authentication_failed",
+                message=(
+                    "The OCR service credentials were rejected. "
+                    "Update the server Mistral API key and retry."
+                ),
+            )
+        except MistralOcrInvalidResponse:
+            logger.warning(
+                "provider_request_failed",
+                extra={
+                    "error_code": "ocr_invalid_response",
+                    "provider": "mistral_ocr",
+                    "scan_id": str(scan.id),
+                },
+            )
+            scan = await self.repository.mark_failed(
+                scan,
+                code="ocr_invalid_response",
+                message=(
+                    "The OCR service returned an unreadable response. "
+                    "Retry with a clear report image or PDF."
+                ),
             )
         except TimeoutError:
             logger.warning(
@@ -146,10 +212,26 @@ class InBodyService:
                 message="The report could not be processed right now.",
             )
         else:
+            validated = self._validate_result(result)
             scan = await self.repository.save_result(
                 scan,
                 status=InBodyScanStatus.REVIEW_REQUIRED,
-                result=self._validate_result(result),
+                result=validated,
+            )
+            logger.info(
+                "inbody_processing_succeeded",
+                extra={
+                    "provider": "mistral_ocr",
+                    "response_shape": {
+                        "measurement_count": len(validated.measurements),
+                        "measurement_keys": [
+                            item.key.value
+                            for item in validated.measurements
+                            if item.value is not None
+                        ],
+                    },
+                    "scan_id": str(scan.id),
+                },
             )
 
         return UploadResponse(scan=self._to_response(scan), duplicate=duplicate)

@@ -20,8 +20,11 @@ class CoachingPreferences(BaseModel):
     running_target_minutes: float | None = Field(default=None, gt=0, le=180)
     pushups: int | None = Field(default=None, ge=0, le=200)
     pushups_target: int | None = Field(default=None, gt=0, le=200)
+    situps: int | None = Field(default=None, ge=0, le=300)
+    situps_target: int | None = Field(default=None, gt=0, le=300)
     pullups: int | None = Field(default=None, ge=0, le=100)
     pullups_target: int | None = Field(default=None, gt=0, le=100)
+    limitations: str | None = Field(default=None, max_length=500)
     target_weight_kg: float | None = Field(default=None, ge=30, le=350)
 
 

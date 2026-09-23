@@ -20,6 +20,10 @@ class ProfileService:
     async def update(self, owner_id: str, request: ProfileUpdate) -> UserProfileView:
         existing = await self.get(owner_id)
         changes = request.model_dump(exclude_unset=True, mode="python")
+        if changes.get("home_tour_completed") and not existing.home_tour_completed:
+            from datetime import UTC, datetime
+
+            changes["home_tour_completed_at"] = datetime.now(UTC)
         if "coaching" in changes:
             changes["coaching"] = (
                 {
@@ -34,7 +38,13 @@ class ProfileService:
             coaching = dict(changes.get("coaching", existing.coaching.model_dump(mode="json")))
             if changes["training_goal"] != "military_preparation":
                 coaching.update(
-                    military_subtype=None, target_date=None, pullups=None, pullups_target=None
+                    military_subtype=None,
+                    target_date=None,
+                    situps=None,
+                    situps_target=None,
+                    pullups=None,
+                    pullups_target=None,
+                    limitations=None,
                 )
             if changes["training_goal"] != "fat_loss":
                 coaching["target_weight_kg"] = None

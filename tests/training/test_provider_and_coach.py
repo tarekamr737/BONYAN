@@ -118,6 +118,12 @@ class FakeProfileRepository:
 
 
 class FakeRepository:
+    async def lock_plan_activation(self, *, owner_id: str) -> None:
+        pass
+
+    async def lock_session_start(self, *, owner_id: str, plan_id, day_key: str) -> None:
+        pass
+
     def __init__(self) -> None:
         self.plans: dict[uuid.UUID, SimpleNamespace] = {}
         self.sessions: dict[uuid.UUID, SimpleNamespace] = {}
@@ -279,6 +285,36 @@ def test_service_preserves_no_inbody_fallback() -> None:
     plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
 
     assert plan.generation_snapshot["optional_inbody_used"] is False
+
+
+def test_training_blocks_plans_and_sessions_when_limitations_are_recorded() -> None:
+    from app.domains.training.schemas import ManualExerciseInput, ManualPlanRequest
+
+    class RestrictedProfileRepository:
+        async def get(self, owner_id: str):
+            return SimpleNamespace(coaching={"limitations": "Knee injury"})
+
+    service, _ = make_service()
+    existing_plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    service.profile_repository = RestrictedProfileRepository()
+
+    actions = [
+        service.generate_plan(user_id="user-1", request=GeneratePlanRequest()),
+        service.create_manual_plan(
+            user_id="user-1",
+            request=ManualPlanRequest(
+                name="Restricted", exercises=[ManualExerciseInput(exercise_id="squat")]
+            ),
+        ),
+        service.activate_plan(user_id="user-1", plan_id=existing_plan.id),
+        service.start_session(
+            user_id="user-1", plan_id=existing_plan.id, day_key=existing_plan.days[0].key
+        ),
+    ]
+    for action in actions:
+        with pytest.raises(AppError) as error:
+            run(action)
+        assert error.value.code == "training_limitations_require_review"
 
 
 def test_manual_plan_uses_provider_exercises_and_is_startable() -> None:
@@ -503,6 +539,7 @@ def test_coach_profile_and_confirmed_inbody_tools_are_owner_scoped() -> None:
         "available_equipment": ["dumbbell"],
         "preferred_language": "ar-EG",
         "timezone": "Africa/Cairo",
+        "has_training_limitations": False,
     }
     assert inbody.result["latest_confirmed_inbody"]["weight"] == 75.0
     assert other_user.result["latest_confirmed_inbody"] is None
@@ -590,6 +627,16 @@ def test_coach_accepts_its_mobile_suggested_prompts(message: str) -> None:
     assert response.model == "TBD"
 
 
+@pytest.mark.parametrize("message", ["hi coach", "hi coch", "hello"])
+def test_coach_accepts_conversational_openers(message: str) -> None:
+    service, _ = make_service()
+    coach = CoachService(llm_provider=EchoLLM(), tool_executor=CoachToolExecutor(service))
+
+    response = run(coach.respond(user_id="user-1", message=message))
+
+    assert response.model == "TBD"
+
+
 def test_coach_llm_outage_does_not_mutate_without_valid_tool() -> None:
     service, repo = make_service()
     coach = CoachService(llm_provider=FailingLLM(), tool_executor=CoachToolExecutor(service))
@@ -623,3 +670,42 @@ def test_coach_rejects_out_of_scope_medical_question() -> None:
 
     with pytest.raises(AppError):
         run(coach.respond(user_id="user-1", message="diagnose my knee injury"))
+
+
+def test_draft_requires_owner_approval_and_preserves_previous_plan():
+    service, repository = make_service()
+    active = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    draft = run(service.generate_plan(
+        user_id="user-1", request=GeneratePlanRequest(activate=False)
+    ))
+    assert run(service.get_current_plan(user_id="user-1")).id == active.id
+    with pytest.raises(AppError):
+        run(service.activate_plan(user_id="other", plan_id=draft.id))
+    approved = run(service.activate_plan(user_id="user-1", plan_id=draft.id))
+    assert approved.status == PlanStatus.ACTIVE
+    assert repository.plans[active.id].status == PlanStatus.ARCHIVED
+    assert run(service.activate_plan(user_id="user-1", plan_id=draft.id)).id == draft.id
+
+
+def test_coach_cannot_activate_a_plan_even_when_model_requests_it():
+    service, _ = make_service()
+    executor = CoachToolExecutor(service)
+    result = run(executor.execute(user_id="user-1", call=CoachToolCall(
+        name=CoachToolName.GENERATE_WORKOUT_PLAN,
+        arguments=GeneratePlanRequest(activate=True).model_dump(mode="json"),
+    )))
+    assert result.result["requires_approval"] is True
+    assert result.result["plan"]["status"] == PlanStatus.DRAFT
+    assert run(service.get_current_plan(user_id="user-1")) is None
+
+
+def test_alternative_preview_does_not_change_the_saved_plan():
+    service, repository = make_service()
+    plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    before = repository.plans[plan.id].days[0]["prescriptions"][0]["exercise_id"]
+    request = SubstituteExerciseRequest(
+        plan_id=plan.id, day_key=plan.days[0].key, prescription_index=0
+    )
+    preview = run(service.substitute(user_id="user-1", request=request, preview=True))
+    assert repository.plans[plan.id].days[0]["prescriptions"][0]["exercise_id"] == before
+    assert preview.days[0].prescriptions[0].exercise_id != before

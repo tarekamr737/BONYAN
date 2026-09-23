@@ -46,6 +46,7 @@ FITNESS_SCOPE_TERMS = (
     "تغذية",
     "سعرات",
 )
+COACH_GREETING_TERMS = {"hi", "hello", "hey", "coach", "coch", "كوتش", "مرحبا", "أهلا"}
 logger = get_logger("providers")
 
 
@@ -64,7 +65,11 @@ class CoachService:
     async def respond(
         self, *, user_id: str, message: str, user_context: dict[str, object] | None = None
     ) -> CoachMessageResponse:
-        if not any(term in message.lower() for term in FITNESS_SCOPE_TERMS):
+        normalized_message = message.lower()
+        words = {word.strip(".,!?؟") for word in normalized_message.split()}
+        if not any(term in normalized_message for term in FITNESS_SCOPE_TERMS) and not (
+            words & COACH_GREETING_TERMS
+        ):
             raise AppError(
                 "coach_scope_error",
                 "Ask the coach about training, nutrition, or your progress.",
@@ -74,6 +79,8 @@ class CoachService:
             "You are BONYAN's fitness coach. Answer naturally in the user's language, "
             "including Egyptian Arabic when used. Do not diagnose medical conditions. "
             "Use BONYAN tools for authoritative workout state and never invent user data. "
+            "If training limitations are present, avoid exercise prescriptions and advise a "
+            "qualified professional. "
             "Keep the answer concise and action-oriented unless detail is requested. "
             f"Authorized user context: {json.dumps(user_context or {}, ensure_ascii=False)}. "
             f"User message: {message[:1000]}"

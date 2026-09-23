@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.users.models import ProfileHistoryRecord, UserAccount, UserProfile
+from app.domains.users.models import (
+    EmailVerificationChallenge,
+    ProfileHistoryRecord,
+    UserAccount,
+    UserProfile,
+)
 
 
 class AccountRepository(Protocol):
@@ -15,6 +20,16 @@ class AccountRepository(Protocol):
     ) -> UserAccount | None: ...
 
     async def get_by_email(self, email: str) -> UserAccount | None: ...
+
+    async def create_verification(
+        self, challenge: EmailVerificationChallenge
+    ) -> EmailVerificationChallenge: ...
+
+    async def get_verification(self, challenge_id: str) -> EmailVerificationChallenge | None: ...
+
+    async def record_failed_verification(self, challenge_id: str) -> None: ...
+
+    async def delete_verification(self, challenge_id: str) -> None: ...
 
 
 class SqlAlchemyAccountRepository:
@@ -33,6 +48,39 @@ class SqlAlchemyAccountRepository:
 
     async def get_by_email(self, email: str) -> UserAccount | None:
         return await self._session.scalar(select(UserAccount).where(UserAccount.email == email))
+
+    async def create_verification(
+        self, challenge: EmailVerificationChallenge
+    ) -> EmailVerificationChallenge:
+        await self._session.execute(
+            delete(EmailVerificationChallenge).where(
+                EmailVerificationChallenge.email == challenge.email
+            )
+        )
+        self._session.add(challenge)
+        await self._session.flush()
+        return challenge
+
+    async def get_verification(self, challenge_id: str) -> EmailVerificationChallenge | None:
+        return await self._session.scalar(
+            select(EmailVerificationChallenge)
+            .where(EmailVerificationChallenge.id == challenge_id)
+            .with_for_update()
+        )
+
+    async def record_failed_verification(self, challenge_id: str) -> None:
+        await self._session.execute(
+            update(EmailVerificationChallenge)
+            .where(EmailVerificationChallenge.id == challenge_id)
+            .values(attempts=EmailVerificationChallenge.attempts + 1)
+        )
+
+    async def delete_verification(self, challenge_id: str) -> None:
+        await self._session.execute(
+            delete(EmailVerificationChallenge).where(
+                EmailVerificationChallenge.id == challenge_id
+            )
+        )
 
 
 class ProfileRepository(Protocol):

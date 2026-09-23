@@ -17,6 +17,11 @@ export type AccessTokenResponse = {
   token_type: "bearer";
 };
 
+export type EmailRegistrationStarted = {
+  challenge_id: string;
+  expires_in: number;
+};
+
 export type UserProfile = {
   coaching?: CoachingPreferences;
   available_equipment: string[];
@@ -28,6 +33,8 @@ export type UserProfile = {
   has_profile_photo: boolean;
   height_cm: string | null;
   onboarding_completed: boolean;
+  home_tour_completed: boolean;
+  home_tour_completed_at: string | null;
   preferred_language: string;
   preferred_units: PreferredUnits;
   profile_photo_updated_at: string | null;
@@ -47,6 +54,7 @@ export type ProfileUpdate = Partial<
     | "experience_level"
     | "height_cm"
     | "onboarding_completed"
+    | "home_tour_completed"
     | "preferred_language"
     | "preferred_units"
     | "sex"
@@ -67,8 +75,11 @@ export type CoachingPreferences = {
   running_target_minutes?: number | null;
   pushups?: number | null;
   pushups_target?: number | null;
+  situps?: number | null;
+  situps_target?: number | null;
   pullups?: number | null;
   pullups_target?: number | null;
+  limitations?: string | null;
   target_weight_kg?: number | null;
 };
 export type Measurements = {height_cm: number | null; weight_kg: number | null; body_fat_percentage?: number | null; skeletal_muscle_mass_kg?: number | null};

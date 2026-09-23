@@ -44,6 +44,8 @@ def test_staging_has_the_same_transport_and_auth_floor_as_production() -> None:
         auth_jwt_secret="a-secure-staging-secret-that-is-long-enough",
         api_public_url="https://staging-api.bonyan.example",
         cors_allowed_origins="",
+        email_provider="resend",
+        resend_api_key="resend-test-key",
     )
 
     assert settings.api_env == "staging"
@@ -66,6 +68,8 @@ def test_cors_origins_are_explicit_and_production_fails_closed() -> None:
         api_public_url="https://api.bonyan.example",
         auth_jwt_secret="a-secure-production-secret-that-is-long-enough",
         cors_allowed_origins="",
+        email_provider="resend",
+        resend_api_key="resend-test-key",
     )
     configured = Settings(cors_allowed_origins="https://app.bonyan.example/")
 

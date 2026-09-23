@@ -6,13 +6,14 @@ import { SpaceGrotesk_600SemiBold } from "@expo-google-fonts/space-grotesk/600Se
 import { SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk/700Bold";
 import { useFonts } from "expo-font";
 import { useQuery } from "@tanstack/react-query";
-import { Redirect, Stack, usePathname } from "expo-router";
+import { Redirect, Stack, usePathname, useRouter } from "expo-router";
 import Head from "expo-router/head";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppTaskbar } from "../src/core/components/AppTaskbar";
+import { HomeTourProvider } from "../src/core/tour/HomeTour";
 import { LanguageDirection } from "../src/core/components/DirectionalText";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,6 +23,10 @@ import { useAuthSession } from "../src/core/auth/session";
 import { colors, spacing } from "../src/core/theme/tokens";
 import { getMyProfile } from "../src/features/auth/api/profileApi";
 import { AuthLoadingScreen } from "../src/features/auth/screens/AuthLoadingScreen";
+
+import { readIntroCompleted, storeIntroCompleted } from "../src/core/auth/introStorage";
+import { AuthEntryPreferences } from "../src/features/auth/screens/SignInScreen";
+import { IntroScreen } from "../src/features/auth/screens/IntroScreen";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -50,7 +55,7 @@ export default function RootLayout() {
       <Head>
         <title>BONYAN</title>
         <meta
-          content="Private body composition insights, deterministic training, avatars, and community."
+          content="Military physical preparation and gym training, with personalized plans and progress tracking."
           name="description"
         />
       </Head>
@@ -63,6 +68,13 @@ export default function RootLayout() {
 function RootNavigator() {
   const { isAuthenticated, isRestoring } = useAuthSession();
   const pathname = usePathname();
+  const router = useRouter();
+  const [intro, setIntro] = useState<boolean | null>(null);
+  const [authChoice, setAuthChoice] = useState<{mode: string; language: string} | null>(null);
+  const [introError, setIntroError] = useState(false);
+  function restoreIntro() { setIntroError(false); void readIntroCompleted().then(setIntro).catch(() => setIntroError(true)); }
+  useEffect(() => { void readIntroCompleted().then(setIntro).catch(() => setIntroError(true)); }, []);
+  useEffect(() => { if (isAuthenticated && !isRestoring && intro === false) void storeIntroCompleted().then(() => setIntro(true)).catch(() => {}); }, [isAuthenticated, isRestoring, intro]);
   const profile = useQuery({
     enabled: isAuthenticated && !isRestoring,
     queryFn: getMyProfile,
@@ -70,12 +82,20 @@ function RootNavigator() {
   });
   const inAuthGroup = pathname === "/sign-in";
   const inOnboardingGroup = pathname === "/onboarding";
+  function completeIntro(register: boolean, arabic: boolean) {
+    const choice = { mode: register ? "register" : "login", language: arabic ? "ar" : "en" };
+    setAuthChoice(choice);
+    setIntro(true);
+    router.replace({ pathname: "/sign-in", params: choice });
+  }
 
-  if (isRestoring) {
+  if (introError) return <SafeAreaView style={styles.gateState}><ScreenState variant="error" title="Startup unavailable" message="Your device preferences could not be loaded." actionLabel="Try again" onAction={restoreIntro} /></SafeAreaView>;
+  if (isRestoring || intro === null) {
     return <AuthLoadingScreen />;
   }
+  if (!intro && !isAuthenticated) return <IntroScreen onComplete={completeIntro} />;
   if (!isAuthenticated) {
-    return inAuthGroup ? <AppStack /> : <Redirect href="/sign-in" />;
+    return inAuthGroup ? <AuthEntryPreferences.Provider value={authChoice}><AppStack key={`${authChoice?.mode}-${authChoice?.language}`} /></AuthEntryPreferences.Provider> : <Redirect href={{pathname: "/sign-in", params: authChoice ?? {}}} />;
   }
   if (profile.isPending) {
     return <AuthLoadingScreen />;
@@ -100,7 +120,7 @@ function RootNavigator() {
     return <Redirect href="/" />;
   }
   const arabic = profile.data.preferred_language.startsWith("ar");
-  return <LanguageDirection.Provider value={arabic}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <AppTaskbar arabic={arabic} /> : null}</View></LanguageDirection.Provider>;
+  return <LanguageDirection.Provider value={arabic}><HomeTourProvider arabic={arabic} profile={profile.data}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <AppTaskbar arabic={arabic} /> : null}</View></HomeTourProvider></LanguageDirection.Provider>;
 }
 
 const styles = StyleSheet.create({

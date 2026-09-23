@@ -2,16 +2,29 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.training.models import WorkoutPlanRecord, WorkoutSessionRecord
+from app.domains.training.models import CoachMessageRecord, WorkoutPlanRecord, WorkoutSessionRecord
 from app.domains.training.schemas import PlanStatus, WorkoutSessionStatus
 
 
 class TrainingRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def lock_plan_activation(self, *, owner_id: str) -> None:
+        await self.session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:owner_id, 0))"),
+            {"owner_id": owner_id},
+        )
+
+    async def lock_session_start(self, *, owner_id: str, plan_id: UUID, day_key: str) -> None:
+        lock_key = f"{owner_id}:{plan_id}:{day_key}"
+        await self.session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:lock_key, 0))"),
+            {"lock_key": lock_key},
+        )
 
     async def save_plan(self, *, owner_id: str, plan: dict[str, object]) -> WorkoutPlanRecord:
         if plan["status"] == PlanStatus.ACTIVE:
@@ -35,7 +48,7 @@ class TrainingRepository:
         result = await self.session.execute(
             select(WorkoutPlanRecord).where(
                 WorkoutPlanRecord.owner_id == owner_id, WorkoutPlanRecord.id == plan_id
-            )
+            ).with_for_update()
         )
         return result.scalar_one_or_none()
 
@@ -53,6 +66,17 @@ class TrainingRepository:
     async def create_session(
         self, *, owner_id: str, plan_id: UUID, day_key: str
     ) -> WorkoutSessionRecord:
+        existing = await self.session.execute(
+            select(WorkoutSessionRecord).where(
+                WorkoutSessionRecord.owner_id == owner_id,
+                WorkoutSessionRecord.plan_id == plan_id,
+                WorkoutSessionRecord.day_key == day_key,
+                WorkoutSessionRecord.status == WorkoutSessionStatus.ACTIVE,
+            ).order_by(WorkoutSessionRecord.started_at.desc())
+        )
+        active = existing.scalars().first()
+        if active is not None:
+            return active
         record = WorkoutSessionRecord(
             owner_id=owner_id,
             plan_id=plan_id,
@@ -69,7 +93,7 @@ class TrainingRepository:
         result = await self.session.execute(
             select(WorkoutSessionRecord).where(
                 WorkoutSessionRecord.owner_id == owner_id, WorkoutSessionRecord.id == session_id
-            )
+            ).with_for_update()
         )
         return result.scalar_one_or_none()
 
@@ -81,3 +105,27 @@ class TrainingRepository:
             .limit(limit)
         )
         return list(result.scalars())
+
+    async def list_coach_messages(
+        self, *, owner_id: str, limit: int = 50
+    ) -> list[CoachMessageRecord]:
+        result = await self.session.execute(
+            select(CoachMessageRecord)
+            .where(CoachMessageRecord.owner_id == owner_id)
+            .order_by(CoachMessageRecord.created_at.desc(), CoachMessageRecord.id.desc())
+            .limit(limit)
+        )
+        return list(reversed(list(result.scalars())))
+
+    async def add_coach_message(
+        self, *, owner_id: str, role: str, content: str, model: str | None = None
+    ) -> CoachMessageRecord:
+        record = CoachMessageRecord(
+            owner_id=owner_id,
+            role=role,
+            content=content,
+            model=model,
+        )
+        self.session.add(record)
+        await self.session.flush()
+        return record

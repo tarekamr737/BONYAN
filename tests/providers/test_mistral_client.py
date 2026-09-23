@@ -65,6 +65,26 @@ def test_missing_credentials_fail_before_network() -> None:
     urlopen.assert_not_called()
 
 
+def test_uses_image_url_payload_for_mobile_report_photos() -> None:
+    captured = []
+
+    def fake_urlopen(req, timeout):
+        captured.append(req)
+        return FakeResponse({"pages": []})
+
+    with patch("app.integrations.mistral.client.request.urlopen", fake_urlopen):
+        run(
+            MistralOcrClient(api_key="secret").extract_document(
+                content=b"image", content_type="image/jpeg", filename="report.jpg"
+            )
+        )
+
+    document = json.loads(captured[0].data)["document"]
+    assert document["type"] == "image_url"
+    assert document["image_url"].startswith("data:image/jpeg;base64,")
+    assert "document_url" not in document
+
+
 def test_rate_limit_retries_with_a_hard_bound() -> None:
     attempts = 0
 
@@ -75,11 +95,7 @@ def test_rate_limit_retries_with_a_hard_bound() -> None:
 
     with patch("app.integrations.mistral.client.request.urlopen", rate_limited):
         with pytest.raises(MistralOcrRateLimit):
-            extract(
-                MistralOcrClient(
-                    api_key="secret", max_attempts=2, retry_delay_seconds=0
-                )
-            )
+            extract(MistralOcrClient(api_key="secret", max_attempts=2, retry_delay_seconds=0))
 
     assert attempts == 2
 

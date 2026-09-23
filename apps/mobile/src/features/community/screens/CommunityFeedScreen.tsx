@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CinematicHero } from "../../../core/components/CinematicHero";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { PostCard } from "../components/PostCard";
 import { useCommunityFeed, useCommunityMutations } from "../hooks";
@@ -137,12 +138,7 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
                 <Text style={styles.createLabel}>{arabic ? "منشور جديد" : "Create post"}</Text>
               </Pressable>
             </View>
-            <Text accessibilityRole="header" style={styles.heading}>
-              {arabic ? "المجتمع" : "Community"}
-            </Text>
-            <Text style={styles.intro}>
-              {arabic ? "محطات تقدم حديثة من ناس بيتطوروا بهدوء. من غير ترتيب أو توصيات أو بيانات جسم تلقائية." : "Recent milestones from people building steadily. No rankings, recommendations, or automatic body data."}
-            </Text>
+            <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/community.jpg")} title={arabic ? "أقوى مع بعض" : "Stronger together"} subtitle={arabic ? "شارك، اتعلم، واتطور مع مجتمع يحترم خصوصيتك." : "Share, learn and improve with a community that respects your privacy."} />
             <View style={styles.feedRule}>
               <Text style={styles.feedRuleTitle}>{arabic ? "الأحدث أولًا" : "RECENT FIRST"}</Text>
               <Text style={styles.feedRuleCopy}>{arabic ? "منشورات مرتبة زمنيًا" : "A simple chronological feed"}</Text>

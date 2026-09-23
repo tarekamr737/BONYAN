@@ -2,6 +2,7 @@ export { AppButton } from "./AppButton";
 export { AppTextField } from "./AppTextField";
 export { DirectionalText } from "./DirectionalText";
 export { BrandMark } from "./BrandMark";
+export { CinematicHero } from "./CinematicHero";
 export { AvatarJourneyCard } from "./AvatarJourneyCard";
 export { MotionReveal } from "./MotionReveal";
 export { NotificationBell } from "./NotificationBell";

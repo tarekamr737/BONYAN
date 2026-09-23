@@ -25,6 +25,7 @@ from app.domains.training.repository import TrainingRepository
 from app.domains.training.schemas import (
     CoachMessageRequest,
     CoachMessageResponse,
+    CoachMessageView,
     ExerciseMediaAccessResponse,
     ExerciseSearchItem,
     ExerciseSearchResponse,
@@ -60,6 +61,7 @@ async def get_training_service(
         TrainingRepository(session),
         get_exercise_provider(settings),
         InBodyTrainingAdapter(InBodyRepository(session)),
+        SqlAlchemyProfileRepository(session),
     )
 
 
@@ -113,6 +115,36 @@ async def get_current_plan(
     current_user: CurrentUserDep, service: TrainingServiceDep
 ) -> WorkoutPlan | None:
     return await service.get_current_plan(user_id=current_user.id)
+
+
+@router.get("/plans/{plan_id}", response_model=WorkoutPlan)
+async def get_plan(
+    plan_id: UUID, current_user: CurrentUserDep, service: TrainingServiceDep
+) -> WorkoutPlan:
+    return await service.get_plan(user_id=current_user.id, plan_id=plan_id)
+
+
+@router.post("/plans/{plan_id}/activate", response_model=WorkoutPlan)
+async def activate_plan(
+    plan_id: UUID, current_user: CurrentUserDep, service: TrainingServiceDep
+) -> WorkoutPlan:
+    return await service.activate_plan(user_id=current_user.id, plan_id=plan_id)
+
+
+@router.get("/sessions/{session_id}", response_model=WorkoutSessionResponse)
+async def get_session(
+    session_id: UUID, current_user: CurrentUserDep, service: TrainingServiceDep
+) -> WorkoutSessionResponse:
+    return await service.get_session(user_id=current_user.id, session_id=session_id)
+
+
+@router.get("/sessions", response_model=list[WorkoutSessionResponse])
+async def list_sessions(
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> list[WorkoutSessionResponse]:
+    return await service.list_recent_sessions(user_id=current_user.id, limit=limit)
 
 
 @router.post("/plans/manual", response_model=WorkoutPlan, status_code=status.HTTP_201_CREATED)
@@ -212,6 +244,15 @@ async def substitute_exercise(
     return await service.substitute(user_id=current_user.id, request=request)
 
 
+@router.post("/substitutions/preview", response_model=WorkoutPlan)
+async def preview_substitution(
+    request: SubstituteExerciseRequest,
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+) -> WorkoutPlan:
+    return await service.substitute(user_id=current_user.id, request=request, preview=True)
+
+
 @router.get("/exercises/{exercise_id}/media", response_model=ExerciseMediaAccessResponse)
 async def get_exercise_media_access(
     exercise_id: str,
@@ -261,16 +302,24 @@ async def coach_message(
     foods = await nutrition.list_food_between(
         owner_id=current_user.id, start=start, end=end
     )
+    repository = TrainingRepository(session)
+    history = await repository.list_coach_messages(owner_id=current_user.id, limit=12)
     user_context = {
         "goal": profile.training_goal if profile else None,
         "experience": profile.experience_level if profile else None,
         "available_training_days": profile.available_training_days if profile else None,
         "available_equipment": profile.available_equipment if profile else [],
+        "has_training_limitations": (
+            bool((profile.coaching or {}).get("limitations")) if profile else False
+        ),
         "today_nutrition": {
             "meals_logged": len(foods),
             "calories": sum(item.calories for item in foods),
             "protein_g": round(sum(float(item.protein_g) for item in foods), 1),
         },
+        "recent_conversation": [
+            {"role": item.role, "content": item.content} for item in history
+        ],
     }
     coach = CoachService(
         llm_provider=get_llm_provider(settings),
@@ -280,6 +329,28 @@ async def coach_message(
             inbody_provider=inbody_provider,
         ),
     )
-    return await coach.respond(
+    response = await coach.respond(
         user_id=current_user.id, message=request.message, user_context=user_context
     )
+    await repository.add_coach_message(
+        owner_id=current_user.id, role="user", content=request.message
+    )
+    await repository.add_coach_message(
+        owner_id=current_user.id,
+        role="coach",
+        content=response.response,
+        model=response.model,
+    )
+    return response
+
+
+@router.get("/coach/messages", response_model=list[CoachMessageView])
+async def coach_messages(
+    current_user: CurrentUserDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> list[CoachMessageView]:
+    records = await TrainingRepository(session).list_coach_messages(
+        owner_id=current_user.id, limit=limit
+    )
+    return [CoachMessageView.model_validate(item) for item in records]

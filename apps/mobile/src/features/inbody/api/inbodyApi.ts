@@ -26,7 +26,8 @@ export async function uploadInBodyReport(
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await uploadFetch(`${getApiBaseUrl()}/api/v1/inbody/scans`, {
+  const endpoint = `${getApiBaseUrl()}/api/v1/inbody/scans`;
+  const response = await uploadFetch(endpoint, {
     body: form,
     headers,
     method: "POST",
@@ -38,9 +39,15 @@ export async function uploadInBodyReport(
       ? await response.json().catch(() => undefined)
       : undefined;
     const details = parseApiErrorPayload(payload);
+    if (typeof __DEV__ !== "undefined" && __DEV__) console.info("[InBody] upload failed", { method: "POST", endpoint: "/api/v1/inbody/scans", status: response.status, errorCode: details.code });
     throw new ApiError(response.status, details.code, details.message);
   }
-  return (await response.json()) as UploadResponse;
+  const payload = (await response.json()) as UploadResponse;
+  if (typeof __DEV__ !== "undefined" && __DEV__) console.info("[InBody] upload response", { method: "POST", endpoint: "/api/v1/inbody/scans", status: response.status, scanStatus: payload.scan.status, responseShape: Object.keys(payload).sort() });
+  if (payload.scan.status === "failed") {
+    throw new ApiError(response.status, payload.scan.failure_code ?? "ocr_provider_failed", payload.scan.failure_message ?? "The report could not be processed.");
+  }
+  return payload;
 }
 
 export function getInBodyHistory(): Promise<InBodyHistoryResponse> {

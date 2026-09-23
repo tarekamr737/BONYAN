@@ -1,18 +1,18 @@
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { getMyProfile } from "../../auth/api/profileApi";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CinematicHero } from "../../../core/components/CinematicHero";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { MotionReveal } from "../../../core/components/MotionReveal";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
-import { generateWorkoutPlan, getCurrentWorkoutPlan, startWorkoutSession } from "../api/trainingApi";
+import { generateWorkoutPlan, getCurrentWorkoutPlan, getWorkoutSessions, startWorkoutSession } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
-import { TrainingHeader } from "../components/TrainingHeader";
 import type { WorkoutDay, WorkoutPlan } from "../types";
 
 function formatLabel(value: string): string { return value.replaceAll("_", " "); }
@@ -30,26 +30,33 @@ function weeklyDays(value: number, arabic: boolean): string { if (!arabic) retur
 function dayName(value: string, arabic: boolean): string { return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value; }
 function firstDay(plan: WorkoutPlan | null | undefined): WorkoutDay | undefined { return plan?.days.slice().sort((a,b) => a.order-b.order)[0]; }
 export function TrainingHomeScreen() {
-  const queryClient = useQueryClient();
+  const generating = useRef(false);
   const [planJustPrepared, setPlanJustPrepared] = useState(false);
   const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
   const planQuery = useQuery({
     queryFn: getCurrentWorkoutPlan,
     queryKey: ["training", "current-plan"],
   });
+  const sessions = useQuery({
+    queryFn: () => getWorkoutSessions(20),
+    queryKey: ["training", "sessions"],
+  });
   const plan = planQuery.data;
   const today = firstDay(plan);
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const hasLimitations = Boolean(profile.data?.coaching?.limitations?.trim());
+  const completedSessions = sessions.data?.filter(item => item.status === "completed") ?? [];
+  const totalVolume = completedSessions.reduce((sum, item) => sum + Number(item.summary.volume_kg ?? 0), 0);
 
   const generateMutation = useMutation({
     onMutate: () => setPlanJustPrepared(false),
     mutationFn: () => {
       if (!profile.data) throw new Error("Your profile is still loading.");
       const p = profile.data;
-      return generateWorkoutPlan({goal: p.training_goal ?? "general_fitness", experience: p.experience_level ?? "beginner", days_per_week: p.available_training_days ?? 3, session_duration_minutes: 45, equipment: p.available_equipment, activate: true});
+      return generateWorkoutPlan({goal: p.training_goal ?? "general_fitness", experience: p.experience_level ?? "beginner", days_per_week: p.available_training_days ?? 3, session_duration_minutes: 45, equipment: p.available_equipment, activate: false});
     },
     onSuccess: (createdPlan) => {
-      queryClient.setQueryData(["training", "current-plan"], createdPlan);
+      router.push({pathname: "/training/review", params: {planId: createdPlan.id}});
       setPlanJustPrepared(true);
       if (Platform.OS === "ios") {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -78,10 +85,13 @@ export function TrainingHomeScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <TrainingHeader
-          title={arabic ? "نظام تمرينك" : "Your training"}
-          subtitle={arabic ? "خطتك وتمارينك والكوتش بنيان متصلين بهدفك وبياناتك الحالية." : "Your plan, live workout log and Bonyan Coach stay connected to your current goal and profile."}
-        />
+        <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/training.jpg")} title={arabic ? "نظام تمرينك" : "Your training plan"} subtitle={arabic ? "انضباط اليوم. نتائج بكرة." : "Discipline today. Results tomorrow."} />
+        {hasLimitations ? <SurfaceCard>
+          <Text style={styles.stateTitle}>{arabic ? "التدريب متوقف مؤقتًا" : "Training paused"}</Text>
+          <Text style={styles.stateCopy}>{arabic ? "ملفك يتضمن إصابة أو قيدًا حركيًا. راجع مختصًا مؤهلًا قبل التدريب، ثم حدّث ملفك عندما تصبح مستعدًا." : "Your profile lists an injury or movement limitation. Check with a qualified professional before training, then update your profile when cleared."}</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "تعديل ملفي" : "Review my profile"}</Text></Pressable>
+        </SurfaceCard> : null}
+
 
         {planJustPrepared && plan ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{arabic ? "الخطة جاهزة" : "Your plan is ready"}</Text><Text style={styles.stateCopy}>{arabic ? "جهزنا نظامك ويمكنك بدء أول تمرين الآن." : "Your training system is prepared and the first workout is ready."}</Text></View></View></SurfaceCard></MotionReveal> : null}
 
@@ -113,15 +123,15 @@ export function TrainingHomeScreen() {
             </Text>
             <Pressable
               accessibilityRole="button"
-              disabled={generateMutation.isPending || !profile.data}
-              onPress={() => generateMutation.mutate()}
-              style={[styles.primaryAction, generateMutation.isPending && styles.disabledAction]}
+              disabled={hasLimitations || generateMutation.isPending || !profile.data}
+              onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
+              style={[styles.primaryAction, (hasLimitations || generateMutation.isPending) && styles.disabledAction]}
             >
               <Text style={styles.primaryActionText}>
                 {generateMutation.isPending ? arabic ? "جارٍ تجهيز الخطة…" : "Preparing your plan…" : arabic ? "توليد التمرين بالذكاء الاصطناعي" : "Generate my workout with AI"}
               </Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => router.push("/training/manual")} style={[styles.secondaryAction, {marginTop: spacing.sm}]}>
+            <Pressable accessibilityRole="button" disabled={hasLimitations} onPress={() => router.push("/training/manual")} style={[styles.secondaryAction, {marginTop: spacing.sm}, hasLimitations && styles.disabledAction]}>
               <Text style={styles.secondaryActionText}>{arabic ? "اختيار التمرين يدويًا" : "Choose my workout manually"}</Text>
             </Pressable>
             {generateMutation.isError ? <Text style={styles.errorText}>{arabic ? "لم نتمكن من تجهيز الخطة الآن. حاول مرة أخرى." : "We could not prepare the plan. Try again."}</Text> : null}
@@ -147,9 +157,9 @@ export function TrainingHomeScreen() {
               </View>
               <Pressable
                 accessibilityRole="button"
-                disabled={startMutation.isPending}
+                disabled={hasLimitations || startMutation.isPending}
                 onPress={() => startMutation.mutate()}
-                style={[styles.primaryAction, startMutation.isPending && styles.disabledAction]}
+                style={[styles.primaryAction, (hasLimitations || startMutation.isPending) && styles.disabledAction]}
               >
                 <Text style={styles.primaryActionText}>
                   {startMutation.isPending ? arabic ? "بنبدأ…" : "Starting…" : arabic ? "ابدأ التمرين" : "Start workout"}
@@ -173,11 +183,21 @@ export function TrainingHomeScreen() {
           </>
         ) : null}
 
+        <SurfaceCard>
+          <Text style={styles.stateTitle}>{arabic ? "تحليل التدريب" : "Training analysis"}</Text>
+          {sessions.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
+          {sessions.isError ? <><Text style={styles.stateCopy}>{arabic ? "تعذّر تحميل سجل التمرين." : "Your workout history could not be loaded."}</Text><Pressable accessibilityRole="button" onPress={() => sessions.refetch()} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text></Pressable></> : null}
+          {sessions.data?.length === 0 ? <Text style={styles.stateCopy}>{arabic ? "أكمل أول تمرين لتظهر هنا تحليلات التقدم والسجل." : "Complete your first workout to unlock progress insights and history."}</Text> : null}
+          {completedSessions.length > 0 ? <><View style={styles.planStats}><Text style={styles.stat}>{arabic ? `${completedSessions.length} تمرين مكتمل` : `${completedSessions.length} completed`}</Text><Text style={styles.stat}>{arabic ? `${Math.round(totalVolume)} كجم حجم تدريبي` : `${Math.round(totalVolume)} kg volume`}</Text></View>{completedSessions.slice(0, 5).map(session => <Pressable accessibilityRole="button" key={session.id} onPress={() => router.push({pathname: "/training/day", params: {dayKey: session.day_key, sessionId: session.id}})} style={styles.historyRow}><View style={styles.titleWrap}><Text style={styles.historyTitle}>{session.day_key.replaceAll("-", " ")}</Text><Text style={styles.stateCopy}>{new Intl.DateTimeFormat(arabic ? "ar-EG" : "en", {day: "numeric", month: "short", year: "numeric"}).format(new Date(session.completed_at ?? session.started_at))}</Text></View><Text style={styles.historyMeta}>{Number(session.summary.sets ?? session.logged_sets.length)} {arabic ? "مجموعات" : "sets"}</Text></Pressable>)}</> : null}
+        </SurfaceCard>
+
         <View style={styles.actions}>
+          {profile.data?.training_goal === "military_preparation" ? <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "تحديث مستوى البداية" : "Update baseline"}</Text></Pressable> : null}
           <Pressable
             accessibilityRole="button"
+            disabled={hasLimitations}
             onPress={() => router.push("/training/manual")}
-            style={styles.secondaryAction}
+            style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
           >
             <Text style={styles.secondaryActionText}>{arabic ? "تمرين يدوي" : "Build manually"}</Text>
           </Pressable>
@@ -190,9 +210,9 @@ export function TrainingHomeScreen() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            disabled={generateMutation.isPending || !profile.data}
-            onPress={() => generateMutation.mutate()}
-            style={styles.secondaryAction}
+            disabled={hasLimitations || generateMutation.isPending || !profile.data}
+            onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
+            style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
           >
             <Text style={styles.secondaryActionText}>
               {generateMutation.isPending ? arabic ? "جارٍ التجهيز…" : "Preparing…" : plan ? arabic ? "تجهيز خطة جديدة" : "Replace plan" : arabic ? "تجهيز الخطة" : "Prepare plan"}
@@ -207,6 +227,7 @@ export function TrainingHomeScreen() {
 const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     marginTop: spacing.lg,
   },
@@ -221,6 +242,9 @@ const styles = StyleSheet.create({
   feedbackCopy: { flex: 1 },
   feedbackRow: { alignItems: "center", flexDirection: "row", gap: spacing.md },
   feedbackTitle: { color: colors.positive, fontFamily: fonts.displaySemiBold, fontSize: 19, lineHeight: 25 },
+  historyMeta: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 12 },
+  historyRow: { alignItems: "center", borderTopColor: colors.line, borderTopWidth: 1, flexDirection: "row", gap: spacing.md, justifyContent: "space-between", minHeight: 58, paddingTop: spacing.sm },
+  historyTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14, textTransform: "capitalize" },
   rowReverse: { flexDirection: "row-reverse" },
   successIcon: { alignItems: "center", backgroundColor: "rgba(111,207,151,0.12)", borderColor: "rgba(111,207,151,0.35)", borderRadius: 18, borderWidth: 1, height: 52, justifyContent: "center", width: 52 },
   successIconText: { color: colors.positive, fontFamily: fonts.displayBold, fontSize: 22 },

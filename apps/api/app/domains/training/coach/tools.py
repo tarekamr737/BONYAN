@@ -141,8 +141,10 @@ class CoachToolExecutor:
             return {"exercise": item.__dict__}
         if call.name == CoachToolName.GENERATE_WORKOUT_PLAN:
             args = GeneratePlanRequest.model_validate(call.arguments)
+            # Model output never authorizes activation; the owner reviews the draft in-app.
+            args = args.model_copy(update={"activate": False})
             plan = await self.training_service.generate_plan(user_id=user_id, request=args)
-            return {"plan": _plan_summary(plan)}
+            return {"plan": _plan_summary(plan), "requires_approval": True}
         if call.name == CoachToolName.LOG_WORKOUT:
             args = LogWorkoutArgs.model_validate(call.arguments)
             session = await self.training_service.log_set(
@@ -183,6 +185,9 @@ def _profile_summary(profile) -> dict[str, object]:
         "available_equipment": list(profile.available_equipment or []),
         "preferred_language": profile.preferred_language,
         "timezone": profile.timezone,
+        "has_training_limitations": bool(
+            (getattr(profile, "coaching", None) or {}).get("limitations")
+        ),
     }
 
 

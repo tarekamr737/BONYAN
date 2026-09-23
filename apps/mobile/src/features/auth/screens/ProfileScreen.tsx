@@ -10,11 +10,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton, ScreenState } from "../../../core/components";
 import { useAuthSession } from "../../../core/auth/session";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
+import { useHomeTour } from "../../../core/tour/HomeTour";
 import {
   accountDeletionConfirmationActions,
   usesInlineAccountDeletionConfirmation,
 } from "../accountDeletionConfirmation";
-import { deleteMyAccount, getMyProfile } from "../api/profileApi";
+import { deleteMyAccount, getMyProfile, updateMyProfile } from "../api/profileApi";
 import { CoachingJourney } from "../components/CoachingJourney";
 import { ProfileOverview } from "../components/ProfileOverview";
 import { ProfilePhotoEditor } from "../components/ProfilePhotoEditor";
@@ -25,6 +26,7 @@ export function ProfileScreen() {
   const { signOut } = useAuthSession();
   const [showWebDeletionConfirmation, setShowWebDeletionConfirmation] = useState(false);
   const queryClient = useQueryClient();
+  const {replayTour: resetHomeTour} = useHomeTour();
   const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
   const deletion = useMutation({
@@ -33,6 +35,14 @@ export function ProfileScreen() {
       queryClient.clear();
       await signOut();
       router.replace("/(auth)/sign-in");
+    },
+  });
+  const replayTour = useMutation({
+    mutationFn: () => updateMyProfile({home_tour_completed: false}),
+    onSuccess: updated => {
+      queryClient.setQueryData(["profile", "me"], updated);
+      resetHomeTour();
+      router.replace("/");
     },
   });
 
@@ -106,6 +116,7 @@ export function ProfileScreen() {
           <ProfileOverview profile={profile.data} onEdit={() => setEditing(true)} />
         </View>
         <View style={styles.sessionActions}>
+          <AppButton label={arabic ? "إعادة جولة الصفحة الرئيسية" : "Replay Home tour"} loading={replayTour.isPending} onPress={() => replayTour.mutate()} variant="secondary" />
           <AppButton label={coachingCopy("Back to BONYAN", profile.data.preferred_language.startsWith("ar"))} onPress={() => router.canGoBack() ? router.back() : router.replace("/")} variant="secondary" />
           <AppButton
             label={coachingCopy("Sign out", profile.data.preferred_language.startsWith("ar"))}
