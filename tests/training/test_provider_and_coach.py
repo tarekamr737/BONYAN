@@ -287,6 +287,36 @@ def test_service_preserves_no_inbody_fallback() -> None:
     assert plan.generation_snapshot["optional_inbody_used"] is False
 
 
+def test_training_blocks_plans_and_sessions_when_limitations_are_recorded() -> None:
+    from app.domains.training.schemas import ManualExerciseInput, ManualPlanRequest
+
+    class RestrictedProfileRepository:
+        async def get(self, owner_id: str):
+            return SimpleNamespace(coaching={"limitations": "Knee injury"})
+
+    service, _ = make_service()
+    existing_plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    service.profile_repository = RestrictedProfileRepository()
+
+    actions = [
+        service.generate_plan(user_id="user-1", request=GeneratePlanRequest()),
+        service.create_manual_plan(
+            user_id="user-1",
+            request=ManualPlanRequest(
+                name="Restricted", exercises=[ManualExerciseInput(exercise_id="squat")]
+            ),
+        ),
+        service.activate_plan(user_id="user-1", plan_id=existing_plan.id),
+        service.start_session(
+            user_id="user-1", plan_id=existing_plan.id, day_key=existing_plan.days[0].key
+        ),
+    ]
+    for action in actions:
+        with pytest.raises(AppError) as error:
+            run(action)
+        assert error.value.code == "training_limitations_require_review"
+
+
 def test_manual_plan_uses_provider_exercises_and_is_startable() -> None:
     from app.domains.training.schemas import ManualExerciseInput, ManualPlanRequest
 
@@ -509,6 +539,7 @@ def test_coach_profile_and_confirmed_inbody_tools_are_owner_scoped() -> None:
         "available_equipment": ["dumbbell"],
         "preferred_language": "ar-EG",
         "timezone": "Africa/Cairo",
+        "has_training_limitations": False,
     }
     assert inbody.result["latest_confirmed_inbody"]["weight"] == 75.0
     assert other_user.result["latest_confirmed_inbody"] is None

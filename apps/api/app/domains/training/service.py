@@ -24,6 +24,7 @@ from app.domains.training.schemas import (
     WorkoutSessionResponse,
     WorkoutSessionStatus,
 )
+from app.domains.users.repository import ProfileRepository
 from app.integrations.exercises.provider import (
     ExerciseDetails,
     ExerciseProvider,
@@ -38,13 +39,16 @@ class TrainingService:
         repository: TrainingRepository,
         exercise_provider: ExerciseProvider,
         inbody_provider: LatestInBodyProvider | None = None,
+        profile_repository: ProfileRepository | None = None,
     ) -> None:
         self.repository = repository
         self.exercise_provider = exercise_provider
         self.inbody_provider = inbody_provider
+        self.profile_repository = profile_repository
         self.planner = WorkoutPlanner(exercise_provider)
 
     async def generate_plan(self, *, user_id: str, request: GeneratePlanRequest) -> WorkoutPlan:
+        await self._require_training_clearance(user_id)
         latest_inbody = (
             await self.inbody_provider.get_latest_inbody(user_id)
             if self.inbody_provider is not None
@@ -80,6 +84,7 @@ class TrainingService:
         return self._plan_response(await self._owned_plan(user_id=user_id, plan_id=plan_id))
 
     async def activate_plan(self, *, user_id: str, plan_id: UUID) -> WorkoutPlan:
+        await self._require_training_clearance(user_id)
         await self.repository.lock_plan_activation(owner_id=user_id)
         plan = await self._owned_plan(user_id=user_id, plan_id=plan_id)
         if plan.status == PlanStatus.ACTIVE:
@@ -96,6 +101,7 @@ class TrainingService:
         )
 
     async def create_manual_plan(self, *, user_id: str, request: ManualPlanRequest) -> WorkoutPlan:
+        await self._require_training_clearance(user_id)
         details = [
             await self.exercise_provider.get_exercise(item.exercise_id)
             for item in request.exercises
@@ -170,6 +176,7 @@ class TrainingService:
     async def start_session(
         self, *, user_id: str, plan_id: UUID, day_key: str
     ) -> WorkoutSessionResponse:
+        await self._require_training_clearance(user_id)
         plan = await self._owned_plan(user_id=user_id, plan_id=plan_id)
         if not any(day["key"] == day_key for day in plan.days):
             raise AppError(
@@ -181,6 +188,22 @@ class TrainingService:
         return self._session_response(
             await self.repository.create_session(owner_id=user_id, plan_id=plan_id, day_key=day_key)
         )
+
+    async def _require_training_clearance(self, user_id: str) -> None:
+        if self.profile_repository is None:
+            return
+        profile = await self.profile_repository.get(user_id)
+        if profile is None:
+            return
+        limitations = (profile.coaching or {}).get("limitations")
+        if isinstance(limitations, str) and limitations.strip():
+            raise AppError(
+                "training_limitations_require_review",
+                "Training is paused while your profile lists an injury or limitation. "
+                "Review it with a qualified professional before continuing.",
+                status.HTTP_409_CONFLICT,
+            )
+
 
     async def log_set(
         self, *, user_id: str, session_id: UUID, logged_set: LoggedSetInput

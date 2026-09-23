@@ -25,7 +25,7 @@ export function HomeScreen() {
   const state = useAppNotifications();
   const { arabic, assessment, avatars, profile } = state;
   const daily = useQuery({ queryFn: getDailyDashboard, queryKey: ["nutrition", "today"] });
-  const sessions = useQuery({ queryFn: () => getWorkoutSessions(60), queryKey: ["training", "sessions", "home"] });
+  const sessions = useQuery({ queryFn: () => getWorkoutSessions(50), queryKey: ["training", "sessions", "home"] });
   const stats = homeTrainingStats(sessions.data ?? [], profile.data?.available_training_days, profile.data?.coaching?.target_date);
   const {registerTarget, setHomeScroller} = useHomeTour();
   const profileRef = useRef<View>(null);

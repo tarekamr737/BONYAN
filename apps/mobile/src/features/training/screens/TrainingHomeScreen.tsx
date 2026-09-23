@@ -44,6 +44,7 @@ export function TrainingHomeScreen() {
   const plan = planQuery.data;
   const today = firstDay(plan);
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const hasLimitations = Boolean(profile.data?.coaching?.limitations?.trim());
   const completedSessions = sessions.data?.filter(item => item.status === "completed") ?? [];
   const totalVolume = completedSessions.reduce((sum, item) => sum + Number(item.summary.volume_kg ?? 0), 0);
 
@@ -85,6 +86,12 @@ export function TrainingHomeScreen() {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/training.jpg")} title={arabic ? "نظام تمرينك" : "Your training plan"} subtitle={arabic ? "انضباط اليوم. نتائج بكرة." : "Discipline today. Results tomorrow."} />
+        {hasLimitations ? <SurfaceCard>
+          <Text style={styles.stateTitle}>{arabic ? "التدريب متوقف مؤقتًا" : "Training paused"}</Text>
+          <Text style={styles.stateCopy}>{arabic ? "ملفك يتضمن إصابة أو قيدًا حركيًا. راجع مختصًا مؤهلًا قبل التدريب، ثم حدّث ملفك عندما تصبح مستعدًا." : "Your profile lists an injury or movement limitation. Check with a qualified professional before training, then update your profile when cleared."}</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "تعديل ملفي" : "Review my profile"}</Text></Pressable>
+        </SurfaceCard> : null}
+
 
         {planJustPrepared && plan ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{arabic ? "الخطة جاهزة" : "Your plan is ready"}</Text><Text style={styles.stateCopy}>{arabic ? "جهزنا نظامك ويمكنك بدء أول تمرين الآن." : "Your training system is prepared and the first workout is ready."}</Text></View></View></SurfaceCard></MotionReveal> : null}
 
@@ -116,15 +123,15 @@ export function TrainingHomeScreen() {
             </Text>
             <Pressable
               accessibilityRole="button"
-              disabled={generateMutation.isPending || !profile.data}
+              disabled={hasLimitations || generateMutation.isPending || !profile.data}
               onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
-              style={[styles.primaryAction, generateMutation.isPending && styles.disabledAction]}
+              style={[styles.primaryAction, (hasLimitations || generateMutation.isPending) && styles.disabledAction]}
             >
               <Text style={styles.primaryActionText}>
                 {generateMutation.isPending ? arabic ? "جارٍ تجهيز الخطة…" : "Preparing your plan…" : arabic ? "توليد التمرين بالذكاء الاصطناعي" : "Generate my workout with AI"}
               </Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => router.push("/training/manual")} style={[styles.secondaryAction, {marginTop: spacing.sm}]}>
+            <Pressable accessibilityRole="button" disabled={hasLimitations} onPress={() => router.push("/training/manual")} style={[styles.secondaryAction, {marginTop: spacing.sm}, hasLimitations && styles.disabledAction]}>
               <Text style={styles.secondaryActionText}>{arabic ? "اختيار التمرين يدويًا" : "Choose my workout manually"}</Text>
             </Pressable>
             {generateMutation.isError ? <Text style={styles.errorText}>{arabic ? "لم نتمكن من تجهيز الخطة الآن. حاول مرة أخرى." : "We could not prepare the plan. Try again."}</Text> : null}
@@ -150,9 +157,9 @@ export function TrainingHomeScreen() {
               </View>
               <Pressable
                 accessibilityRole="button"
-                disabled={startMutation.isPending}
+                disabled={hasLimitations || startMutation.isPending}
                 onPress={() => startMutation.mutate()}
-                style={[styles.primaryAction, startMutation.isPending && styles.disabledAction]}
+                style={[styles.primaryAction, (hasLimitations || startMutation.isPending) && styles.disabledAction]}
               >
                 <Text style={styles.primaryActionText}>
                   {startMutation.isPending ? arabic ? "بنبدأ…" : "Starting…" : arabic ? "ابدأ التمرين" : "Start workout"}
@@ -188,8 +195,9 @@ export function TrainingHomeScreen() {
           {profile.data?.training_goal === "military_preparation" ? <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "تحديث مستوى البداية" : "Update baseline"}</Text></Pressable> : null}
           <Pressable
             accessibilityRole="button"
+            disabled={hasLimitations}
             onPress={() => router.push("/training/manual")}
-            style={styles.secondaryAction}
+            style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
           >
             <Text style={styles.secondaryActionText}>{arabic ? "تمرين يدوي" : "Build manually"}</Text>
           </Pressable>
@@ -202,9 +210,9 @@ export function TrainingHomeScreen() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            disabled={generateMutation.isPending || !profile.data}
+            disabled={hasLimitations || generateMutation.isPending || !profile.data}
             onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
-            style={styles.secondaryAction}
+            style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
           >
             <Text style={styles.secondaryActionText}>
               {generateMutation.isPending ? arabic ? "جارٍ التجهيز…" : "Preparing…" : plan ? arabic ? "تجهيز خطة جديدة" : "Replace plan" : arabic ? "تجهيز الخطة" : "Prepare plan"}

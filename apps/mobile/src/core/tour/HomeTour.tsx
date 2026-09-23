@@ -40,17 +40,25 @@ export function HomeTourProvider({ children, profile, arabic }: PropsWithChildre
   const scroller = useRef<ScrollView | null>(null);
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
+  const [targetVersion, setTargetVersion] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const enabled = pathname === "/" && !dismissed && !profile.home_tour_completed;
   const finish = useMutation({
     mutationFn: () => updateMyProfile({ home_tour_completed: true }),
     onSuccess: updated => client.setQueryData(["profile", "me"], updated),
+    onError: () => setDismissed(false),
     retry: 2,
   });
 
   const registerTarget = useCallback((id: HomeTourTarget, node: View | null, scrollY?: number) => {
-    if (node) targets.current.set(id, { node, scrollY });
-    else targets.current.delete(id);
+    const previous = targets.current.get(id);
+    if (node) {
+      targets.current.set(id, { node, scrollY });
+      if (previous?.node !== node || previous.scrollY !== scrollY) setTargetVersion(value => value + 1);
+    } else if (previous) {
+      targets.current.delete(id);
+      setTargetVersion(value => value + 1);
+    }
   }, []);
   const setHomeScroller = useCallback((scroll: ScrollView | null) => { scroller.current = scroll; }, []);
   const replayTour = useCallback(() => { setDismissed(false); setRect(null); setStep(0); }, []);
@@ -59,13 +67,8 @@ export function HomeTourProvider({ children, profile, arabic }: PropsWithChildre
     setDismissed(true);
     setRect(null);
     setStep(0);
-    client.setQueryData<UserProfile>(["profile", "me"], current => current ? {
-      ...current,
-      home_tour_completed: true,
-      home_tour_completed_at: current.home_tour_completed_at ?? new Date().toISOString(),
-    } : current);
     finish.mutate();
-  }, [client, finish]);
+  }, [finish]);
 
   const measureCurrent = useCallback(() => {
     const registration = targets.current.get(steps[step]!.target);
@@ -86,10 +89,10 @@ export function HomeTourProvider({ children, profile, arabic }: PropsWithChildre
     const first = setTimeout(measureCurrent, registration?.scrollY !== undefined || steps[step]!.target === "profile" ? 360 : 40);
     const retry = setTimeout(measureCurrent, 620);
     return () => { clearTimeout(first); clearTimeout(retry); };
-  }, [enabled, measureCurrent, step]);
+  }, [enabled, measureCurrent, step, targetVersion]);
 
   const value = useMemo(() => ({ registerTarget, replayTour, setHomeScroller }), [registerTarget, replayTour, setHomeScroller]);
-  return <HomeTourContext.Provider value={value}>{children}{enabled && rect ? <HomeTourOverlay
+  return <HomeTourContext.Provider value={value}>{children}{enabled ? <HomeTourOverlay
     arabic={arabic}
     busy={finish.isPending}
     onBack={() => {setRect(null); setStep(v => Math.max(0, v - 1));}}
@@ -103,7 +106,7 @@ export function HomeTourProvider({ children, profile, arabic }: PropsWithChildre
   /> : null}</HomeTourContext.Provider>;
 }
 
-function HomeTourOverlay({ arabic, busy, onBack, onFinish, onNext, rect, step }: {arabic: boolean; busy: boolean; onBack: () => void; onFinish: () => void; onNext: () => void; rect: Rect; step: number}) {
+function HomeTourOverlay({ arabic, busy, onBack, onFinish, onNext, rect, step }: {arabic: boolean; busy: boolean; onBack: () => void; onFinish: () => void; onNext: () => void; rect: Rect | null; step: number}) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [tooltipHeight, setTooltipHeight] = useState(170);
   const reducedMotion = useReducedMotion();
@@ -114,23 +117,26 @@ function HomeTourOverlay({ arabic, busy, onBack, onFinish, onNext, rect, step }:
   }, [opacity, rect, reducedMotion, step]);
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.get() }));
   const pad = 6;
-  const hole = { x: Math.max(0, rect.x - pad), y: Math.max(0, rect.y - pad), width: Math.min(screenWidth, rect.width + pad * 2), height: Math.min(screenHeight, rect.height + pad * 2) };
-  const holeStyle = { left: hole.x, top: hole.y, width: hole.width, height: hole.height };
+  const hole = rect ? { x: Math.max(0, rect.x - pad), y: Math.max(0, rect.y - pad), width: Math.min(screenWidth, rect.width + pad * 2), height: Math.min(screenHeight, rect.height + pad * 2) } : null;
+  const holeStyle = hole ? { left: hole.x, top: hole.y, width: hole.width, height: hole.height } : null;
   const tooltipWidth = Math.min(340, screenWidth - 28);
-  const placeBelow = hole.y + hole.height + tooltipHeight + 24 < screenHeight;
-  const tooltipTop = placeBelow ? hole.y + hole.height + 12 : Math.max(12, hole.y - tooltipHeight - 12);
-  const tooltipLeft = Math.min(screenWidth - tooltipWidth - 14, Math.max(14, hole.x + hole.width / 2 - tooltipWidth / 2));
+  const placeBelow = hole ? hole.y + hole.height + tooltipHeight + 24 < screenHeight : false;
+  const tooltipTop = hole ? placeBelow ? hole.y + hole.height + 12 : Math.max(12, hole.y - tooltipHeight - 12) : Math.max(12, (screenHeight - tooltipHeight) / 2);
+  const tooltipLeft = hole ? Math.min(screenWidth - tooltipWidth - 14, Math.max(14, hole.x + hole.width / 2 - tooltipWidth / 2)) : (screenWidth - tooltipWidth) / 2;
   const dim = "rgba(0,0,0,0.78)";
   return <Animated.View accessibilityViewIsModal style={[StyleSheet.absoluteFill, styles.overlay, animatedStyle]}>
+    {hole && holeStyle ? <>
     <View style={[styles.blocker, { backgroundColor: dim, left: 0, right: 0, top: 0, height: hole.y }]} />
     <View style={[styles.blocker, { backgroundColor: dim, left: 0, top: hole.y, width: hole.x, height: hole.height }]} />
     <View style={[styles.blocker, { backgroundColor: dim, left: hole.x + hole.width, right: 0, top: hole.y, height: hole.height }]} />
     <View style={[styles.blocker, { backgroundColor: dim, left: 0, right: 0, top: hole.y + hole.height, bottom: 0 }]} />
     <Pressable accessibilityLabel={arabic ? "العنصر المحدد" : "Highlighted item"} style={[styles.holeBlocker, holeStyle]} />
     <View pointerEvents="none" style={[styles.highlight, holeStyle]} />
+    </> : <View style={[styles.blocker, StyleSheet.absoluteFill, { backgroundColor: dim }]} />}
     <View onLayout={event => setTooltipHeight(event.nativeEvent.layout.height)} style={[styles.tooltip, { left: tooltipLeft, top: tooltipTop, width: tooltipWidth }]}>
       <Text style={[styles.kicker, arabic && styles.rtl]}>{arabic ? `جولة بنيان · ${step + 1}/${steps.length}` : `BONYAN tour · ${step + 1}/${steps.length}`}</Text>
       <Text style={[styles.copy, arabic && styles.rtl]}>{arabic ? steps[step]!.ar : steps[step]!.en}</Text>
+      {!rect ? <Text style={[styles.copy, arabic && styles.rtl]}>{arabic ? "هذا العنصر غير متاح الآن. يمكنك المتابعة أو تخطي الجولة." : "This item isn't available yet. Continue or skip the tour."}</Text> : null}
       <View style={[styles.actions, arabic && styles.reverse]}>
         <AppButton disabled={step === 0 || busy} label={arabic ? "السابق" : "Back"} onPress={onBack} variant="secondary" />
         <AppButton loading={busy} label={step === steps.length - 1 ? arabic ? "إنهاء" : "Finish" : arabic ? "التالي" : "Next"} onPress={onNext} />

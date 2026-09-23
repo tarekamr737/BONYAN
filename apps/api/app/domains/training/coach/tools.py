@@ -185,6 +185,9 @@ def _profile_summary(profile) -> dict[str, object]:
         "available_equipment": list(profile.available_equipment or []),
         "preferred_language": profile.preferred_language,
         "timezone": profile.timezone,
+        "has_training_limitations": bool(
+            (getattr(profile, "coaching", None) or {}).get("limitations")
+        ),
     }
 
 

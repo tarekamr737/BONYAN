@@ -61,6 +61,7 @@ async def get_training_service(
         TrainingRepository(session),
         get_exercise_provider(settings),
         InBodyTrainingAdapter(InBodyRepository(session)),
+        SqlAlchemyProfileRepository(session),
     )
 
 
@@ -308,6 +309,9 @@ async def coach_message(
         "experience": profile.experience_level if profile else None,
         "available_training_days": profile.available_training_days if profile else None,
         "available_equipment": profile.available_equipment if profile else [],
+        "has_training_limitations": (
+            bool((profile.coaching or {}).get("limitations")) if profile else False
+        ),
         "today_nutrition": {
             "meals_logged": len(foods),
             "calories": sum(item.calories for item in foods),
