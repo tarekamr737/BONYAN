@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from datetime import timedelta
 from urllib import error, parse, request
 
 from app.core.logging import get_logger
@@ -38,6 +39,7 @@ _EQUIPMENT_NAMES = {
     "bodyweight": ("body weight",),
     "machine": ("leverage machine", "smith machine", "sled machine", "cable"),
 }
+_LOCAL_MUSCLES = {value: key for key, value in _MUSCLE_NAMES.items() if key != "arms"}
 # Plan generation searches several muscles in sequence on the public, rate-limited API.
 _MIN_SEARCH_INTERVAL_SECONDS = 0.8
 
@@ -56,6 +58,7 @@ class ExerciseDbClient:
     ) -> None:
         self.base_url = _validated_base_url(base_url)
         self.cache = cache or MetadataCache[ExerciseDetails]()
+        self.media_cache = MetadataCache[bool](ttl=timedelta(minutes=15))
         self.timeout_seconds = timeout_seconds
         self.max_attempts = max(1, max_attempts)
         self.retry_delay_seconds = max(0, retry_delay_seconds)
@@ -112,7 +115,29 @@ class ExerciseDbClient:
     async def get_media_access(self, exercise_id: str, *, user_id: str) -> MediaAccess | None:
         del user_id
         media_url = (await self.get_exercise(exercise_id)).media_url
-        return MediaAccess(url=media_url) if media_url else None
+        if not media_url:
+            return None
+        available = self.media_cache.get(media_url)
+        if available is None:
+            available = await asyncio.to_thread(self._media_available, media_url)
+            self.media_cache.set(media_url, available)
+        return MediaAccess(url=media_url) if available else None
+
+    def _media_available(self, media_url: str) -> bool:
+        outbound = request.Request(
+            media_url, method="HEAD", headers={"User-Agent": "BONYAN/1.0"}
+        )
+        try:
+            with request.urlopen(outbound, timeout=min(self.timeout_seconds, 3)):
+                return True
+        except error.HTTPError as exc:
+            if exc.code in {404, 410}:
+                return False
+            if exc.code == 429:
+                raise ExerciseProviderRateLimitError("Exercise media is busy.") from exc
+            raise ExerciseProviderUnavailableError("Exercise media is unavailable.") from exc
+        except (TimeoutError, error.URLError) as exc:
+            raise ExerciseProviderUnavailableError("Exercise media is unavailable.") from exc
 
     def _parse_page(
         self, payload: object
@@ -152,7 +177,7 @@ class ExerciseDbClient:
         return ExerciseDetails(
             id=exercise_id,
             name=name,
-            muscles=targets or body_parts,
+            muscles=tuple(_LOCAL_MUSCLES.get(item, item) for item in (targets or body_parts)),
             equipment=tuple(
                 _local_equipment(item) for item in _string_tuple(raw.get("equipments"))
             ),

@@ -108,6 +108,7 @@ def test_search_translates_local_plan_terms_to_exercisedb_terms() -> None:
     assert "targetMuscles=pectorals" in captured[0]
     assert "equipments=body+weight" in captured[0]
     assert page.items[0].equipment == ("bodyweight",)
+    assert page.items[0].muscles == ("chest",)
 
 
 def test_details_and_direct_sanitized_media_access() -> None:
@@ -122,6 +123,36 @@ def test_details_and_direct_sanitized_media_access() -> None:
     assert details.instructions == ("Curl with control.",)
     assert access is not None and access.expires_at is None
     assert "owner" not in repr(client)
+
+
+def test_missing_cdn_media_returns_none_and_is_cached() -> None:
+    probes = []
+
+    def open_request(req, timeout):
+        if req.method == "HEAD":
+            probes.append(req.full_url)
+            raise HTTPError(req.full_url, 404, "missing", None, None)
+        return FakeResponse({"success": True, "data": exercise_payload()})
+
+    with patch("app.integrations.exercisedb.client.request.urlopen", open_request):
+        client = ExerciseDbClient()
+        assert run(client.get_media_access("abc-123", user_id="owner")) is None
+        assert run(client.get_media_access("abc-123", user_id="owner")) is None
+    assert len(probes) == 1
+
+
+def test_temporary_media_failure_is_not_cached_as_missing() -> None:
+    client = ExerciseDbClient()
+
+    def open_request(req, timeout):
+        if req.method == "HEAD":
+            raise URLError("offline")
+        return FakeResponse({"success": True, "data": exercise_payload()})
+
+    with patch("app.integrations.exercisedb.client.request.urlopen", open_request):
+        with pytest.raises(ExerciseProviderUnavailableError):
+            run(client.get_media_access("abc-123", user_id="owner"))
+    assert client.media_cache.get(exercise_payload()["gifUrl"]) is None
 
 
 @pytest.mark.parametrize(

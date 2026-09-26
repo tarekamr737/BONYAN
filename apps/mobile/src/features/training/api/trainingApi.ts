@@ -19,8 +19,8 @@ export function createManualWorkoutPlan(request: ManualPlanRequest): Promise<Wor
   return apiRequest("/api/v1/training/plans/manual", { body: request, method: "POST" });
 }
 
-export function getExerciseMediaAccess(exerciseId: string): Promise<ExerciseMediaAccess> {
-  return apiRequest<ExerciseMediaAccess>(
+export function getExerciseMediaAccess(exerciseId: string): Promise<ExerciseMediaAccess | null> {
+  return apiRequest<ExerciseMediaAccess | null>(
     `/api/v1/training/exercises/${encodeURIComponent(exerciseId)}/media`,
   );
 }

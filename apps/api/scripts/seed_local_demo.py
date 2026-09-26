@@ -52,8 +52,16 @@ async def find_account_id(settings: Settings, email: str) -> str | None:
 
 def main() -> None:
     settings = Settings()
-    if settings.api_env != "development" or settings.email_provider != "console":
-        raise RuntimeError("Demo seeding requires development mode and console email")
+    if (
+        settings.api_env != "development"
+        or settings.email_provider != "console"
+        or settings.avatar_provider != "mock"
+        or parse.urlparse(settings.sqlalchemy_database_url).hostname
+        not in {"localhost", "127.0.0.1", "::1"}
+    ):
+        raise RuntimeError(
+            "Demo seeding requires a local development database, console email and mock avatars"
+        )
     password = os.environ.get("BONYAN_DEMO_PASSWORD") or secrets.token_urlsafe(18)
     if len(password) < 12:
         raise RuntimeError("BONYAN_DEMO_PASSWORD must be at least 12 characters")

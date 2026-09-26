@@ -1,12 +1,17 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 
 import { apiRequest } from "../src/core/api/client";
 import { setSessionAccessToken } from "../src/core/auth/session";
 
+beforeEach(() => {
+  vi.stubEnv("EXPO_PUBLIC_API_URL", "http://10.0.2.2:8000");
+});
+
 afterEach(() => {
   setSessionAccessToken(null);
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("authenticated API client", () => {

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+
+from app.core.errors import AppError
 from app.domains.training.engine.rules import (
     DAY_MUSCLES,
     SPLITS,
@@ -16,7 +19,6 @@ from app.domains.training.schemas import (
     WorkoutDay,
     WorkoutPlan,
 )
-from app.integrations.exercises.errors import ExerciseProviderError
 from app.integrations.exercises.provider import (
     ExerciseDetails,
     ExerciseProvider,
@@ -28,16 +30,19 @@ class WorkoutPlanner:
     def __init__(self, exercise_provider: ExerciseProvider) -> None:
         self.exercise_provider = exercise_provider
 
-    async def generate(self, context: PlanningContext, *, activate: bool = True) -> WorkoutPlan:
+    async def generate(
+        self, context: PlanningContext, *, activate: bool = True, user_id: str = ""
+    ) -> WorkoutPlan:
         equipment = normalize_equipment(context.equipment)
         split = SPLITS[context.days_per_week]
         military = context.goal == TrainingGoal.MILITARY_PREPARATION
         per_day = prescriptions_per_day(context.session_duration_minutes)
         defaults = prescription_defaults(context.goal, context.experience)
-        used_ids: set[str] = set()
+        catalog: dict[str, tuple[ExerciseDetails, ...]] = {}
         days: list[WorkoutDay] = []
 
         for order, day_name in enumerate(split, start=1):
+            used_ids: set[str] = set()
             prescriptions: list[ExercisePrescription] = []
             muscles = (
                 ("chest", "back", "quadriceps", "core", "hamstrings")
@@ -50,6 +55,8 @@ class WorkoutPlanner:
                     equipment=equipment,
                     used_ids=used_ids,
                     difficulty=context.experience.value,
+                    catalog=catalog,
+                    user_id=user_id,
                 )
                 used_ids.add(exercise.id)
                 sets, reps_min, reps_max, rest_seconds, intensity = defaults
@@ -102,29 +109,37 @@ class WorkoutPlanner:
         equipment: tuple[str, ...],
         used_ids: set[str],
         difficulty: str,
+        catalog: dict[str, tuple[ExerciseDetails, ...]],
+        user_id: str,
     ) -> ExerciseDetails:
-        try:
+        if muscle not in catalog:
             page = await self.exercise_provider.search_exercises(
                 ExerciseSearchFilters(
                     muscles=(muscle,), equipment=equipment, difficulty=difficulty
                 ),
                 page=1,
-                page_size=12,
+                page_size=40,
             )
-            candidates = [
-                item
-                for item in page.items
-                if item.id not in used_ids and set(item.equipment).issubset(set(equipment))
-            ]
-        except ExerciseProviderError:
-            candidates = []
-        if candidates:
-            return sorted(candidates, key=lambda item: (item.name.lower(), item.id))[0]
-        return ExerciseDetails(
-            id=f"fallback-{muscle.replace(' ', '-')}",
-            name=f"{muscle.title()} Bodyweight Pattern",
-            muscles=(muscle,),
-            equipment=("bodyweight",),
-            difficulty=difficulty,
-            instructions=("Use a controlled tempo and stop if pain occurs.",),
+            catalog[muscle] = page.items
+        candidates = [
+            item
+            for item in catalog[muscle]
+            if item.id not in used_ids
+            and not item.id.startswith("fallback-")
+            # These prescriptions use reps and progressive load, not timed stretches.
+            and not re.search(r"\bstretch(?:es|ing)?\b", item.name, re.IGNORECASE)
+            and set(item.equipment).issubset(set(equipment))
+        ]
+        # Bound media probes; a stale catalog URL must not become a broken demonstration.
+        for candidate in sorted(candidates, key=lambda item: (item.name.lower(), item.id))[:3]:
+            if candidate.media_url and not await self.exercise_provider.get_media_access(
+                candidate.id, user_id=user_id
+            ):
+                continue
+            return candidate
+        raise AppError(
+            "training_catalog_no_match",
+            "No compatible catalog exercise was found. Review your equipment or build a manual "
+            "workout. Your current plan has not changed.",
+            409,
         )
