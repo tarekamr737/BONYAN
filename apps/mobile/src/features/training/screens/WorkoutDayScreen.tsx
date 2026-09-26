@@ -1,8 +1,9 @@
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useContext, useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
@@ -20,14 +21,12 @@ import {
 import { ExerciseCard } from "../components/ExerciseCard";
 import { SetStepper } from "../components/SetStepper";
 import { TrainingHeader } from "../components/TrainingHeader";
-import type { WorkoutDay, WorkoutSession, WorkoutPlan } from "../types";
+import { selectWorkoutDay } from "../selectWorkoutDay";
+import { planNeedsRefresh, planRefreshMessage } from "../planIntegrity";
+import type { WorkoutSession, WorkoutPlan } from "../types";
 
 function paramValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function selectedDay(days: WorkoutDay[], dayKey: string | undefined): WorkoutDay | undefined {
-  return days.find((day) => day.key === dayKey) ?? days.slice().sort((a, b) => a.order - b.order)[0];
 }
 
 function displayDayName(value: string | undefined, arabic: boolean): string {
@@ -47,25 +46,32 @@ export function WorkoutDayScreen() {
   const [reps, setReps] = useState(10);
   const [weight, setWeight] = useState(0);
   const [localSession, setSession] = useState<WorkoutSession | null>(null);
+  const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
   const savedSession = useQuery({queryKey: ["training", "session", sessionId], enabled: Boolean(sessionId), queryFn: () => getWorkoutSession(sessionId!)});
-  const session = localSession ?? savedSession.data ?? null;
+  const session = localSession && (!sessionId || localSession.id === sessionId)
+    ? localSession
+    : savedSession.data ?? null;
 
   const planQuery = useQuery({
+    enabled: !sessionId || Boolean(session),
     queryFn: () => session?.plan_id ? getWorkoutPlan(session.plan_id) : getCurrentWorkoutPlan(),
     queryKey: session?.plan_id ? ["training", "plan", session.plan_id] : ["training", "current-plan"],
   });
   const plan = planQuery.data;
-  const day = useMemo(() => selectedDay(plan?.days ?? [], dayKey), [dayKey, plan?.days]);
+  const needsRefresh = planNeedsRefresh(plan);
+  const day = useMemo(() => selectWorkoutDay(plan?.days ?? [], dayKey, session?.day_key), [dayKey, plan?.days, session?.day_key]);
   const active = day?.prescriptions[activeIndex] ?? day?.prescriptions[0];
+  const placeholderExercise = active?.exercise_id.startsWith("fallback-") ?? false;
   const completedSets =
     session?.logged_sets.filter((item) => item.prescription_index === activeIndex).length ?? 0;
   const nextSetNumber = completedSets + 1;
   const sessionComplete = session?.status === "completed";
   const mediaQuery = useQuery({
-    enabled: Boolean(active?.exercise_id),
+    enabled: Boolean(active?.exercise_id) && !placeholderExercise,
     queryFn: () => getExerciseMediaAccess(active!.exercise_id),
     queryKey: ["training", "exercise-media", active?.exercise_id],
   });
+  const noDemonstration = mediaQuery.isSuccess && !mediaQuery.data?.url;
 
   const startMutation = useMutation({
     mutationFn: async () => {
@@ -123,20 +129,24 @@ export function WorkoutDayScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TrainingHeader
           title={displayDayName(day?.name, arabic)}
-          subtitle={arabic ? "ابدأ الجلسة وسجّل المجموعات المطلوبة، وبعد ما تخلص اقفل التمرين." : "Start the session, log prescribed sets, and complete the workout when the work is done."}
+          subtitle={day ? (arabic ? `${day.prescriptions.length} تمارين` : `${day.prescriptions.length} exercises`) : ""}
         />
 
-        {planQuery.isPending ? (
+        {sessionId && !session && savedSession.isPending ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "بنحمّل التمرين" : "Loading workout"}</Text>
-            <Text style={styles.stateCopy}>{arabic ? "بنجيب الخطة النشطة للجلسة دي." : "Pulling the active plan for this session."}</Text>
+            <Text style={styles.stateTitle}>{arabic ? "جارٍ استعادة الجلسة" : "Loading session"}</Text>
+          </SurfaceCard>
+        ) : null}
+
+        {(!sessionId || session) && planQuery.isPending ? (
+          <SurfaceCard>
+            <Text style={styles.stateTitle}>{arabic ? "جارٍ تحميل التمرين" : "Loading workout"}</Text>
           </SurfaceCard>
         ) : null}
 
         {planQuery.isError ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "التمرين مش متاح دلوقتي" : "Workout unavailable"}</Text>
-            <Text style={styles.stateCopy}>{arabic ? "ما قدرناش نحمّل يوم التمرين ده." : "The training API could not load this workout day."}</Text>
+            <Text style={styles.stateTitle}>{arabic ? "تعذر تحميل التمرين" : "Workout unavailable"}</Text>
             <Pressable accessibilityRole="button" onPress={() => planQuery.refetch()} style={styles.completeButton}>
               <Text style={styles.completeButtonText}>{arabic ? "جرّب تاني" : "Retry"}</Text>
             </Pressable>
@@ -145,8 +155,8 @@ export function WorkoutDayScreen() {
 
         {!planQuery.isPending && !planQuery.isError && !day ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "مفيش يوم تمرين" : "No workout day"}</Text>
-            <Text style={styles.stateCopy}>{arabic ? "جهّز خطة الأول قبل ما تبدأ جلسة تمرين." : "Generate a plan before starting a training session."}</Text>
+            <Text style={styles.stateTitle}>{arabic ? "لا يوجد يوم تمرين" : "No workout day"}</Text>
+            <Text style={styles.stateCopy}>{arabic ? "أنشئ خطة تدريب للبدء." : "Create a plan to begin."}</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push("/training")}
@@ -157,29 +167,41 @@ export function WorkoutDayScreen() {
           </SurfaceCard>
         ) : null}
 
-        {sessionId && savedSession.isError ? <SurfaceCard><Text style={styles.errorText}>{arabic ? "تعذر استرجاع الجلسة. أعد المحاولة قبل تسجيل مجموعات جديدة." : "Could not restore the session. Retry before recording more sets."}</Text><Pressable accessibilityRole="button" onPress={() => void savedSession.refetch()} style={styles.completeButton}><Text style={styles.completeButtonText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text></Pressable></SurfaceCard> : null}
+        {needsRefresh ? <SurfaceCard><Text accessibilityRole="alert" style={styles.stateCopy}>{planRefreshMessage(arabic)}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{arabic ? "العودة للتدريب" : "Back to training"}</Text></Pressable></SurfaceCard> : null}
+        {sessionId && savedSession.isError ? <SurfaceCard><Text style={styles.errorText}>{arabic ? "تعذر استعادة الجلسة." : "Could not restore the session."}</Text><Pressable accessibilityRole="button" onPress={() => void savedSession.refetch()} style={styles.completeButton}><Text style={styles.completeButtonText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text></Pressable></SurfaceCard> : null}
         {day && active && (!sessionId || session) ? (
           <>
             <SurfaceCard>
-              <Text style={styles.label}>{sessionComplete ? (arabic ? "اكتمل" : "COMPLETED") : (arabic ? "التمرين الحالي" : "ACTIVE EXERCISE")}</Text>
-              <Text style={styles.activeName}>{active.name}</Text><Text style={styles.detail}>{arabic ? "تمرين" : "Exercise"} {activeIndex + 1} / {day.prescriptions.length}</Text>
+              <Text style={styles.activeName}>{active.name}</Text><Text style={styles.detail}>{activeIndex + 1} / {day.prescriptions.length}</Text>
               <Text style={styles.detail}>
-                {arabic ? `${active.sets} مجموعات × ${active.reps_min}-${active.reps_max} تكرار. راحة ${Math.round(active.rest_seconds / 60)} دقيقة.` : `${active.sets} sets × ${active.reps_min}-${active.reps_max} reps. Rest ${Math.round(active.rest_seconds / 60)} minutes.`}
+                {arabic ? `${active.sets} مجموعات × ${active.reps_min}-${active.reps_max} تكرار · راحة ${Math.round(active.rest_seconds / 60)} دقائق` : `${active.sets} sets × ${active.reps_min}-${active.reps_max} reps · ${Math.round(active.rest_seconds / 60)} min rest`}
               </Text>
               <View style={styles.videoFrame}>
-                {mediaQuery.data?.url ? (
+                {mediaQuery.data?.url && failedMediaUrl !== mediaQuery.data.url ? (
                   <Image
                     accessibilityLabel={arabic ? `شرح تمرين ${active.name}` : `${active.name} exercise demonstration`}
-                    resizeMode="contain"
-                    source={{ uri: mediaQuery.data.url }}
+                    contentFit="contain"
+                    onError={() => setFailedMediaUrl(mediaQuery.data?.url ?? null)}
+                    source={{ uri: mediaQuery.data.url, headers: { "User-Agent": "BONYAN/1.0" } }}
                     style={styles.exerciseMedia}
                   />
                 ) : (
-                  <Text style={styles.videoText}>
-                    {mediaQuery.isPending
-                      ? (arabic ? "بنحمّل شرح التمرين…" : "Loading exercise demonstration...")
-                      : (arabic ? "شرح التمرين مش متاح دلوقتي." : "Exercise demonstration is unavailable right now.")}
-                  </Text>
+                  <Pressable
+                    accessibilityRole={mediaQuery.isPending || placeholderExercise || noDemonstration ? undefined : "button"}
+                    disabled={mediaQuery.isPending || placeholderExercise || noDemonstration}
+                    style={styles.mediaRetry}
+                    onPress={() => { setFailedMediaUrl(null); void mediaQuery.refetch(); }}
+                  >
+                    <Text style={styles.videoText}>
+                      {placeholderExercise
+                        ? (arabic ? "التمرين القديم ده مالوش عرض. جهّز خطة جديدة." : "This legacy exercise has no demonstration. Prepare a new plan.")
+                        : noDemonstration
+                        ? (arabic ? "مفيش عرض للتمرين ده حاليًا. تقدر تطلب بديل من تحت." : "No demonstration is available for this exercise. You can request an alternative below.")
+                        : mediaQuery.isPending
+                        ? (arabic ? "جارٍ تحميل العرض…" : "Loading media…")
+                        : (arabic ? "العرض غير متاح. اضغط لإعادة المحاولة." : "Media unavailable. Tap to retry.")}
+                    </Text>
+                  </Pressable>
                 )}
               </View>
               <View style={styles.stepperRow}>
@@ -197,20 +219,20 @@ export function WorkoutDayScreen() {
               {!session ? (
                 <Pressable
                   accessibilityRole="button"
-                  disabled={startMutation.isPending}
+                  disabled={needsRefresh || startMutation.isPending}
                   onPress={() => startMutation.mutate()}
-                  style={[styles.logButton, startMutation.isPending && styles.disabledAction]}
+                  style={[styles.logButton, (needsRefresh || startMutation.isPending) && styles.disabledAction]}
                 >
                   <Text style={styles.logButtonText}>{startMutation.isPending ? (arabic ? "بنبدأ…" : "Starting...") : (arabic ? "ابدأ الجلسة" : "Start session")}</Text>
                 </Pressable>
               ) : (
                 <Pressable
                   accessibilityRole="button"
-                  disabled={completeMutation.isPending || logMutation.isPending || sessionComplete || nextSetNumber > active.sets}
+                  disabled={placeholderExercise || completeMutation.isPending || logMutation.isPending || sessionComplete || nextSetNumber > active.sets}
                   onPress={() => logMutation.mutate()}
                   style={[
                     styles.logButton,
-                    (logMutation.isPending || sessionComplete || nextSetNumber > active.sets) && styles.disabledAction,
+                    (placeholderExercise || logMutation.isPending || sessionComplete || nextSetNumber > active.sets) && styles.disabledAction,
                   ]}
                 >
                   <Text style={styles.logButtonText}>
@@ -223,9 +245,9 @@ export function WorkoutDayScreen() {
               ) : null}
             </SurfaceCard>
 
-            {activeIndex < day.prescriptions.length - 1 ? <Pressable accessibilityRole="button" disabled={logMutation.isPending || completeMutation.isPending} style={styles.completeButton} onPress={() => setActiveIndex(index => index + 1)}><Text style={styles.completeButtonText}>{arabic ? "التمرين التالي" : "Next exercise"}</Text></Pressable> : null}
+            {activeIndex < day.prescriptions.length - 1 ? <Pressable accessibilityRole="button" disabled={logMutation.isPending || completeMutation.isPending || swap.isPending} style={styles.completeButton} onPress={() => { setActiveIndex(index => index + 1); setAlternative(null); setAlternativeReason(false); }}><Text style={styles.completeButtonText}>{arabic ? "التمرين التالي" : "Next exercise"}</Text></Pressable> : null}
             {sessionComplete ? <SurfaceCard><Text style={styles.stateTitle}>{arabic ? "تم تسجيل التمرين" : "Workout recorded"}</Text><Text style={styles.detail}>{session.logged_sets.length} {arabic ? "مجموعات مسجلة" : "sets recorded"}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{arabic ? "العودة للتدريب" : "Back to training"}</Text></Pressable></SurfaceCard> : null}
-            {!sessionComplete && completedSets === 0 ? <SurfaceCard><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => setAlternativeReason(!alternativeReason)}><Text style={styles.completeButtonText}>{arabic ? "طلب بديل للتمرين" : "Request an alternative"}</Text></Pressable>{alternativeReason ? <><Text style={styles.detail}>{arabic ? "لو السبب ألم أو إصابة، أوقف التمرين واطلب تقييم متخصص. البدائل هنا لمعدات غير متاحة أو تفضيل شخصي." : "For pain or injury, stop and seek qualified assessment. These alternatives address unavailable equipment or preference."}</Text>{[arabic ? "المعدات مش متاحة" : "Equipment unavailable", arabic ? "أفضل تمرين آخر" : "Prefer another exercise"].map(label => <Pressable key={label} accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(true)}><Text style={styles.completeButtonText}>{label}</Text></Pressable>)}{replacement ? <><Text style={styles.activeName}>{replacement.name}</Text><Text style={styles.detail}>{replacement.equipment.join(" · ")}</Text><Pressable accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(false)}><Text style={styles.completeButtonText}>{arabic ? "تأكيد البديل" : "Confirm alternative"}</Text></Pressable><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => {setAlternative(null);setAlternativeReason(false);}}><Text style={styles.completeButtonText}>{arabic ? "إلغاء" : "Cancel"}</Text></Pressable></> : null}{swap.isError ? <Text style={styles.errorText}>{arabic ? "تعذر توفير البديل. جرّب تاني." : "Alternative unavailable. Please retry."}</Text> : null}</> : null}</SurfaceCard> : null}
+            {!sessionComplete && completedSets === 0 ? <SurfaceCard><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => setAlternativeReason(!alternativeReason)}><Text style={styles.completeButtonText}>{arabic ? "طلب بديل للتمرين" : "Request an alternative"}</Text></Pressable>{alternativeReason ? <><Text style={styles.detail}>{arabic ? "إذا شعرت بألم أو تعرضت لإصابة، أوقف التمرين واستشر مختصًا." : "If you have pain or an injury, stop and seek professional advice."}</Text>{[arabic ? "المعدات مش متاحة" : "Equipment unavailable", arabic ? "أفضل تمرين آخر" : "Prefer another exercise"].map(label => <Pressable key={label} accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(true)}><Text style={styles.completeButtonText}>{label}</Text></Pressable>)}{replacement ? <><Text style={styles.activeName}>{replacement.name}</Text><Text style={styles.detail}>{replacement.equipment.join(" · ")}</Text><Pressable accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(false)}><Text style={styles.completeButtonText}>{arabic ? "تأكيد البديل" : "Confirm alternative"}</Text></Pressable><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => {setAlternative(null);setAlternativeReason(false);}}><Text style={styles.completeButtonText}>{arabic ? "إلغاء" : "Cancel"}</Text></Pressable></> : null}{swap.isError ? <Text style={styles.errorText}>{arabic ? "تعذر توفير البديل. جرّب تاني." : "Alternative unavailable. Please retry."}</Text> : null}</> : null}</SurfaceCard> : null}
             <View style={styles.list}>
               {day.prescriptions.map((exercise, index) => (
                 <ExerciseCard
@@ -234,7 +256,7 @@ export function WorkoutDayScreen() {
                   active={index === activeIndex}
                   exercise={exercise}
                   index={index}
-                  onPress={() => {if (!logMutation.isPending && !completeMutation.isPending) setActiveIndex(index); setAlternative(null); setAlternativeReason(false);}}
+                  onPress={() => {if (logMutation.isPending || completeMutation.isPending || swap.isPending) return; setActiveIndex(index); setAlternative(null); setAlternativeReason(false);}}
                 />
               ))}
             </View>
@@ -264,6 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 32,
     marginTop: spacing.xs,
+    textAlign: "center",
   },
   completeButton: {
     alignItems: "center",
@@ -279,9 +302,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   content: {
+    alignSelf: "center",
+    flexGrow: 1,
     gap: spacing.md,
+    maxWidth: 660,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    width: "100%",
   },
   detail: {
     color: colors.mutedLight,
@@ -289,6 +316,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     marginTop: spacing.sm,
+    textAlign: "center",
   },
   disabledAction: {
     opacity: 0.55,
@@ -303,11 +331,12 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%",
   },
-  label: {
-    color: colors.bronze,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
+  mediaRetry: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 50,
+    padding: spacing.md,
+    width: "100%",
   },
   list: {
     gap: spacing.sm,
@@ -343,9 +372,13 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   stepperRow: {
+    alignSelf: "center",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.md,
+    justifyContent: "center",
     marginTop: spacing.lg,
+    width: "100%",
   },
   videoFrame: {
     alignItems: "center",
@@ -354,7 +387,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.control,
     justifyContent: "center",
     marginTop: spacing.lg,
-    padding: spacing.lg,
+    overflow: "hidden",
+    width: "100%",
   },
   videoText: {
     color: colors.muted,

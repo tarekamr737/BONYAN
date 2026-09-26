@@ -8,12 +8,13 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } 
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CinematicHero } from "../../../core/components/CinematicHero";
+import { ApiError } from "../../../core/api/errors";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { MotionReveal } from "../../../core/components/MotionReveal";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { generateWorkoutPlan, getCurrentWorkoutPlan, getWorkoutSessions, startWorkoutSession } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
-import type { WorkoutDay, WorkoutPlan } from "../types";
+import { planGenerationError, planNeedsRefresh, planRefreshMessage } from "../planIntegrity";
 
 function formatLabel(value: string): string { return value.replaceAll("_", " "); }
 const arabicLabels: Record<string, string> = {
@@ -28,10 +29,10 @@ const arabicLabels: Record<string, string> = {
 function planLabel(value: string, arabic: boolean): string { return arabic ? (arabicLabels[value.toLowerCase()] ?? formatLabel(value)) : formatLabel(value); }
 function weeklyDays(value: number, arabic: boolean): string { if (!arabic) return `${value} days/wk`; return value === 1 ? "يوم واحد أسبوعيًا" : value === 2 ? "يومين أسبوعيًا" : `${value} أيام أسبوعيًا`; }
 function dayName(value: string, arabic: boolean): string { return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value; }
-function firstDay(plan: WorkoutPlan | null | undefined): WorkoutDay | undefined { return plan?.days.slice().sort((a,b) => a.order-b.order)[0]; }
 export function TrainingHomeScreen() {
   const generating = useRef(false);
   const [planJustPrepared, setPlanJustPrepared] = useState(false);
+  const [selectedDayKey, setSelectedDayKey] = useState<string>();
   const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
   const planQuery = useQuery({
     queryFn: getCurrentWorkoutPlan,
@@ -42,7 +43,9 @@ export function TrainingHomeScreen() {
     queryKey: ["training", "sessions"],
   });
   const plan = planQuery.data;
-  const today = firstDay(plan);
+  const needsRefresh = planNeedsRefresh(plan);
+  const days = plan?.days.slice().sort((a, b) => a.order - b.order) ?? [];
+  const selectedDay = days.find(day => day.key === selectedDayKey) ?? days[0];
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
   const hasLimitations = Boolean(profile.data?.coaching?.limitations?.trim());
   const completedSessions = sessions.data?.filter(item => item.status === "completed") ?? [];
@@ -66,10 +69,10 @@ export function TrainingHomeScreen() {
 
   const startMutation = useMutation({
     mutationFn: async () => {
-      if (!plan?.id || !today?.key) {
+      if (!plan?.id || !selectedDay?.key) {
         throw new Error("No workout day is ready to start.");
       }
-      return startWorkoutSession(plan.id, today.key);
+      return startWorkoutSession(plan.id, selectedDay.key);
     },
     onSuccess: (session) => {
       router.push({
@@ -93,7 +96,16 @@ export function TrainingHomeScreen() {
         </SurfaceCard> : null}
 
 
-        {planJustPrepared && plan ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{arabic ? "الخطة جاهزة" : "Your plan is ready"}</Text><Text style={styles.stateCopy}>{arabic ? "جهزنا نظامك ويمكنك بدء أول تمرين الآن." : "Your training system is prepared and the first workout is ready."}</Text></View></View></SurfaceCard></MotionReveal> : null}
+        {planJustPrepared && generateMutation.data?.id === plan?.id ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{arabic ? "الخطة جاهزة" : "Your plan is ready"}</Text><Text style={styles.stateCopy}>{arabic ? "اختر يوم التمرين الذي تريد البدء به." : "Choose a workout day to get started."}</Text></View></View></SurfaceCard></MotionReveal> : null}
+
+        {needsRefresh ? <SurfaceCard>
+          <Text accessibilityRole="alert" style={styles.stateCopy}>{planRefreshMessage(arabic)}</Text>
+          <Pressable accessibilityRole="button" disabled={hasLimitations || generateMutation.isPending || !profile.data} style={styles.primaryAction} onPress={() => { if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => { generating.current = false; }); }}>
+            <Text style={styles.primaryActionText}>{generateMutation.isPending ? (arabic ? "جارٍ التجهيز…" : "Preparing…") : (arabic ? "تجهيز خطة جديدة" : "Prepare a new plan")}</Text>
+          </Pressable>
+        </SurfaceCard> : null}
+
+        {generateMutation.isError ? <SurfaceCard><Text accessibilityRole="alert" style={styles.errorText}>{planGenerationError(generateMutation.error instanceof ApiError ? generateMutation.error.code : undefined, arabic)}</Text></SurfaceCard> : null}
 
         {planQuery.isPending ? (
           <SurfaceCard>
@@ -134,20 +146,40 @@ export function TrainingHomeScreen() {
             <Pressable accessibilityRole="button" disabled={hasLimitations} onPress={() => router.push("/training/manual")} style={[styles.secondaryAction, {marginTop: spacing.sm}, hasLimitations && styles.disabledAction]}>
               <Text style={styles.secondaryActionText}>{arabic ? "اختيار التمرين يدويًا" : "Choose my workout manually"}</Text>
             </Pressable>
-            {generateMutation.isError ? <Text style={styles.errorText}>{arabic ? "لم نتمكن من تجهيز الخطة الآن. حاول مرة أخرى." : "We could not prepare the plan. Try again."}</Text> : null}
           </SurfaceCard>
         ) : null}
 
-        {plan && today ? (
+        {plan && selectedDay ? (
           <>
             <SurfaceCard>
+              <View style={styles.dayPicker}>
+                <Text style={styles.label}>{arabic ? "اختر يوم التمرين" : "CHOOSE A WORKOUT DAY"}</Text>
+                <View style={[styles.dayOptions, arabic && styles.rowReverse]}>
+                  {days.map((day, index) => {
+                    const selected = day.key === selectedDay.key;
+                    return (
+                      <Pressable
+                        key={day.key}
+                        accessibilityRole="button"
+                        accessibilityState={{selected, disabled: startMutation.isPending}}
+                        disabled={startMutation.isPending}
+                        onPress={() => { setSelectedDayKey(day.key); startMutation.reset(); }}
+                        style={[styles.dayOption, selected && styles.dayOptionSelected]}
+                      >
+                        <Text style={[styles.dayOptionNumber, selected && styles.dayOptionTextSelected]}>{arabic ? `اليوم ${index + 1}` : `DAY ${index + 1}`}</Text>
+                        <Text numberOfLines={1} style={[styles.dayOptionName, selected && styles.dayOptionTextSelected]}>{dayName(day.name, arabic)}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
               <View style={styles.planHeader}>
                 <View style={styles.titleWrap}>
                   <Text style={styles.label}>{arabic ? "الخطة الحالية" : "CURRENT PLAN"}</Text>
-                  <Text style={styles.planTitle}>{dayName(today.name, arabic)}</Text>
+                  <Text style={styles.planTitle}>{dayName(selectedDay.name, arabic)}</Text>
                 </View>
                 <View style={styles.durationPill}>
-                  <Text style={styles.durationText}>{today.estimated_minutes} {arabic ? "دقيقة" : "min"}</Text>
+                  <Text style={styles.durationText}>{selectedDay.estimated_minutes} {arabic ? "دقيقة" : "min"}</Text>
                 </View>
               </View>
               <View style={styles.planStats}>
@@ -157,20 +189,22 @@ export function TrainingHomeScreen() {
               </View>
               <Pressable
                 accessibilityRole="button"
-                disabled={hasLimitations || startMutation.isPending}
+                disabled={hasLimitations || needsRefresh || startMutation.isPending}
                 onPress={() => startMutation.mutate()}
-                style={[styles.primaryAction, (hasLimitations || startMutation.isPending) && styles.disabledAction]}
+                style={[styles.primaryAction, (hasLimitations || needsRefresh || startMutation.isPending) && styles.disabledAction]}
               >
                 <Text style={styles.primaryActionText}>
                   {startMutation.isPending ? arabic ? "بنبدأ…" : "Starting…" : arabic ? "ابدأ التمرين" : "Start workout"}
                 </Text>
               </Pressable>
-              {startMutation.isError ? <Text style={styles.errorText}>{arabic ? "تعذر بدء التمرين. حاول مرة أخرى." : "Workout could not be started. Try again."}</Text> : null}
+              {startMutation.isError ? <Text accessibilityRole="alert" style={styles.errorText}>{startMutation.error instanceof ApiError
+                ? (arabic ? `تعذر بدء التمرين (${startMutation.error.code}). حاول مرة أخرى.` : startMutation.error.message)
+                : (arabic ? "تعذر بدء التمرين. حاول مرة أخرى." : "Workout could not be started. Try again.")}</Text> : null}
             </SurfaceCard>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{arabic ? "تمرين اليوم" : "Today"}</Text>
-              {today.prescriptions.map((exercise, index) => (
+              <Text style={styles.sectionTitle}>{arabic ? "تمارين اليوم المختار" : "Selected day exercises"}</Text>
+              {selectedDay.prescriptions.map((exercise, index) => (
                 <ExerciseCard
                   arabic={arabic}
                   key={`${exercise.exercise_id}-${index}`}
@@ -236,6 +270,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  dayOption: {
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.line,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 60,
+    flexBasis: "45%",
+    flexGrow: 1,
+    minWidth: 112,
+    paddingHorizontal: spacing.sm,
+  },
+  dayOptionName: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 13 },
+  dayOptionNumber: { color: colors.mutedLight, fontFamily: fonts.bodySemiBold, fontSize: 10 },
+  dayOptionSelected: { backgroundColor: colors.bronzeSoft, borderColor: colors.bronzeBorder },
+  dayOptionTextSelected: { color: colors.bronze },
+  dayOptions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  dayPicker: { gap: spacing.sm, marginBottom: spacing.lg },
   disabledAction: {
     opacity: 0.55,
   },

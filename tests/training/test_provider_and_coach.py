@@ -259,6 +259,39 @@ def make_service_with_inbody(
     return TrainingService(repo, FakeProvider(), FakeInBodyProvider(latest)), repo
 
 
+def test_generation_failure_preserves_existing_active_plan() -> None:
+    from app.integrations.exercises.errors import ExerciseProviderRateLimitError
+
+    class BusyProvider(FakeProvider):
+        async def search_exercises(self, filters, *, page=1, page_size=20):
+            raise ExerciseProviderRateLimitError("busy")
+
+    service, repo = make_service()
+    original = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    service.planner.exercise_provider = BusyProvider()
+    with pytest.raises(ExerciseProviderRateLimitError):
+        run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    assert len(repo.plans) == 1
+    assert repo.plans[original.id].status == PlanStatus.ACTIVE
+
+
+def test_legacy_plan_requires_rebuild_but_remains_readable() -> None:
+    service, repo = make_service()
+    plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    repo.plans[plan.id].days[0]["prescriptions"][0]["exercise_id"] = "fallback-chest"
+    assert run(service.get_plan(user_id="user-1", plan_id=plan.id)).id == plan.id
+    assert run(service.get_exercise_media_access(
+        user_id="user-1", exercise_id="fallback-chest"
+    )) is None
+    with pytest.raises(AppError) as failure:
+        run(service.start_session(user_id="user-1", plan_id=plan.id, day_key="day-1"))
+    assert failure.value.code == "training_plan_requires_refresh"
+    assert not repo.sessions
+    with pytest.raises(AppError) as failure:
+        run(service.activate_plan(user_id="user-1", plan_id=plan.id))
+    assert failure.value.code == "training_plan_requires_refresh"
+
+
 def test_invalid_musclewiki_response_is_rejected() -> None:
     client = MuscleWikiClient(settings=SimpleNamespace(musclewiki_api_key=None))
 

@@ -61,11 +61,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
+    justifyContent: "center",
   },
   label: {
     color: colors.mutedLight,
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
+    textAlign: "center",
   },
   value: {
     color: colors.text,
@@ -75,7 +77,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   wrapper: {
-    flex: 1,
+    alignItems: "center",
+    flexGrow: 1,
+    flexShrink: 0,
     gap: spacing.xs,
+    width: 186,
   },
 });

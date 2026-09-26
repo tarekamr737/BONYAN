@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 
 import pytest
 from pydantic import ValidationError
 
+from app.core.errors import AppError
 from app.domains.training.engine.planner import WorkoutPlanner
 from app.domains.training.engine.progression import decide_progression
 from app.domains.training.engine.substitutions import choose_substitution
@@ -125,19 +127,67 @@ def test_advanced_plan_uses_more_sets_and_duration_limits_exercises() -> None:
     assert plan.generation_snapshot["optional_inbody_used"] is True
 
 
-def test_musclewiki_outage_degrades_to_bodyweight_fallback() -> None:
-    plan = run(
-        WorkoutPlanner(FakeExerciseProvider(fail=True)).generate(
-            PlanningContext(days_per_week=2, equipment=["cable"], session_duration_minutes=35)
+def test_provider_outage_never_creates_invented_exercises() -> None:
+    with pytest.raises(MuscleWikiUnavailableError):
+        run(
+            WorkoutPlanner(FakeExerciseProvider(fail=True)).generate(
+                PlanningContext(days_per_week=2, equipment=["cable"])
+            )
         )
+
+
+def test_six_day_plan_reuses_catalog_without_duplicates_within_a_day() -> None:
+    provider = FakeExerciseProvider()
+    plan = run(WorkoutPlanner(provider).generate(PlanningContext(days_per_week=6)))
+    assert len(provider.calls) == len({call.muscles for call in provider.calls})
+    for day in plan.days:
+        ids = [item.exercise_id for item in day.prescriptions]
+        assert len(ids) == len(set(ids))
+        assert not any(item.startswith("fallback-") for item in ids)
+    assert plan.days[0].prescriptions[0].exercise_id == (
+        plan.days[3].prescriptions[1].exercise_id
     )
 
-    assert all(
-        item.exercise_id.startswith("fallback-")
-        for day in plan.days
-        for item in day.prescriptions
-    )
-    assert all(item.equipment == ["bodyweight"] for day in plan.days for item in day.prescriptions)
+
+def test_empty_catalog_reports_no_match_instead_of_placeholder() -> None:
+    class EmptyProvider(FakeExerciseProvider):
+        async def search_exercises(self, filters, *, page=1, page_size=20):
+            return ExerciseSearchPage(items=(), page=page, page_size=page_size)
+
+    with pytest.raises(AppError) as failure:
+        run(WorkoutPlanner(EmptyProvider()).generate(PlanningContext(days_per_week=2)))
+    assert failure.value.code == "training_catalog_no_match"
+
+
+def test_repetition_plan_does_not_prescribe_stretches_as_loaded_sets() -> None:
+    class StretchProvider(FakeExerciseProvider):
+        async def search_exercises(self, filters, *, page=1, page_size=20):
+            result = await super().search_exercises(filters, page=page, page_size=page_size)
+            return replace(result, items=(
+                replace(result.items[0], name="A stretch"), result.items[1]
+            ))
+
+    plan = run(WorkoutPlanner(StretchProvider()).generate(PlanningContext(days_per_week=2)))
+    assert all(item.name.endswith("Beta") for day in plan.days for item in day.prescriptions)
+
+
+def test_plan_skips_catalog_exercises_with_missing_media() -> None:
+    class BrokenMediaProvider(FakeExerciseProvider):
+        async def search_exercises(self, filters, *, page=1, page_size=20):
+            result = await super().search_exercises(filters, page=page, page_size=page_size)
+            return replace(result, items=tuple(
+                replace(item, media_url=f"https://media.example/{item.id}.gif")
+                for item in result.items
+            ))
+
+        async def get_media_access(self, exercise_id, *, user_id):
+            assert user_id == "test-owner"
+            return None if exercise_id.endswith("-1") else "https://media.example/valid.gif"
+
+    plan = run(WorkoutPlanner(BrokenMediaProvider()).generate(
+        PlanningContext(days_per_week=2), user_id="test-owner"
+    ))
+    assert all(item.exercise_id.endswith("-2") for day in plan.days for item in day.prescriptions)
 
 
 def test_progression_increases_holds_and_regresses() -> None:

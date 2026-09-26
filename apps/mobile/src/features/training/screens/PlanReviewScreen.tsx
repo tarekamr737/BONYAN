@@ -8,6 +8,7 @@ import { DirectionalText as Text, LanguageDirection } from "../../../core/compon
 import { CoachingPage, ui } from "../../auth/components/CoachingUI";
 import { activateWorkoutPlan, getWorkoutPlan } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
+import { planNeedsRefresh, planRefreshMessage } from "../planIntegrity";
 
 export function PlanReviewScreen() {
   const { planId } = useLocalSearchParams<{planId?: string}>();
@@ -29,9 +30,10 @@ export function PlanReviewScreen() {
   return <CoachingPage arabic={arabic}>
     <Text accessibilityRole="header" style={ui.title}>{arabic ? "راجع خطتك" : "Review your plan"}</Text>
     <Text style={ui.text}>{arabic ? "راجع التمارين قبل الاعتماد. اعتماد الخطة يستبدل خطتك النشطة ويحافظ على سجل تمريناتك." : "Review every exercise before approval. Approving replaces your active plan and preserves workout history."}</Text>
-    {!planId || plan.isError ? <ScreenState message={arabic ? "ارجع للتدريب أو أعد المحاولة." : "Return to training or retry."} variant="error" title={arabic ? "الخطة غير متاحة" : "Plan unavailable"} actionLabel={arabic ? "إعادة المحاولة" : "Retry"} onAction={() => void plan.refetch()} /> : plan.isPending ? <ScreenState variant="loading" message={arabic ? "جارٍ تحميل الخطة" : "Loading plan"} /> : plan.data.days.map(day => <ViewDay key={day.key} day={day} arabic={arabic} />)}
+    {!planId ? <ScreenState message={arabic ? "معرّف الخطة مفقود." : "Plan link is incomplete."} variant="error" title={arabic ? "الخطة غير متاحة" : "Plan unavailable"} actionLabel={arabic ? "العودة للتدريب" : "Back to training"} onAction={() => router.replace("/training")} /> : plan.isError ? <ScreenState message={arabic ? "تعذر تحميل الخطة." : "Could not load the plan."} variant="error" title={arabic ? "الخطة غير متاحة" : "Plan unavailable"} actionLabel={arabic ? "إعادة المحاولة" : "Retry"} onAction={() => void plan.refetch()} /> : plan.isPending ? <ScreenState variant="loading" message={arabic ? "جارٍ تحميل الخطة" : "Loading plan"} /> : plan.data.days.map(day => <ViewDay key={day.key} day={day} arabic={arabic} />)}
     {approve.isError ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذر اعتماد الخطة. جرّب تاني." : "Could not approve the plan. Please retry."}</Text> : null}
-    <AppButton label={arabic ? "اعتماد الخطة" : "Approve plan"} disabled={!plan.data || plan.data.status === "archived"} loading={approve.isPending} onPress={() => void confirm()} />
+    {planNeedsRefresh(plan.data) ? <Text accessibilityRole="alert" style={ui.error}>{planRefreshMessage(arabic)}</Text> : null}
+    <AppButton label={arabic ? "اعتماد الخطة" : "Approve plan"} disabled={!plan.data || planNeedsRefresh(plan.data) || plan.data.status === "archived"} loading={approve.isPending} onPress={() => void confirm()} />
     <AppButton variant="secondary" label={arabic ? "طلب تعديل من الكوتش" : "Request changes from Coach"} disabled={approve.isPending} onPress={() => router.push("/training/coach")} />
     <AppButton variant="secondary" label={arabic ? "رجوع بدون اعتماد" : "Back without approving"} disabled={approve.isPending} onPress={() => router.replace("/training")} />
   </CoachingPage>;

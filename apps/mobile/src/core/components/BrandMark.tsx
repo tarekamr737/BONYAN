@@ -1,24 +1,15 @@
-import { Image, StyleSheet, View } from "react-native";
+import { Image } from "react-native";
 
-const logo = require("../../../assets/bonyan-logo.png");
+const logo = require("../../../assets/images/bonyan-official.jpeg");
 
-export function BrandMark() {
+export function BrandMark({ size = 92 }: { size?: number }) {
   return (
-    <View accessibilityLabel="BONYAN" accessibilityRole="image" style={styles.container}>
-      <Image resizeMode="contain" source={logo} style={styles.logo} />
-    </View>
+    <Image
+      accessibilityLabel="Bonyan logo"
+      accessibilityRole="image"
+      resizeMode="contain"
+      source={logo}
+      style={{ width: size, height: size }}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    height: 54,
-    justifyContent: "center",
-    width: 146,
-  },
-  logo: {
-    height: 46,
-    width: 146,
-  },
-});

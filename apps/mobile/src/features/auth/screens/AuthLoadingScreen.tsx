@@ -1,17 +1,14 @@
-import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ScreenState } from "../../../core/components";
-import { colors, fonts, spacing } from "../../../core/theme/tokens";
+import { BrandMark, ScreenState } from "../../../core/components";
+import { colors, spacing } from "../../../core/theme/tokens";
 
 export function AuthLoadingScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.content}>
-        <Text accessibilityRole="header" style={styles.wordmark}>
-          BONYAN
-        </Text>
+        <View style={styles.brand}><BrandMark size={176} /></View>
         <ScreenState message="Restoring your secure session." variant="loading" />
       </View>
     </SafeAreaView>
@@ -28,12 +25,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: spacing.lg,
   },
-  wordmark: {
-    color: colors.text,
-    fontFamily: fonts.displayBold,
-    fontSize: 40,
-    letterSpacing: -2,
-    textAlign: "center",
-  },
+  brand: { alignItems: "center" },
 });
-

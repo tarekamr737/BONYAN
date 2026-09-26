@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
+from datetime import timedelta
 from urllib import error, parse, request
 
 from app.core.logging import get_logger
@@ -25,6 +27,21 @@ MAX_PAGE = 20
 MAX_PAGE_SIZE = 100
 _ALLOWED_API_HOST = "oss.exercisedb.dev"
 _ALLOWED_MEDIA_HOST = "static.exercisedb.dev"
+_MUSCLE_NAMES = {
+    "chest": "pectorals",
+    "back": "lats",
+    "shoulders": "delts",
+    "quadriceps": "quads",
+    "core": "abs",
+    "arms": "biceps",
+}
+_EQUIPMENT_NAMES = {
+    "bodyweight": ("body weight",),
+    "machine": ("leverage machine", "smith machine", "sled machine", "cable"),
+}
+_LOCAL_MUSCLES = {value: key for key, value in _MUSCLE_NAMES.items() if key != "arms"}
+# Plan generation searches several muscles in sequence on the public, rate-limited API.
+_MIN_SEARCH_INTERVAL_SECONDS = 0.8
 
 logger = get_logger("providers")
 
@@ -41,9 +58,12 @@ class ExerciseDbClient:
     ) -> None:
         self.base_url = _validated_base_url(base_url)
         self.cache = cache or MetadataCache[ExerciseDetails]()
+        self.media_cache = MetadataCache[bool](ttl=timedelta(minutes=15))
         self.timeout_seconds = timeout_seconds
         self.max_attempts = max(1, max_attempts)
         self.retry_delay_seconds = max(0, retry_delay_seconds)
+        self._search_lock = asyncio.Lock()
+        self._next_search_at = 0.0
 
     async def search_exercises(
         self, filters: ExerciseSearchFilters, *, page: int = 1, page_size: int = 20
@@ -56,6 +76,11 @@ class ExerciseDbClient:
         cursor: str | None = None
         for current_page in range(1, page + 1):
             query = _query_parameters(filters, page_size=page_size, cursor=cursor)
+            async with self._search_lock:
+                delay = self._next_search_at - time.monotonic()
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                self._next_search_at = time.monotonic() + _MIN_SEARCH_INTERVAL_SECONDS
             payload = await self._get_json(f"/exercises?{parse.urlencode(query)}")
             items, total, has_next, next_cursor = self._parse_page(payload)
             if current_page == page:
@@ -90,7 +115,29 @@ class ExerciseDbClient:
     async def get_media_access(self, exercise_id: str, *, user_id: str) -> MediaAccess | None:
         del user_id
         media_url = (await self.get_exercise(exercise_id)).media_url
-        return MediaAccess(url=media_url) if media_url else None
+        if not media_url:
+            return None
+        available = self.media_cache.get(media_url)
+        if available is None:
+            available = await asyncio.to_thread(self._media_available, media_url)
+            self.media_cache.set(media_url, available)
+        return MediaAccess(url=media_url) if available else None
+
+    def _media_available(self, media_url: str) -> bool:
+        outbound = request.Request(
+            media_url, method="HEAD", headers={"User-Agent": "BONYAN/1.0"}
+        )
+        try:
+            with request.urlopen(outbound, timeout=min(self.timeout_seconds, 3)):
+                return True
+        except error.HTTPError as exc:
+            if exc.code in {404, 410}:
+                return False
+            if exc.code == 429:
+                raise ExerciseProviderRateLimitError("Exercise media is busy.") from exc
+            raise ExerciseProviderUnavailableError("Exercise media is unavailable.") from exc
+        except (TimeoutError, error.URLError) as exc:
+            raise ExerciseProviderUnavailableError("Exercise media is unavailable.") from exc
 
     def _parse_page(
         self, payload: object
@@ -130,8 +177,10 @@ class ExerciseDbClient:
         return ExerciseDetails(
             id=exercise_id,
             name=name,
-            muscles=targets or body_parts,
-            equipment=_string_tuple(raw.get("equipments")),
+            muscles=tuple(_LOCAL_MUSCLES.get(item, item) for item in (targets or body_parts)),
+            equipment=tuple(
+                _local_equipment(item) for item in _string_tuple(raw.get("equipments"))
+            ),
             difficulty=str(raw.get("difficulty") or "intermediate").strip().lower(),
             instructions=_string_tuple(raw.get("instructions"), lowercase=False),
             media_url=media_url,
@@ -195,11 +244,17 @@ def _query_parameters(
     if filters.query:
         query["name"] = filters.query.strip()
     if filters.muscles:
-        query["targetMuscles"] = ",".join(filters.muscles)
+        query["targetMuscles"] = ",".join(
+            _MUSCLE_NAMES.get(muscle, muscle) for muscle in filters.muscles
+        )
     if filters.body_parts:
         query["bodyParts"] = ",".join(filters.body_parts)
     if filters.equipment:
-        query["equipments"] = ",".join(filters.equipment)
+        query["equipments"] = ",".join(
+            name
+            for equipment in filters.equipment
+            for name in _EQUIPMENT_NAMES.get(equipment, (equipment,))
+        )
     if filters.difficulty:
         query["difficulty"] = filters.difficulty.strip()
     if cursor:
@@ -212,6 +267,14 @@ def _string_tuple(value: object, *, lowercase: bool = True) -> tuple[str, ...]:
         return ()
     items = (str(item).strip() for item in value)
     return tuple((item.lower() if lowercase else item) for item in items if item)
+
+
+def _local_equipment(value: str) -> str:
+    if value == "body weight":
+        return "bodyweight"
+    if "machine" in value or value == "cable":
+        return "machine"
+    return value
 
 
 def _resolution_url(value: object) -> object:

@@ -21,6 +21,7 @@ export function TrainingHeader({ title, subtitle }: TrainingHeaderProps) {
 
 const styles = StyleSheet.create({
   header: {
+    alignItems: "center",
     gap: spacing.sm,
     paddingBottom: spacing.lg,
     paddingTop: spacing.md,
@@ -30,11 +31,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 23,
+    textAlign: "center",
   },
   title: {
     color: colors.text,
     fontFamily: fonts.displayBold,
     fontSize: 30,
     lineHeight: 38,
+    textAlign: "center",
   },
 });

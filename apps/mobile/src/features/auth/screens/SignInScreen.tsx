@@ -6,7 +6,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "re
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuthSession } from "../../../core/auth/session";
-import { AppButton, AppTextField, SurfaceCard } from "../../../core/components";
+import { AppButton, AppTextField, BrandMark, SurfaceCard } from "../../../core/components";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
 import { login, loginWithGoogle, register, verifyEmail } from "../api/authApi";
@@ -129,8 +129,8 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <View style={styles.intro}>
               <AppButton variant="secondary" label={arabic ? "English" : "العربية"} onPress={() => setArabic(!arabic)} />
-              <Text accessibilityRole="header" style={styles.wordmark}>BONYAN</Text>
-              <Text style={styles.eyebrow}>{arabic ? "تأهيل بدني عسكري + جيم" : "MILITARY PREPARATION + GYM"}</Text>
+              <BrandMark size={176} />
+              <Text style={styles.eyebrow}>{arabic ? "لياقة بدنية وتدريب احترافي" : "PREMIUM FITNESS & TRAINING"}</Text>
             </View>
             <SurfaceCard>
               <View style={styles.form}>
@@ -179,7 +179,6 @@ function messageFor(caught: unknown, arabic: boolean): string {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.canvas, flex: 1 }, keyboardView: { flex: 1 },
   content: { flexGrow: 1, justifyContent: "center", padding: spacing.lg }, intro: { gap: spacing.sm, marginBottom: spacing.xl },
-  wordmark: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 52, letterSpacing: -2.8, lineHeight: 56 },
   eyebrow: { color: colors.bronze, fontFamily: fonts.displaySemiBold, fontSize: 11, letterSpacing: 2.6 }, form: { gap: spacing.md },
   cardLabel: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 10, letterSpacing: 1.6 },
   hint: { color: colors.mutedLight, fontFamily: fonts.body, fontSize: 12, lineHeight: 18 },

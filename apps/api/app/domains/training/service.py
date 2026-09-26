@@ -60,6 +60,7 @@ class TrainingService:
                 latest_inbody=latest_inbody,
             ),
             activate=request.activate,
+            user_id=user_id,
         )
         record = await self.repository.save_plan(
             owner_id=user_id,
@@ -87,6 +88,7 @@ class TrainingService:
         await self._require_training_clearance(user_id)
         await self.repository.lock_plan_activation(owner_id=user_id)
         plan = await self._owned_plan(user_id=user_id, plan_id=plan_id)
+        self._require_catalog_plan(plan.days)
         if plan.status == PlanStatus.ACTIVE:
             return self._plan_response(plan)
         if plan.status != PlanStatus.DRAFT:
@@ -171,6 +173,8 @@ class TrainingService:
         return await self.exercise_provider.get_exercise(exercise_id)
 
     async def get_exercise_media_access(self, *, user_id: str, exercise_id: str):
+        if exercise_id.startswith("fallback-"):
+            return None
         return await self.exercise_provider.get_media_access(exercise_id, user_id=user_id)
 
     async def start_session(
@@ -182,12 +186,27 @@ class TrainingService:
             raise AppError(
                 "training_day_not_found", "Workout day not found.", status.HTTP_404_NOT_FOUND
             )
+        self._require_catalog_plan(plan.days)
         await self.repository.lock_session_start(
             owner_id=user_id, plan_id=plan_id, day_key=day_key
         )
         return self._session_response(
             await self.repository.create_session(owner_id=user_id, plan_id=plan_id, day_key=day_key)
         )
+
+    @staticmethod
+    def _require_catalog_plan(days: list[dict]) -> None:
+        if any(
+            item["exercise_id"].startswith("fallback-")
+            for day in days
+            for item in day["prescriptions"]
+        ):
+            raise AppError(
+                "training_plan_requires_refresh",
+                "This older plan contains unavailable exercises. Prepare and approve a new "
+                "plan to continue. Your workout history is preserved.",
+                409,
+            )
 
     async def _require_training_clearance(self, user_id: str) -> None:
         if self.profile_repository is None:
