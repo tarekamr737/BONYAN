@@ -45,6 +45,7 @@
     "dev": "expo start",
     "start": "expo start",
     "android": "expo start --android",
+    "android:emulator": "node src/core/dev/startAndroidEmulator.cjs",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web",

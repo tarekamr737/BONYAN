@@ -82,6 +82,34 @@ def test_search_normalizes_filters_pagination_and_media() -> None:
     assert "equipments=dumbbell" in captured[0]
 
 
+def test_search_translates_local_plan_terms_to_exercisedb_terms() -> None:
+    captured = []
+
+    def open_request(req, timeout):
+        captured.append(req.full_url)
+        return FakeResponse(
+            {
+                "success": True,
+                "data": [
+                    exercise_payload()
+                    | {"targetMuscles": ["pectorals"], "equipments": ["body weight"]}
+                ],
+                "meta": {"total": 1, "hasNextPage": False, "nextCursor": None},
+            }
+        )
+
+    with patch("app.integrations.exercisedb.client.request.urlopen", open_request):
+        page = run(
+            ExerciseDbClient().search_exercises(
+                ExerciseSearchFilters(muscles=("chest",), equipment=("bodyweight",))
+            )
+        )
+
+    assert "targetMuscles=pectorals" in captured[0]
+    assert "equipments=body+weight" in captured[0]
+    assert page.items[0].equipment == ("bodyweight",)
+
+
 def test_details_and_direct_sanitized_media_access() -> None:
     with patch(
         "app.integrations.exercisedb.client.request.urlopen",

@@ -10,6 +10,7 @@
     "install:all": "npm install && npm run api:install",
     "mobile:install": "npm install",
     "mobile:dev": "npm run dev --workspace @bonyan/mobile",
+    "mobile:emulator": "npm run android:emulator --workspace @bonyan/mobile",
     "mobile:lint": "npm run lint --workspace @bonyan/mobile",
     "mobile:typecheck": "npm run typecheck --workspace @bonyan/mobile",
     "mobile:test": "npm run test --workspace @bonyan/mobile",
@@ -22,6 +23,7 @@
     "api:test": "python -m pytest -c apps/api/pyproject.toml",
     "api:test:live": "python -m pytest -c apps/api/pyproject.toml -m live tests/live",
     "api:migration": "python -m alembic -c apps/api/alembic.ini upgrade head",
+    "api:seed": "python -u apps/api/scripts/seed_local_demo.py",
     "lint": "npm run mobile:lint && npm run api:lint",
     "typecheck": "npm run mobile:typecheck",
     "test": "npm run mobile:test && npm run api:test"

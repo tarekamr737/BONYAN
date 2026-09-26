@@ -1,7 +1,8 @@
-import { ApiError, parseApiErrorPayload } from "./errors";
-import { clearSession, getAccessToken } from "../auth/session";
+import { Platform } from "react-native";
 
-const defaultBaseUrl = "http://127.0.0.1:8000";
+import { ApiError, parseApiErrorPayload } from "./errors";
+import { resolveApiBaseUrl } from "./baseUrl";
+import { clearSession, getAccessToken } from "../auth/session";
 
 export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -9,7 +10,7 @@ export type ApiRequestOptions = Omit<RequestInit, "body"> & {
 };
 
 export function getApiBaseUrl(): string {
-  return (process.env.EXPO_PUBLIC_API_URL ?? defaultBaseUrl).replace(/\/+$/, "");
+  return resolveApiBaseUrl(process.env.EXPO_PUBLIC_API_URL, Platform.OS);
 }
 
 function normalizePath(path: string): string {
@@ -75,6 +76,9 @@ export async function apiRequest<T>(
   return (await response.json()) as T;
   } catch (error) {
     if (timedOut) throw new ApiError(408, "request_timeout", "The request took too long. Check your connection and try again.");
+    if (error instanceof TypeError) {
+      throw new ApiError(0, "network_unavailable", "Could not reach the server. Check your connection and try again.");
+    }
     throw error;
   } finally {
     clearTimeout(timeout);

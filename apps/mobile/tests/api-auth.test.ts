@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+
 import { apiRequest } from "../src/core/api/client";
 import { setSessionAccessToken } from "../src/core/auth/session";
 
@@ -9,6 +10,11 @@ afterEach(() => {
 });
 
 describe("authenticated API client", () => {
+  it("shows a safe connection error when the API is unreachable", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to connect to /127.0.0.1:8000")));
+    await expect(apiRequest("/api/v1/auth/login")).rejects.toMatchObject({code: "network_unavailable"});
+  });
+
   it("times out a stalled request and preserves the session", async () => {
     setSessionAccessToken("current-token");
     vi.stubGlobal("fetch", vi.fn((_url, options: RequestInit) => new Promise((_resolve, reject) => {
@@ -39,6 +45,7 @@ describe("authenticated API client", () => {
     await apiRequest("/api/v1/inbody/scans");
 
     const request = fetchMock.mock.calls[0];
+    expect(request?.[0]).toBe("http://10.0.2.2:8000/api/v1/inbody/scans");
     const options = request?.[1] as RequestInit;
     expect(new Headers(options.headers).get("Authorization")).toBe(
       "Bearer signed-access-token",
