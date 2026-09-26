@@ -37,8 +37,8 @@ export function getCurrentWorkoutPlan(): Promise<WorkoutPlan | null> {
 }
 
 export function startWorkoutSession(planId: string, dayKey: string): Promise<WorkoutSession> {
-  const query = new URLSearchParams({ day_key: dayKey, plan_id: planId });
-  return apiRequest<WorkoutSession>(`/api/v1/training/sessions?${query.toString()}`, {
+  const query = `day_key=${encodeURIComponent(dayKey)}&plan_id=${encodeURIComponent(planId)}`;
+  return apiRequest<WorkoutSession>(`/api/v1/training/sessions?${query}`, {
     method: "POST",
   });
 }

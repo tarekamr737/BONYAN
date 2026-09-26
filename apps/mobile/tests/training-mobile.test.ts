@@ -79,4 +79,17 @@ describe("training mobile API", () => {
       message: "Explain my training plan",
     });
   });
+
+  it("encodes the selected day when starting a session without URLSearchParams", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: "session-2" }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("URLSearchParams", undefined);
+
+    await startWorkoutSession("plan-2", "upper body");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toContain(
+      "/api/v1/training/sessions?day_key=upper%20body&plan_id=plan-2",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+  });
 });

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,6 +55,7 @@ class WorkoutSessionRecord(Base):
 class CoachMessageRecord(Base):
     __tablename__ = "training_coach_messages"
     __table_args__ = (
+        CheckConstraint("role IN ('user', 'coach')", name="ck_training_coach_messages_role"),
         Index("ix_training_coach_owner_created", "owner_id", "created_at"),
     )
 
