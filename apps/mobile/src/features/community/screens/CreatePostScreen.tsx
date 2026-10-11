@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { useAvatars } from "../../avatar/hooks";
@@ -33,6 +34,8 @@ export function CreatePostScreen({
   onPosted,
 }: CreatePostScreenProps) {
   const arabic = useContext(LanguageDirection);
+  const {t} = useLocale();
+  const [reviewed, setReviewed] = useState<string | null>(null);
   const avatarsQuery = useAvatars();
   const { createMutation } = useCommunityMutations();
   const [caption, setCaption] = useState("");
@@ -46,9 +49,12 @@ export function CreatePostScreen({
     caption.trim().length > 0 &&
     !avatarsQuery.isPending &&
     !createMutation.isPending;
+  const currentPreview = JSON.stringify({caption: caption.trim(), postType, useAvatar, avatarId: approvedAvatar?.id});
+  const confirming = reviewed === currentPreview;
 
   function submit() {
     if (!canSubmit) return;
+    if (!confirming) {setReviewed(currentPreview); return;}
     createMutation.mutate(
       {
         avatar_id: useAvatar && approvedAvatar ? approvedAvatar.id : null,
@@ -205,6 +211,7 @@ export function CreatePostScreen({
             </View>
           ) : null}
 
+          {confirming ? <View style={styles.privacyNote}><Text style={styles.privacyTitle}>{t("previewPost")}</Text><Text style={styles.privacyCopy}>{caption.trim()}</Text><Text style={styles.privacyCopy}>{t("postSharingHelp")}</Text></View> : null}
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ disabled: !canSubmit }}
@@ -217,7 +224,7 @@ export function CreatePostScreen({
             ]}
           >
             <Text style={styles.submitLabel}>
-              {createMutation.isPending ? (phrase("copy_5814b36d009e", arabic)) : (phrase("copy_422ac7f2785e", arabic))}
+              {createMutation.isPending ? (phrase("copy_5814b36d009e", arabic)) : t(confirming ? "confirmPost" : "previewPost")}
             </Text>
           </Pressable>
         </ScrollView>

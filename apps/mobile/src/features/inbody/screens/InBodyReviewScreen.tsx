@@ -2,7 +2,8 @@ import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { router } from "expo-router";
 import { AppButton } from "../../../core/components";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 import { useContext, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +23,9 @@ type Props = {
 
 export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
   const arabic = useContext(LanguageDirection);
+  const {t} = useLocale(); const client = useQueryClient();
+  const [draftDate, setDraftDate] = useState<string | null>(null);
+  const [draftDevice, setDraftDevice] = useState<string | null>(null);
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
   const { data, isError, isLoading, refetch } = useQuery({
     queryFn: () => getInBodyScan(scanId),
@@ -29,22 +33,28 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
   });
   const measurements = data?.result?.measurements ?? [];
   const reviewState = getInBodyReviewState(data);
+  const date = draftDate ?? data?.result?.scan_date ?? "";
+  const device = draftDevice ?? data?.result?.device_label ?? "";
+  const provenance = {device_label: device.trim() || null, expected_version: data?.result?.measurement_version ?? 1};
 
   const saveMutation = useMutation({
-    mutationFn: () => updateInBodyReview(scanId, buildEditedMeasurements(measurements, draftValues), data?.result?.scan_date ?? null),
+    mutationFn: () => updateInBodyReview(scanId, buildEditedMeasurements(measurements, draftValues), date || null, provenance),
+    onSuccess: updated => {client.setQueryData(["inbody", "scan", scanId], updated); setDraftValues({}); setDraftDate(null); setDraftDevice(null);},
   });
   const confirmMutation = useMutation({
     mutationFn: async () => {
-      if (Object.keys(draftValues).length > 0 && data?.result) {
-        await updateInBodyReview(
+      if ((Object.keys(draftValues).length > 0 || draftDate !== null || draftDevice !== null) && data?.result) {
+        const updated = await updateInBodyReview(
           scanId,
           buildEditedMeasurements(measurements, draftValues),
-          data.result.scan_date,
+          date || null,
+          provenance,
         );
+        client.setQueryData(["inbody", "scan", scanId], updated); setDraftValues({}); setDraftDate(null); setDraftDevice(null);
       }
       return confirmInBodyScan(scanId);
     },
-    onSuccess: onConfirmed,
+    onSuccess: () => {for (const key of ["inbody", "avatars", "assessment", "game"]) void client.invalidateQueries({queryKey: [key]}); onConfirmed?.();},
   });
 
   function updateValue(key: string, value: string) {
@@ -93,6 +103,11 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
             </View>
           ) : reviewState === "review" ? (
             <>
+              <Text style={styles.subtitle}>{t("measurementDate")}</Text>
+              <TextInput accessibilityLabel={t("measurementDate")} placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} autoCapitalize="none" style={[styles.input, {minHeight: 50, writingDirection: "ltr"}]} value={date} onChangeText={setDraftDate}/>
+              <Text style={styles.subtitle}>{t("dateInputHelp")}</Text>
+              <Text style={styles.subtitle}>{t("measurementDevice")}</Text>
+              <TextInput accessibilityLabel={t("measurementDevice")} placeholder="InBody" placeholderTextColor={colors.muted} maxLength={120} style={[styles.input, {minHeight: 50}, arabic && styles.inputArabic]} value={device} onChangeText={setDraftDevice}/>
               {measurements.map((measurement) => (
                 <View key={measurement.key} style={styles.editRow}>
                   <MeasurementRow measurement={measurement} />

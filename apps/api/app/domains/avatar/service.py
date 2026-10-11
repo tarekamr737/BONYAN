@@ -175,11 +175,13 @@ class AvatarService:
         metrics = await self._body_metrics_reader.latest_confirmed(owner_id)
         if metrics is None:
             return AvatarMeasurementStatusView(
+                generation_enabled=self._generation_enabled,
                 available=False,
                 source=None,
                 recorded_at=None,
             )
         return AvatarMeasurementStatusView(
+            generation_enabled=self._generation_enabled,
             available=True,
             source=metrics.source.value,
             recorded_at=metrics.recorded_at,
@@ -461,7 +463,16 @@ class AvatarService:
             measurement_snapshot={
                 key: value
                 for key, value in (getattr(avatar, "measurement_snapshot", None) or {}).items()
-                if key in {"version", "source", "recorded_at", "source_record_id"}
+                if key
+                in {
+                    "version",
+                    "source",
+                    "recorded_at",
+                    "source_record_id",
+                    "measurement_version",
+                    "measurement_date",
+                    "device_label",
+                }
             }
             or None,
             measurements_recorded_at=avatar.measurements_recorded_at,

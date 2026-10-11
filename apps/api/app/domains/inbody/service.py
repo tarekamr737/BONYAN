@@ -278,7 +278,17 @@ class InBodyService:
                 status.HTTP_409_CONFLICT,
             )
 
+        previous = InBodyResult.model_validate(scan.result or {})
+        expected = getattr(review, "expected_version", None)
+        if expected is not None and expected != previous.measurement_version:
+            raise AppError("measurement_stale", "This review changed. Refresh before saving.", 409)
+        if review.scan_date and review.scan_date > datetime.now(UTC).date():
+            raise AppError(
+                "invalid_measurement_date", "The measurement date cannot be in the future.", 400
+            )
         edited = InBodyResult(
+            measurement_version=previous.measurement_version + 1,
+            device_label=getattr(review, "device_label", previous.device_label),
             scan_date=review.scan_date,
             measurements=[
                 validate_measurement(
@@ -305,6 +315,11 @@ class InBodyService:
                 "scan_not_confirmable",
                 "Review this scan before confirming.",
                 status.HTTP_409_CONFLICT,
+            )
+        result = InBodyResult.model_validate(scan.result)
+        if result.scan_date and result.scan_date > datetime.now(UTC).date():
+            raise AppError(
+                "invalid_measurement_date", "Correct the measurement date before confirming.", 400
             )
         scan = await self.repository.confirm(scan)
         return self._to_response(scan)

@@ -68,6 +68,7 @@ def test_account_deletion_removes_private_objects_and_all_owned_domains() -> Non
             "profile-photos/private-profile-photo",
         ]
         for table in (
+            "community_moderation_audit",
             "community_post_reports",
             "community_post_reactions",
             "community_posts",

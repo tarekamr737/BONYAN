@@ -69,6 +69,7 @@ class AvatarListView(BaseModel):
 
 
 class AvatarMeasurementStatusView(BaseModel):
+    generation_enabled: bool = True
     available: bool
     source: str | None
     recorded_at: datetime | None

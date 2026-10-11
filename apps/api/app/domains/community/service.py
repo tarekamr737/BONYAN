@@ -180,6 +180,8 @@ class CommunityService:
 
     async def _require_post(self, post_id: UUID, viewer: str | None = None) -> CommunityPost:
         post = await self._repository.get_post(post_id)
+        if post and viewer and getattr(post, "moderation_hidden", False):
+            post = None
         if post and viewer and self._privacy:
             permission = await self._privacy.get(post.owner_id)
             if not permission.posts or await self._privacy.blocked(viewer, post.owner_id):

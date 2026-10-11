@@ -300,7 +300,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               </Text>
             </View>
             <AvatarButton
-              disabled={!measurementQuery.data?.available || !sourcePhoto || !photoConsent || pending}
+              disabled={!measurementQuery.data?.available || measurementQuery.data?.generation_enabled === false || !sourcePhoto || !photoConsent || pending}
               loading={mutations.createMutation.isPending || mutations.sourcePhotoMutation.isPending}
               onPress={generate}
             >
@@ -311,6 +311,11 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           </View>
         )}
 
+        {(avatarsQuery.data?.items.length ?? 0) > 1 ? <View style={{gap: 12}}><Text style={styles.heading}>{t("avatarHistory")}</Text>{avatarsQuery.data?.items.map(version => <AvatarButton key={version.id} tone="secondary" onPress={() => {setCreateNewVersion(false); setActiveAvatar(version);}}>{formatDate(version.created_at, arabic)} · {avatarStateTitle(version, arabic)}</AvatarButton>)}</View> : null}
+        <AvatarButton tone="secondary" onPress={() => router.push("/inbody/progress")}>{t("bodyProfile")}</AvatarButton>
+        <AvatarButton tone="secondary" onPress={() => router.push("/progress-score")}>{t("progressScore")}</AvatarButton>
+        <AvatarButton tone="secondary" onPress={() => router.push("/privacy")}>{t("privacySettings")}</AvatarButton>
+        {measurementQuery.data?.generation_enabled === false ? <Text style={styles.previewCopy}>{t("avatar_generation_disabled")}</Text> : null}
         {mutationError ? (
           <View accessibilityRole="alert" style={styles.errorPanel}>
             <Text style={styles.errorTitle}>{phrase("copy_6b3d12ab0228", arabic)}</Text>
@@ -463,6 +468,7 @@ function AvatarReview({
   mutations,
   onDeleteSourcePhoto,
 }: AvatarReviewProps) {
+  const {t} = useLocale();
   const renewal = avatarRenewalStatus(avatar.measurements_recorded_at, latestMeasurementsAt);
   return (
     <View style={styles.previewSection}>
@@ -508,6 +514,10 @@ function AvatarReview({
         </Text>
         <Text style={styles.sourceDate}>{formatDate(avatar.measurements_recorded_at, arabic)}</Text>
       </View>
+      <Text style={styles.previewCopy}>{t("illustration")}</Text>
+      <Text style={styles.previewCopy}>{t("illustrationUncertainty")}</Text>
+      <Text style={styles.sourceDate}>{t("measurementDate")}: {avatar.measurement_snapshot?.measurement_date ? formatDate(`${avatar.measurement_snapshot.measurement_date}T12:00:00Z`, arabic) : t("unknown")}</Text>
+      <Text style={styles.sourceDate}>{t("measurementDevice")}: {avatar.measurement_snapshot?.device_label ?? t("unknown")} · {t("measurementVersion")}: {avatar.measurement_snapshot?.measurement_version ?? "—"}</Text>
       <View style={styles.shapeSummary}>
         <Text style={styles.shapeSummaryLabel}>{phrase("copy_281576819055", arabic)}</Text>
         <Text style={styles.shapeSummaryValue}>{shapeLabel(avatar.shape_profile, arabic)}</Text>

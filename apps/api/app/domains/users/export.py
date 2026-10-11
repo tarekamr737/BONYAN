@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentUserDep
 from app.core.database import get_db_session
 from app.domains.avatar.models import AvatarRecord, manual_body_metrics
-from app.domains.community.models import CommunityPost
+from app.domains.community.models import CommunityPost, ModerationAudit, PostReport
 from app.domains.game.models import (
     AwardLedger,
     Challenge,
@@ -146,6 +146,18 @@ async def export_owned_data(db: AsyncSession, owner: str) -> dict:
         )
         data[key] = [dict(row) for row in rows.mappings()]
     for key, model, condition, fields in [
+        (
+            "reports",
+            PostReport,
+            PostReport.reporter_id == owner,
+            ["id", "post_id", "reason", "note", "status", "created_at"],
+        ),
+        (
+            "moderation",
+            ModerationAudit,
+            ModerationAudit.post_owner_id == owner,
+            ["id", "report_id", "post_id", "decision", "created_at"],
+        ),
         (
             "friendships",
             Friendship,

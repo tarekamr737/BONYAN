@@ -57,6 +57,9 @@ class BodyMetricsSnapshot:
     recorded_at: datetime
     source: BodyMetricsSource
     source_record_id: str | None = None
+    measurement_version: int = 1
+    measurement_date: str | None = None
+    device_label: str | None = None
 
     def __post_init__(self) -> None:
         if not 100 <= self.height_cm <= 240:

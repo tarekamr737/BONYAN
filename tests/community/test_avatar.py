@@ -199,6 +199,7 @@ def test_measurement_status_shares_availability_not_measurement_values() -> None
         serialized = status.model_dump(mode="json")
 
         assert serialized == {
+            "generation_enabled": True,
             "available": True,
             "source": "inbody",
             "recorded_at": "2026-08-24T09:30:00Z",
@@ -235,6 +236,7 @@ def test_manual_measurements_become_the_confirmed_shape_source() -> None:
         assert status.body_fat_available is True
         serialized = status.model_dump(mode="json")
         assert set(serialized) == {
+            "generation_enabled",
             "available",
             "source",
             "recorded_at",

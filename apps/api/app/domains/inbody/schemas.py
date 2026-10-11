@@ -70,6 +70,8 @@ class SegmentalMeasurement(BaseModel):
 
 
 class InBodyResult(BaseModel):
+    measurement_version: int = Field(default=1, ge=1)
+    device_label: str | None = Field(default=None, max_length=120)
     scan_date: date | None = None
     measurements: list[InBodyMeasurement] = Field(default_factory=list)
     segmental_measurements: list[SegmentalMeasurement] = Field(default_factory=list)
@@ -92,6 +94,8 @@ class InBodyScanResponse(BaseModel):
 
 
 class ReviewUpdate(BaseModel):
+    expected_version: int | None = Field(default=None, ge=1)
+    device_label: str | None = Field(default=None, max_length=120)
     scan_date: date | None = None
     measurements: list[InBodyMeasurement] = Field(default_factory=list)
     segmental_measurements: list[SegmentalMeasurement] = Field(default_factory=list)

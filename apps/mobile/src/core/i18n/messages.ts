@@ -84,6 +84,16 @@ export const messages = {
   planRevisionCommitted: ["Future plan draft saved. Review and activate it when ready; today's workout is unchanged.", "مسودة الخطة الجاية اتحفظت. راجعها وفعّلها لما تكون جاهز؛ تمرين النهارده زي ما هو."],
   chooseExercise: ["Choose an exercise to preview an alternative", "اختار تمرين عشان تعاين بديل ليه"],
   coachExplainPrompt: ["Explain my training plan", "اشرح لي خطة التمرين"], coachAlternativePrompt: ["Help me find an exercise alternative", "ساعدني ألاقي بديل لتمرين"],
+  measurementDate: ["Measurement date", "تاريخ القياس"], measurementDevice: ["Device (optional)", "الجهاز (اختياري)"],
+  dateInputHelp: ["Use YYYY-MM-DD; leave blank if unknown.", "اكتب التاريخ بالشكل ده: YYYY-MM-DD؛ وسيبه فاضي لو مش معروف."],
+  measurementVersion: ["Measurement version", "نسخة القياسات"], measurement_stale: ["This review changed. Refresh before saving.", "المراجعة دي اتغيّرت. حدّث الصفحة قبل ما تحفظ."],
+  invalid_measurement_date: ["Check the measurement date. Future dates are not accepted.", "راجع تاريخ القياس. مش بنقبل تاريخ لسه مجاش."],
+  avatarHistory: ["Avatar version history", "سجل نسخ شخصيتك"], sourceRecord: ["Confirmed source record", "التقرير الأصلي المؤكد"],
+  illustrationUncertainty: ["Pose, lighting and the image provider can affect appearance. Compare your confirmed measurements, not the illustration's shape.", "الوضعية والإضاءة ومزوّد الصور ممكن يأثروا على الشكل. قارن قياساتك المؤكدة، مش شكل الصورة التوضيحية."],
+  previewPost: ["Preview public post", "عاين المنشور العام"], confirmPost: ["Confirm and publish", "أكد وانشر"],
+  postSharingHelp: ["This caption and selected approved Avatar will be public. Private source photos and measurements are never attached. Review your caption before publishing.", "الكلام ده والشخصية اللي وافقت عليها هيتنشروا للكل. صورك الأصلية وقياساتك الخاصة مش بتتضاف. راجع كلامك قبل النشر."],
+  moderation: ["Moderation queue", "مراجعة البلاغات"], hidePost: ["Hide reported post", "اخفي المنشور المبلغ عنه"], dismissReport: ["Dismiss report", "اقفل البلاغ"], noReports: ["No pending reports.", "مفيش بلاغات مستنية مراجعة."],
+  reportSpam: ["Spam", "إزعاج"], reportHarassment: ["Harassment", "مضايقة"], reportPrivacy: ["Privacy concern", "مشكلة خصوصية"], reportOther: ["Other concern", "مشكلة تانية"],
 } as const;
 export type MessageKey = keyof typeof messages;
 export type Locale = "en" | "ar-EG";

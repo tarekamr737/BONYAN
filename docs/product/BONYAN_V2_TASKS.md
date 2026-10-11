@@ -4,7 +4,7 @@
 - [x] A: Typed persisted locales, shared RTL/error states, five-tab shell and contextual Coach.
 - [ ] B: Rich shared exercise media/details, plan/picker/session parity and session recovery.
 - [x] C: Versioned session snapshot, preview/approve/reject/undo, scopes, locking, idempotency and audit.
-- [ ] D: Confirmed measurements, private consented Avatar revisions/provenance, granular community privacy.
+- [x] D: Confirmed measurements, private consented Avatar revisions/provenance, granular community privacy.
 - [ ] E: Progress Score, capped game events/XP/missions, seasons/leagues/challenges, reward wallet.
 - [ ] F: Today hierarchy and all existing auth/onboarding/nutrition/community/profile/notification flows.
 - [ ] G: Full locale/security/concurrency/E2E checks, additive migration validation, visual QA and documentation.
@@ -22,3 +22,5 @@ E ledger: versioned weighted Progress Score with coverage, server-timed event de
 E community: persisted configurable seasons and comparable weekly cohorts (50 members), opt-in Weekly/Friends/All-time rankings, mutual invitation codes, seven-day capped-point challenges, badge wallet and disabled partner claims implemented. Sharing respects separate name/Avatar/progress permissions and mutual blocking. Migration 0017 applied; isolated PostgreSQL ledger/social checks: 10 passed. Regression: 308 API passed, 22 opt-in skipped; mobile lint, TypeScript and 75 tests passed. Today integration and visual QA remain.
 
 F Today/Coach: reference hierarchy connected to canonical next/resumed workout, coverage-aware Progress Score/XP, comparable recorded trends, private Avatar, missions and league. Coach reads the active canonical session, persists recoverable preview-only proposals, shows explicit scope/persistent-edit approvals and refreshes authoritative state. Wrong-language replies fail safely; earlier replies from another locale show a localized archive notice. Workout recovery selects the newest server version. Focused PostgreSQL/Coach checks: 48 passed; regression: 311 API passed, 22 opt-in skipped; mobile lint/TypeScript and 79 tests passed. Remaining screen-localization and visual QA continue.
+
+D completion: optimistic versioned human measurement review with device/date provenance; immutable confirmed inputs, Avatar revision history, illustration/uncertainty disclosures, explicit public-post preview and production provider release gate implemented. Added authenticated server-configured moderator queue, audited idempotent hide/restore, private report export/deletion and community limits. Migration 0018 applied. Focused InBody/community/moderation checks including real PostgreSQL: 76 passed. Regression: 313 API passed, 22 opt-in skipped; mobile lint/TypeScript and 79 tests passed. Supplied-screen visual comparison remains in G; provider benchmarks require an approved manifest before production enablement.

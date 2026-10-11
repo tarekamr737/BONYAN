@@ -23,6 +23,7 @@ from app.core.auth import CurrentUser, get_current_user
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.errors import AppError
+from app.core.rate_limit import limit_community
 from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.avatar.contracts import (
     BodyMetricsSnapshot,
@@ -39,6 +40,7 @@ from app.domains.community.repository import SqlAlchemyCommunityRepository
 from app.domains.community.service import CommunityService
 from app.domains.inbody.models import InBodyScan
 from app.domains.users.privacy import PrivacyRepository
+from app.domains.users.repository import SqlAlchemyProfileRepository
 from app.integrations.avatar.cloudflare import CloudflareFluxAvatarProvider
 from app.integrations.avatar.mock import MockAvatarProvider
 from app.integrations.avatar.openrouter import OpenRouterAvatarProvider
@@ -207,6 +209,9 @@ class SqlAlchemyBodyMetricsAdapter:
                 recorded_at=_as_utc(scan.confirmed_at or scan.created_at),
                 source=BodyMetricsSource.INBODY,
                 source_record_id=str(scan.id),
+                measurement_version=scan.result.get("measurement_version", 1),
+                measurement_date=scan.result.get("scan_date"),
+                device_label=scan.result.get("device_label"),
             )
         except ValueError:
             return None
@@ -243,10 +248,16 @@ def get_current_user_id(
     return current_user.id
 
 
-def get_current_actor(
+async def get_current_actor(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(limit_community)],
 ) -> CommunityActor:
-    return CommunityActor(user_id=current_user.id, display_name="BONYAN member")
+    profile = await SqlAlchemyProfileRepository(session).get(current_user.id)
+    return CommunityActor(
+        user_id=current_user.id,
+        display_name=profile.display_name if profile and profile.display_name else "BONYAN member",
+    )
 
 
 def get_avatar_service(
@@ -301,7 +312,10 @@ def get_avatar_service(
         source_photo_repository=SqlAlchemyAvatarSourcePhotoRepository(session),
         provider_timeout_seconds=settings.avatar_timeout_seconds,
         privacy=PrivacyRepository(session),
-        generation_enabled=settings.avatar_generation_enabled,
+        generation_enabled=settings.avatar_generation_enabled
+        and (
+            settings.api_env in {"development", "test"} or settings.avatar_provider_release_approved
+        ),
         generation_daily_limit=settings.avatar_generation_daily_limit,
     )
 

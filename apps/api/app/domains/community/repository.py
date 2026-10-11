@@ -69,7 +69,7 @@ class SqlAlchemyCommunityRepository:
         limit: int,
         viewer_id: str | None = None,
     ) -> list[CommunityPost]:
-        statement = select(CommunityPost)
+        statement = select(CommunityPost).where(CommunityPost.moderation_hidden.is_(False))
         if viewer_id:
             blocked = select(UserBlock.blocked_id).where(UserBlock.owner_id == viewer_id)
             blocking = select(UserBlock.owner_id).where(UserBlock.blocked_id == viewer_id)

@@ -24,6 +24,7 @@ class CommunityPost(Base):
     post_type: Mapped[PostType] = mapped_column(Enum(PostType, native_enum=False, length=24))
     caption: Mapped[str] = mapped_column(Text)
     sharing_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    moderation_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     avatar_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -57,4 +58,15 @@ class PostReport(Base):
     reason: Mapped[ReportReason] = mapped_column(Enum(ReportReason, native_enum=False, length=24))
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
     status: Mapped[ReportStatus] = mapped_column(Enum(ReportStatus, native_enum=False, length=24))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ModerationAudit(Base):
+    __tablename__ = "community_moderation_audit"
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    report_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), index=True)
+    post_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True))
+    post_owner_id: Mapped[str] = mapped_column(String(128), index=True)
+    moderator_id: Mapped[str] = mapped_column(String(128), index=True)
+    decision: Mapped[str] = mapped_column(String(24))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

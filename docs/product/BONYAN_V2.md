@@ -27,6 +27,9 @@ Baseline: `5f5e767`. Branch: `feat/bonyan-v2-game-fitness`.
 - Server time and user timezone determine award windows. Unique event keys, capped daily/weekly awards, immutable ledger and revocation prevent duplicate/backdated claims. No migration backfill awards.
 - Avatar is a private measurement-informed illustration, not a clinical model. Regeneration/publication require separate opt-in. Decorative badges never change physiological inputs.
 - Voice and partner redemption remain explicitly disabled until actual permissioned integrations and release gates are available.
+- Production/staging Avatar generation also requires `AVATAR_PROVIDER_RELEASE_APPROVED=true` after the existing provider benchmark/release review; otherwise the capability is visibly disabled. Development mocks remain available and clearly labeled.
+- Community moderation uses authenticated IDs in `MODERATOR_USER_IDS` (empty by default), cursor-paged pending reports and audited hide/dismiss/restore decisions. Clients cannot grant themselves this role. Hidden posts disappear from feed/reaction access. `RATE_LIMIT_COMMUNITY_PER_MINUTE` defaults to 60 per authenticated user.
+- InBody review records a device label, measurement date and increasing measurement version inside the existing JSON result. Confirmation freezes that version; stale edits and future measurement dates fail safely. Avatar revisions retain immutable private inputs and expose only provenance metadata.
 - New V2 modules are owned by this approved mandate. Existing uncommitted work outside this checkout remains untouched.
 
 ## Verification

@@ -21,6 +21,7 @@ import { deleteMyAccount, getMyProfile, updateMyProfile } from "../api/profileAp
 import { CoachingJourney } from "../components/CoachingJourney";
 import { ProfileOverview } from "../components/ProfileOverview";
 import { ProfilePhotoEditor } from "../components/ProfilePhotoEditor";
+import {getModerationRole} from "../../community/ModerationScreen";
 
 
 export function ProfileScreen() {
@@ -31,6 +32,7 @@ export function ProfileScreen() {
   const queryClient = useQueryClient();
   const {replayTour: resetHomeTour} = useHomeTour();
   const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
+  const moderation = useQuery({queryKey: ["community", "moderation-role"], queryFn: getModerationRole});
   const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
   const deletion = useMutation({
     mutationFn: deleteMyAccount,
@@ -113,6 +115,7 @@ export function ProfileScreen() {
           </Text>
         </View>
         <AppButton label={t("privacySettings")} onPress={() => router.push("/privacy")} />
+        {moderation.data?.can_moderate ? <AppButton label={t("moderation")} onPress={() => router.push("/moderation")}/> : null}
         <AppButton label={t("weeklyMission")} onPress={() => router.push("/missions")} />
         <AppButton label={t("progressScore")} onPress={() => router.push("/progress-score")} />
         <View style={styles.profileContent}>

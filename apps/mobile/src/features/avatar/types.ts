@@ -7,6 +7,8 @@ export type AvatarState =
   | "failed";
 
 export type AvatarView = {
+  illustration_only?: boolean;
+  measurement_snapshot?: {measurement_date?: string | null; device_label?: string | null; measurement_version?: number; source_record_id?: string | null} | null;
   id: string;
   state: AvatarState;
   style: string;
@@ -27,6 +29,7 @@ export type AvatarListView = {
 };
 
 export type AvatarMeasurementStatus = {
+  generation_enabled?: boolean;
   available: boolean;
   source: string | null;
   recorded_at: string | null;
