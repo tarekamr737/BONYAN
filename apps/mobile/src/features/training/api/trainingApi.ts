@@ -1,5 +1,5 @@
 import { apiRequest } from "../../../core/api/client";
-import type {
+import type { SessionSubstitution, SubstitutionScope, SubstitutionReason, SubstitutionResult ,
   CoachMessageResponse,
   CoachMessage,
   ExerciseMediaAccess,
@@ -11,8 +11,25 @@ import type {
   ManualPlanRequest,
 } from "../types";
 
+export function previewSessionSubstitution(sessionId: string, request: {prescription_index: number; scope: SubstitutionScope; reason: SubstitutionReason}): Promise<SessionSubstitution> {
+  return apiRequest(`/api/v1/training/sessions/${encodeURIComponent(sessionId)}/substitutions/preview`, {method: "POST", body: request});
+}
+export function approveSessionSubstitution(proposal: SessionSubstitution, key: string, acknowledged: boolean): Promise<SubstitutionResult> {
+  return apiRequest(`/api/v1/training/substitution-proposals/${proposal.id}/approve`, {method: "POST", body: {idempotency_key: key, expected_version: proposal.expected_version, acknowledge_logged_sets: acknowledged, confirm_persistent_edit: proposal.scope !== "session"}});
+}
+export function rejectSessionSubstitution(id: string): Promise<void> {
+  return apiRequest(`/api/v1/training/substitution-proposals/${id}/reject`, {method: "POST"});
+}
+export function undoSessionSubstitution(id: string): Promise<SubstitutionResult> {
+  return apiRequest(`/api/v1/training/substitution-proposals/${id}/undo`, {method: "POST"});
+}
+
 export function searchExercises(query: string): Promise<ExerciseSearchResponse> {
   return apiRequest(`/api/v1/training/exercises?query=${encodeURIComponent(query)}&page_size=20`);
+}
+
+export function getExerciseDetails(exerciseId: string): Promise<import("../types").ExerciseSearchItem> {
+  return apiRequest(`/api/v1/training/exercises/${encodeURIComponent(exerciseId)}`);
 }
 
 export function createManualWorkoutPlan(request: ManualPlanRequest): Promise<WorkoutPlan> {

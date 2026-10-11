@@ -38,6 +38,8 @@ export const messages = {
   preview: ["Preview alternative", "عاين البديل"], approve: ["Approve change", "وافق على التغيير"],
   reject: ["Keep current exercise", "خلّي التمرين زي ما هو"], undo: ["Undo before starting", "ارجع قبل ما تبدأ"],
   remainingSets: ["Only remaining sets change. Your previous sets keep their original exercise.", "هنغيّر المجموعات الباقية بس. المجموعات اللي سجّلتها هتفضل باسم تمرينها الأصلي."],
+  restTimer: ["Rest timer", "وقت الراحة"], restReady: ["Rest complete. Continue when you feel ready.", "وقت الراحة خلص. كمّل لما تحس إنك جاهز."],
+  previousPerformance: ["Previous performance", "آخر أداء ليك"], noPreviousPerformance: ["Your first recorded workout for this movement.", "أول تمرين مسجّل ليك للحركة دي."],
 } as const;
 export type MessageKey = keyof typeof messages;
 export type Locale = "en" | "ar-EG";

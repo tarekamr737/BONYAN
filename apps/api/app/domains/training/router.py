@@ -176,6 +176,11 @@ async def search_exercises(
                 muscles=list(item.muscles),
                 equipment=list(item.equipment),
                 difficulty=item.difficulty,
+                instructions=list(item.instructions),
+                translated_name=item.metadata.get("name_ar"),
+                translated_instructions=[item.metadata["instructions_ar"]]
+                if item.metadata.get("instructions_ar")
+                else [],
             )
             for item in result.items
         ],
@@ -183,6 +188,28 @@ async def search_exercises(
         page_size=result.page_size,
         total=result.total,
         next_page=result.next_page,
+    )
+
+
+@router.get("/exercises/{exercise_id}", response_model=ExerciseSearchItem)
+async def exercise_details(
+    exercise_id: str,
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+) -> ExerciseSearchItem:
+    del current_user
+    item = await service.get_exercise_details(exercise_id)
+    return ExerciseSearchItem(
+        id=item.id,
+        name=item.name,
+        muscles=list(item.muscles),
+        equipment=list(item.equipment),
+        difficulty=item.difficulty,
+        instructions=list(item.instructions),
+        translated_name=item.metadata.get("name_ar"),
+        translated_instructions=[item.metadata["instructions_ar"]]
+        if item.metadata.get("instructions_ar")
+        else [],
     )
 
 
@@ -241,7 +268,11 @@ async def substitute_exercise(
     current_user: CurrentUserDep,
     service: TrainingServiceDep,
 ) -> WorkoutPlan:
-    return await service.substitute(user_id=current_user.id, request=request)
+    raise AppError(
+        "substitution_approval_required",
+        "Preview and approve a versioned session proposal first.",
+        409,
+    )
 
 
 @router.post("/substitutions/preview", response_model=WorkoutPlan)
@@ -299,12 +330,11 @@ async def coach_message(
     profile = await profile_repository.get(current_user.id)
     nutrition = NutritionRepository(session)
     start, end, _ = local_day_bounds(profile.timezone if profile else "UTC")
-    foods = await nutrition.list_food_between(
-        owner_id=current_user.id, start=start, end=end
-    )
+    foods = await nutrition.list_food_between(owner_id=current_user.id, start=start, end=end)
     repository = TrainingRepository(session)
     history = await repository.list_coach_messages(owner_id=current_user.id, limit=12)
     user_context = {
+        "locale": profile.preferred_language if profile else "en",
         "goal": profile.training_goal if profile else None,
         "experience": profile.experience_level if profile else None,
         "available_training_days": profile.available_training_days if profile else None,
@@ -317,9 +347,7 @@ async def coach_message(
             "calories": sum(item.calories for item in foods),
             "protein_g": round(sum(float(item.protein_g) for item in foods), 1),
         },
-        "recent_conversation": [
-            {"role": item.role, "content": item.content} for item in history
-        ],
+        "recent_conversation": [{"role": item.role, "content": item.content} for item in history],
     }
     coach = CoachService(
         llm_provider=get_llm_provider(settings),

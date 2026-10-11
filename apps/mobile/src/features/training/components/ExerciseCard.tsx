@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import type { ExercisePrescription } from "../types";
+import { ExerciseMedia } from "./ExerciseMedia";
 
 type ExerciseCardProps = {
   arabic?: boolean;
@@ -42,6 +43,7 @@ export function ExerciseCard({ arabic = false, exercise, index, active = false, 
   const card = (
     <SurfaceCard>
       <View style={styles.row}>
+        <ExerciseMedia exerciseId={exercise.exercise_id} name={exercise.name} arabic={arabic} compact />
         <View style={[styles.index, active && styles.activeIndex]}>
           <Text style={[styles.indexText, active && styles.activeIndexText]}>{index + 1}</Text>
         </View>
@@ -53,6 +55,7 @@ export function ExerciseCard({ arabic = false, exercise, index, active = false, 
         </View>
         <Text style={styles.rest}>{Math.round(exercise.rest_seconds / 60)}{phrase("copy_8cc4b52021af", arabic)}</Text>
       </View>
+      {exercise.notes ? <Text style={styles.meta}>{exercise.notes}</Text> : null}
       <View style={styles.tags}>
         {[...exercise.muscles, ...exercise.equipment].slice(0, 4).map((item) => (
           <View key={item} style={styles.tag}>

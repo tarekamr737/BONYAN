@@ -12,6 +12,7 @@ import { getMyProfile } from "../../auth/api/profileApi";
 import { CoachingPage, GlassCard, ui } from "../../auth/components/CoachingUI";
 import { createManualWorkoutPlan, searchExercises } from "../api/trainingApi";
 import type { ExerciseSearchItem } from "../types";
+import { ExerciseMedia } from "../components/ExerciseMedia";
 
 export function ManualWorkoutScreen() {
   const busy = useRef(false);
@@ -41,7 +42,7 @@ export function ManualWorkoutScreen() {
     {selected.map(item => <GlassCard key={item.id}><Text style={ui.heading}>{item.name}</Text>{(["sets", "reps"] as const).map(key => <AppTextField key={key} label={key === "sets" ? phrase("copy_8b66c35c9fd9", arabic) : phrase("copy_8d2bd0a92894", arabic)} keyboardType="number-pad" editable={!create.isPending} value={String(prescriptions[item.id]?.[key] ?? (key === "sets" ? 3 : 10))} onChangeText={raw => {const n = Number(raw); if (Number.isInteger(n) && n >= 1 && n <= (key === "sets" ? 8 : 50)) setPrescriptions(current => ({...current, [item.id]: {...(current[item.id] ?? {sets: 3, reps: 10}), [key]: n}}));}} />)}</GlassCard>)}
     {results.isFetching ? <ActivityIndicator color={colors.bronze} /> : null}
     {results.isError ? <AppButton label={phrase("copy_4c2ac484c5fa", arabic)} onPress={() => void results.refetch()} variant="secondary" /> : null}
-    {results.data?.items.map(item => { const active = selected.some(value => value.id === item.id); return <Pressable key={item.id} accessibilityRole="checkbox" accessibilityState={{checked: active}} onPress={() => toggle(item)} style={({pressed}) => [styles.result, active && styles.resultActive, pressed && styles.pressed]}><View style={{flex: 1, gap: 5}}><Text style={[styles.resultTitle, arabic && ui.rtl]}>{item.name}</Text><Text style={[ui.small, arabic && ui.rtl]}>{[...item.muscles, ...item.equipment].slice(0, 3).join(" · ")}</Text></View><Feather color={active ? colors.bronze : colors.muted} name={active ? "check-circle" : "plus-circle"} size={22} /></Pressable>; })}
+    {results.data?.items.map(item => { const active = selected.some(value => value.id === item.id); return <Pressable key={item.id} accessibilityRole="checkbox" accessibilityState={{checked: active}} onPress={() => toggle(item)} style={({pressed}) => [styles.result, active && styles.resultActive, pressed && styles.pressed]}><ExerciseMedia exerciseId={item.id} name={item.name} arabic={arabic} compact /><View style={{flex: 1, gap: 5}}><Text style={[styles.resultTitle, arabic && ui.rtl]}>{arabic && item.translated_name ? item.translated_name : item.name}</Text><Text style={[ui.small, arabic && ui.rtl]}>{[...item.muscles, ...item.equipment].slice(0, 3).join(" · ")}</Text>{(arabic ? item.translated_instructions : item.instructions)?.slice(0, 2).map((line, index) => <Text key={index} style={ui.small}>{line}</Text>)}</View><Feather color={active ? colors.bronze : colors.muted} name={active ? "check-circle" : "plus-circle"} size={22} /></Pressable>; })}
     {!results.isFetching && submitted && results.data?.items.length === 0 ? <GlassCard><Text style={[ui.text, arabic && ui.rtl]}>{phrase("copy_5c596a1ec65b", arabic)}</Text></GlassCard> : null}
     {create.isError ? <Text style={[ui.error, arabic && ui.rtl]}>{phrase("copy_5adf1d226dbc", arabic)}</Text> : null}
   </CoachingPage>;

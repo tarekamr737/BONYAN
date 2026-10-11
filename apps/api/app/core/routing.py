@@ -17,12 +17,14 @@ from app.domains.community.router import create_community_router
 from app.domains.inbody.router import router as inbody_router
 from app.domains.nutrition.router import router as nutrition_router
 from app.domains.training.router import router as training_router
+from app.domains.training.substitution_router import router as substitution_router
 from app.domains.users.router import router as users_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(inbody_router)
 api_v1_router.include_router(nutrition_router)
 api_v1_router.include_router(training_router)
+api_v1_router.include_router(substitution_router)
 api_v1_router.include_router(users_router)
 api_v1_router.include_router(create_avatar_router(get_avatar_service, get_current_user_id))
 api_v1_router.include_router(

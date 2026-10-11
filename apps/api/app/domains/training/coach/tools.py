@@ -77,10 +77,6 @@ class CoachToolExecutor:
                 "Generate a deterministic BONYAN workout plan from validated preferences.",
                 GeneratePlanRequest.model_json_schema(),
             ),
-            CoachToolName.LOG_WORKOUT: (
-                "Log one set in an active workout session.",
-                LogWorkoutArgs.model_json_schema(),
-            ),
         }
         return tuple(
             LLMToolDefinition(
@@ -146,13 +142,9 @@ class CoachToolExecutor:
             plan = await self.training_service.generate_plan(user_id=user_id, request=args)
             return {"plan": _plan_summary(plan), "requires_approval": True}
         if call.name == CoachToolName.LOG_WORKOUT:
-            args = LogWorkoutArgs.model_validate(call.arguments)
-            session = await self.training_service.log_set(
-                user_id=user_id,
-                session_id=args.session_id,
-                logged_set=LoggedSetInput.model_validate(args),
+            raise AppError(
+                "coach_approval_required", "Log your actual sets using the workout controls.", 409
             )
-            return {"session": _session_summary(session)}
         raise AppError(
             "invalid_coach_tool_call", "Coach tool is not supported.", status.HTTP_400_BAD_REQUEST
         )

@@ -7,9 +7,7 @@ from app.domains.training.models import CoachMessageRecord, WorkoutPlanRecord, W
 
 
 async def delete_training_account_data(session: AsyncSession, user_id: str) -> None:
-    await session.execute(
-        delete(CoachMessageRecord).where(CoachMessageRecord.owner_id == user_id)
-    )
+    await session.execute(delete(CoachMessageRecord).where(CoachMessageRecord.owner_id == user_id))
     await session.execute(
         delete(WorkoutSessionRecord).where(WorkoutSessionRecord.owner_id == user_id)
     )

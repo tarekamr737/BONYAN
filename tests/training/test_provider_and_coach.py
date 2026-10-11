@@ -486,7 +486,7 @@ def test_session_logging_rejects_unprescribed_exercise_or_set() -> None:
         )
 
 
-def test_completed_session_cannot_be_edited_or_completed_again() -> None:
+def test_completed_session_cannot_be_edited_and_completion_retry_is_idempotent() -> None:
     service, _ = make_service()
     plan = run(
         service.generate_plan(user_id="user-1", request=GeneratePlanRequest(days_per_week=2))
@@ -516,8 +516,8 @@ def test_completed_session_cannot_be_edited_or_completed_again() -> None:
                 set_number=1,
             )
         )
-    with pytest.raises(AppError):
-        run(service.complete_session(user_id="user-1", session_id=completed.id))
+    retried = run(service.complete_session(user_id="user-1", session_id=completed.id))
+    assert retried == completed
 
 
 def test_invalid_coach_tool_call_is_rejected() -> None:
@@ -534,6 +534,28 @@ def test_invalid_coach_tool_call_is_rejected() -> None:
                 ),
             )
         )
+
+
+def test_coach_cannot_silently_log_workout_sets() -> None:
+    service, repository = make_service()
+    executor = CoachToolExecutor(service)
+    assert "log_workout" not in {tool.name for tool in executor.definitions()}
+    with pytest.raises(AppError) as error:
+        run(executor.execute(user_id="user-1", call=CoachToolCall(name=CoachToolName.LOG_WORKOUT)))
+    assert error.value.code == "coach_approval_required"
+    assert not repository.sessions
+
+
+@pytest.mark.parametrize("locale, instruction", [("en", "only in English"), ("ar-EG", "only in natural Egyptian Arabic")])
+def test_coach_language_is_locked_by_saved_locale(locale, instruction) -> None:
+    class InspectingLLM:
+        async def complete(self, request):
+            assert instruction in request.prompt
+            return LLMResponse(text="response", model="test")
+
+    service, _ = make_service()
+    coach = CoachService(llm_provider=InspectingLLM(), tool_executor=CoachToolExecutor(service))
+    run(coach.respond(user_id="user-1", message="workout in another language", user_context={"locale": locale}))
 
 
 def test_coach_profile_and_confirmed_inbody_tools_are_owner_scoped() -> None:

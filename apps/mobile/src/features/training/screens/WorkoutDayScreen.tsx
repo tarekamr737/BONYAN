@@ -1,7 +1,6 @@
 import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useContext, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -11,20 +10,21 @@ import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import {
   completeWorkoutSession,
-  substituteExercise,
   getCurrentWorkoutPlan,
   getWorkoutSession,
   getWorkoutPlan,
-  getExerciseMediaAccess,
   logWorkoutSet,
   startWorkoutSession,
 } from "../api/trainingApi";
+import { ExerciseMedia } from "../components/ExerciseMedia";
+import { WorkoutRecovery } from "../components/WorkoutRecovery";
+import { SessionSubstitutionPanel } from "../components/SessionSubstitutionPanel";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { SetStepper } from "../components/SetStepper";
 import { TrainingHeader } from "../components/TrainingHeader";
 import { selectWorkoutDay } from "../selectWorkoutDay";
 import { planNeedsRefresh, planRefreshMessage } from "../planIntegrity";
-import type { WorkoutSession, WorkoutPlan } from "../types";
+import type { WorkoutSession } from "../types";
 
 function paramValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -41,13 +41,10 @@ export function WorkoutDayScreen() {
   const params = useLocalSearchParams();
   const dayKey = paramValue(params.dayKey);
   const sessionId = paramValue(params.sessionId);
-  const [alternative, setAlternative] = useState<WorkoutPlan | null>(null);
-  const [alternativeReason, setAlternativeReason] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [reps, setReps] = useState(10);
   const [weight, setWeight] = useState(0);
   const [localSession, setSession] = useState<WorkoutSession | null>(null);
-  const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
   const savedSession = useQuery({queryKey: ["training", "session", sessionId], enabled: Boolean(sessionId), queryFn: () => getWorkoutSession(sessionId!)});
   const session = localSession && (!sessionId || localSession.id === sessionId)
     ? localSession
@@ -60,19 +57,13 @@ export function WorkoutDayScreen() {
   });
   const plan = planQuery.data;
   const needsRefresh = planNeedsRefresh(plan);
-  const day = useMemo(() => selectWorkoutDay(plan?.days ?? [], dayKey, session?.day_key), [dayKey, plan?.days, session?.day_key]);
+  const day = useMemo(() => session?.prescription_snapshot ?? selectWorkoutDay(plan?.days ?? [], dayKey, session?.day_key), [dayKey, plan?.days, session?.day_key, session?.prescription_snapshot]);
   const active = day?.prescriptions[activeIndex] ?? day?.prescriptions[0];
   const placeholderExercise = active?.exercise_id.startsWith("fallback-") ?? false;
   const completedSets =
     session?.logged_sets.filter((item) => item.prescription_index === activeIndex).length ?? 0;
   const nextSetNumber = completedSets + 1;
   const sessionComplete = session?.status === "completed";
-  const mediaQuery = useQuery({
-    enabled: Boolean(active?.exercise_id) && !placeholderExercise,
-    queryFn: () => getExerciseMediaAccess(active!.exercise_id),
-    queryKey: ["training", "exercise-media", active?.exercise_id],
-  });
-  const noDemonstration = mediaQuery.isSuccess && !mediaQuery.data?.url;
 
   const startMutation = useMutation({
     mutationFn: async () => {
@@ -117,14 +108,6 @@ export function WorkoutDayScreen() {
     },
   });
 
-  const replacement = alternative?.days.find(item => item.key === day?.key)?.prescriptions[activeIndex];
-  const swap = useMutation({mutationFn: (preview: boolean) => {
-    if (!plan || !day) throw new Error("Workout unavailable");
-    return substituteExercise({plan_id: plan.id, day_key: day.key, prescription_index: activeIndex, available_equipment: plan.equipment, ...(!preview && replacement ? {expected_exercise_id: replacement.exercise_id} : {})}, preview);
-  }, onSuccess: (updated, preview) => {
-    if (preview) setAlternative(updated);
-    else {queryClient.setQueryData(session?.plan_id ? ["training", "plan", updated.id] : ["training", "current-plan"], updated); setAlternative(null); setAlternativeReason(false); void queryClient.invalidateQueries({queryKey: ["training"]});}
-  }});
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -177,34 +160,8 @@ export function WorkoutDayScreen() {
               <Text style={styles.detail}>
                 {arabic ? `${active.sets} مجموعات × ${active.reps_min}-${active.reps_max} تكرار · راحة ${Math.round(active.rest_seconds / 60)} دقائق` : `${active.sets} sets × ${active.reps_min}-${active.reps_max} reps · ${Math.round(active.rest_seconds / 60)} min rest`}
               </Text>
-              <View style={styles.videoFrame}>
-                {mediaQuery.data?.url && failedMediaUrl !== mediaQuery.data.url ? (
-                  <Image
-                    accessibilityLabel={arabic ? `شرح تمرين ${active.name}` : `${active.name} exercise demonstration`}
-                    contentFit="contain"
-                    onError={() => setFailedMediaUrl(mediaQuery.data?.url ?? null)}
-                    source={{ uri: mediaQuery.data.url, headers: { "User-Agent": "BONYAN/1.0" } }}
-                    style={styles.exerciseMedia}
-                  />
-                ) : (
-                  <Pressable
-                    accessibilityRole={mediaQuery.isPending || placeholderExercise || noDemonstration ? undefined : "button"}
-                    disabled={mediaQuery.isPending || placeholderExercise || noDemonstration}
-                    style={styles.mediaRetry}
-                    onPress={() => { setFailedMediaUrl(null); void mediaQuery.refetch(); }}
-                  >
-                    <Text style={styles.videoText}>
-                      {placeholderExercise
-                        ? (phrase("copy_fd416d6e6f1c", arabic))
-                        : noDemonstration
-                        ? (phrase("copy_a921cc49ec65", arabic))
-                        : mediaQuery.isPending
-                        ? (phrase("copy_a6e8ff074c0e", arabic))
-                        : (phrase("copy_a3cea479915e", arabic))}
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
+              <ExerciseMedia exerciseId={active.exercise_id} name={active.name} arabic={arabic}/>
+              <WorkoutRecovery session={session} exercise={active} index={activeIndex}/>
               <View style={styles.stepperRow}>
                 <SetStepper arabic={arabic} label={phrase("copy_85ba154f815e", arabic)} max={50} min={0} onChange={setReps} step={1} value={reps} />
                 <SetStepper
@@ -246,9 +203,9 @@ export function WorkoutDayScreen() {
               ) : null}
             </SurfaceCard>
 
-            {activeIndex < day.prescriptions.length - 1 ? <Pressable accessibilityRole="button" disabled={logMutation.isPending || completeMutation.isPending || swap.isPending} style={styles.completeButton} onPress={() => { setActiveIndex(index => index + 1); setAlternative(null); setAlternativeReason(false); }}><Text style={styles.completeButtonText}>{phrase("copy_2b5f2b340a3f", arabic)}</Text></Pressable> : null}
+            {activeIndex < day.prescriptions.length - 1 ? <Pressable accessibilityRole="button" disabled={logMutation.isPending || completeMutation.isPending} style={styles.completeButton} onPress={() => { setActiveIndex(index => index + 1); }}><Text style={styles.completeButtonText}>{phrase("copy_2b5f2b340a3f", arabic)}</Text></Pressable> : null}
             {sessionComplete ? <SurfaceCard><Text style={styles.stateTitle}>{phrase("copy_373f1549859f", arabic)}</Text><Text style={styles.detail}>{session.logged_sets.length} {phrase("copy_a91f53f9767a", arabic)}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{phrase("copy_4fbb7fee1e9e", arabic)}</Text></Pressable></SurfaceCard> : null}
-            {!sessionComplete && completedSets === 0 ? <SurfaceCard><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => setAlternativeReason(!alternativeReason)}><Text style={styles.completeButtonText}>{phrase("copy_0eeb6d2faa70", arabic)}</Text></Pressable>{alternativeReason ? <><Text style={styles.detail}>{phrase("copy_85c50705251d", arabic)}</Text>{[phrase("copy_31fd0baf89d0", arabic), phrase("copy_b31914ccf429", arabic)].map(label => <Pressable key={label} accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(true)}><Text style={styles.completeButtonText}>{label}</Text></Pressable>)}{replacement ? <><Text style={styles.activeName}>{replacement.name}</Text><Text style={styles.detail}>{replacement.equipment.join(" · ")}</Text><Pressable accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(false)}><Text style={styles.completeButtonText}>{phrase("copy_c5163118f200", arabic)}</Text></Pressable><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => {setAlternative(null);setAlternativeReason(false);}}><Text style={styles.completeButtonText}>{phrase("copy_428808b5e23b", arabic)}</Text></Pressable></> : null}{swap.isError ? <Text style={styles.errorText}>{phrase("copy_eeedb2b570f0", arabic)}</Text> : null}</> : null}</SurfaceCard> : null}
+            {session && !sessionComplete && completedSets < active.sets ? <SessionSubstitutionPanel key={`${session.id}-${activeIndex}`} session={session} index={activeIndex} onCommitted={setSession}/> : null}
             <View style={styles.list}>
               {day.prescriptions.map((exercise, index) => (
                 <ExerciseCard
@@ -257,7 +214,7 @@ export function WorkoutDayScreen() {
                   active={index === activeIndex}
                   exercise={exercise}
                   index={index}
-                  onPress={() => {if (logMutation.isPending || completeMutation.isPending || swap.isPending) return; setActiveIndex(index); setAlternative(null); setAlternativeReason(false);}}
+                  onPress={() => {if (logMutation.isPending || completeMutation.isPending) return; setActiveIndex(index);}}
                 />
               ))}
             </View>

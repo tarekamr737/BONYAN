@@ -161,6 +161,9 @@ class ExerciseSearchItem(BaseModel):
     muscles: list[str]
     equipment: list[str]
     difficulty: str
+    instructions: list[str] = Field(default_factory=list)
+    translated_name: str | None = None
+    translated_instructions: list[str] = Field(default_factory=list)
 
 
 class ExerciseSearchResponse(BaseModel):
@@ -181,8 +184,10 @@ class LoggedSetInput(BaseModel):
 
 
 class LoggedSet(LoggedSetInput):
+    logged_at: datetime | None = None
     id: UUID | None = None
     exercise_name: str | None = None
+    exercise_id: str | None = None
 
 
 class StartSessionRequest(BaseModel):
@@ -199,6 +204,8 @@ class WorkoutSessionResponse(BaseModel):
     completed_at: datetime | None = None
     logged_sets: list[LoggedSet] = Field(default_factory=list)
     summary: dict[str, object] = Field(default_factory=dict)
+    version: int = 0
+    prescription_snapshot: WorkoutDay | None = None
 
 
 class ProgressionDecision(BaseModel):
