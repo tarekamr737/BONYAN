@@ -1,0 +1,118 @@
+"""Owner-only portable data export, using explicit field allowlists."""
+
+from datetime import UTC, datetime
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.auth import CurrentUserDep
+from app.core.database import get_db_session
+from app.domains.avatar.models import AvatarRecord, manual_body_metrics
+from app.domains.community.models import CommunityPost
+from app.domains.inbody.models import InBodyScan
+from app.domains.nutrition.models import FoodLogRecord
+from app.domains.training.models import CoachMessageRecord, WorkoutPlanRecord, WorkoutSessionRecord
+from app.domains.training.substitution_models import SessionSubstitutionEvent
+from app.domains.users.models import ProfileHistoryRecord
+from app.domains.users.privacy import PrivacyRepository
+from app.domains.users.repository import SqlAlchemyProfileRepository
+from app.domains.users.schemas import UserProfileView
+
+router = APIRouter(prefix="/users/me", tags=["privacy"])
+
+
+async def export_owned_data(db: AsyncSession, owner: str) -> dict:
+    profile = await SqlAlchemyProfileRepository(db).get(owner)
+    data = {
+        "schema_version": 1,
+        "exported_at": datetime.now(UTC),
+        "profile": UserProfileView.model_validate(profile).model_dump(mode="json")
+        if profile
+        else None,
+        "privacy": (await PrivacyRepository(db).get(owner)).model_dump(),
+    }
+    collections = {
+        "profile_history": (ProfileHistoryRecord, ["id", "kind", "snapshot", "created_at"]),
+        "confirmed_measurements": (
+            InBodyScan,
+            ["id", "status", "result", "confirmed_at", "created_at"],
+        ),
+        "avatar_versions": (
+            AvatarRecord,
+            [
+                "id",
+                "state",
+                "style",
+                "presentation",
+                "measurement_source",
+                "measurement_snapshot",
+                "measurements_recorded_at",
+                "is_public",
+                "created_at",
+            ],
+        ),
+        "plans": (
+            WorkoutPlanRecord,
+            ["id", "status", "goal", "experience", "days", "equipment", "created_at"],
+        ),
+        "workouts": (
+            WorkoutSessionRecord,
+            [
+                "id",
+                "plan_id",
+                "day_key",
+                "status",
+                "logged_sets",
+                "summary",
+                "prescription_snapshot",
+                "version",
+                "started_at",
+                "completed_at",
+            ],
+        ),
+        "workout_change_audit": (
+            SessionSubstitutionEvent,
+            ["id", "session_id", "proposal_id", "action", "version", "details", "created_at"],
+        ),
+        "coach_messages": (CoachMessageRecord, ["id", "role", "content", "model", "created_at"]),
+        "nutrition": (
+            FoodLogRecord,
+            [
+                "id",
+                "description",
+                "meal_type",
+                "calories",
+                "protein_g",
+                "carbs_g",
+                "fat_g",
+                "source",
+                "logged_at",
+            ],
+        ),
+        "posts": (CommunityPost, ["id", "caption", "post_type", "avatar_id", "created_at"]),
+    }
+    for key, (model, fields) in collections.items():
+        rows = await db.execute(
+            select(*(getattr(model, field) for field in fields)).where(model.owner_id == owner)
+        )
+        data[key] = [dict(row) for row in rows.mappings()]
+    manual = await db.execute(
+        select(manual_body_metrics).where(manual_body_metrics.c.owner_id == owner)
+    )
+    data["manual_measurements"] = [dict(row) for row in manual.mappings()]
+    return jsonable_encoder(data)
+
+
+@router.get("/export")
+async def export(user: CurrentUserDep, db: Annotated[AsyncSession, Depends(get_db_session)]):
+    return JSONResponse(
+        await export_owned_data(db, user.id),
+        headers={
+            "Cache-Control": "private, no-store",
+            "Content-Disposition": 'attachment; filename="bonyan-private-data.json"',
+        },
+    )

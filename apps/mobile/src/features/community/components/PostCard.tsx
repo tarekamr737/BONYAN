@@ -1,6 +1,9 @@
 import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "../../../core/api/client";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 import { Alert, Image, Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
@@ -45,6 +48,9 @@ type PostCardProps = {
 };
 
 export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact, onReport }: PostCardProps) {
+  const {t} = useLocale();
+  const client = useQueryClient();
+  const block = useMutation({mutationFn: () => apiRequest(`/api/v1/users/me/privacy/blocks/${encodeURIComponent(post.author.user_id!)}`, {method: "PUT"}), onSuccess: () => {void client.invalidateQueries({queryKey: ["community"]}); void client.invalidateQueries({queryKey: ["privacy", "blocks"]});}});
   const [reportOpen, setReportOpen] = useState(false);
   const [renderedAt] = useState(() => Date.now());
   const initials = initialsFor(post.author.display_name);
@@ -92,6 +98,8 @@ export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact
       </View>
 
       <Text style={styles.caption}>{post.caption}</Text>
+      {!post.can_delete && post.author.user_id ? <Pressable accessibilityRole="button" style={[styles.textAction, {minHeight: 50}]} disabled={block.isPending} onPress={() => block.mutate()}><Text style={styles.textActionLabel}>{t("block")}</Text></Pressable> : null}
+      {block.error ? <Text accessibilityRole="alert" style={styles.caption}>{block.error.message}</Text> : null}
 
       <View accessibilityLabel={phrase("copy_71a935974f6a", arabic)} style={styles.reactionRow}>
         {(Object.keys(reactionLabels) as ReactionKind[]).map((reaction) => {

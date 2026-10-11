@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 import { AvatarButton } from "../components/AvatarButton";
 import { AvatarBuildProgress } from "../components/AvatarBuildProgress";
 import { ManualMeasurementsForm } from "../components/ManualMeasurementsForm";
@@ -38,6 +39,8 @@ type AvatarScreenProps = {
 
 export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const arabic = useContext(LanguageDirection);
+  const {t} = useLocale();
+  const [photoConsent, setPhotoConsent] = useState(false);
   const [presentation, setPresentation] = useState<AvatarPresentation>("men");
   const avatarsQuery = useAvatars();
   const measurementQuery = useAvatarMeasurementStatus(presentation);
@@ -73,6 +76,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   }, [mutations]);
 
   function generate() {
+    if (!photoConsent) return;
     if (!sourcePhoto) {
       Alert.alert(
         phrase("copy_df639f8ddf60", arabic),
@@ -296,12 +300,14 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               </Text>
             </View>
             <AvatarButton
-              disabled={!measurementQuery.data?.available || !sourcePhoto || pending}
+              disabled={!measurementQuery.data?.available || !sourcePhoto || !photoConsent || pending}
               loading={mutations.createMutation.isPending || mutations.sourcePhotoMutation.isPending}
               onPress={generate}
             >
               {phrase("copy_f3c14001c1ad", arabic)}
             </AvatarButton>
+            <Pressable accessibilityRole="checkbox" accessibilityState={{checked: photoConsent}} onPress={() => setPhotoConsent(!photoConsent)} style={{minHeight: 50, paddingVertical: 12}}><Text style={styles.explainerCopy}>{photoConsent ? "✓ " : "☐ "}{t("photoConsent")}</Text></Pressable>
+            <Text style={styles.explainerCopy}>{t("illustration")}</Text>
           </View>
         )}
 

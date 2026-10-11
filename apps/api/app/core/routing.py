@@ -18,6 +18,8 @@ from app.domains.inbody.router import router as inbody_router
 from app.domains.nutrition.router import router as nutrition_router
 from app.domains.training.router import router as training_router
 from app.domains.training.substitution_router import router as substitution_router
+from app.domains.users.export import router as export_router
+from app.domains.users.privacy import router as privacy_router
 from app.domains.users.router import router as users_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
@@ -26,10 +28,10 @@ api_v1_router.include_router(nutrition_router)
 api_v1_router.include_router(training_router)
 api_v1_router.include_router(substitution_router)
 api_v1_router.include_router(users_router)
+api_v1_router.include_router(privacy_router)
+api_v1_router.include_router(export_router)
 api_v1_router.include_router(create_avatar_router(get_avatar_service, get_current_user_id))
-api_v1_router.include_router(
-    create_community_router(get_community_service, get_current_actor)
-)
+api_v1_router.include_router(create_community_router(get_community_service, get_current_actor))
 
 
 @api_v1_router.get("/avatar-assets/{token}", include_in_schema=False)

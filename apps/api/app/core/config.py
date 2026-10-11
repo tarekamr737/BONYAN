@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API_DIRECTORY = Path(__file__).resolve().parents[2]
@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     cloudflare_account_id: str | None = None
     cloudflare_api_token: SecretStr | None = None
     avatar_timeout_seconds: float = 45
+    avatar_generation_enabled: bool = True
+    avatar_generation_daily_limit: int = Field(default=3, ge=0, le=20)
     mistral_api_key: SecretStr | None = None
     mistral_timeout_seconds: float = 45
     musclewiki_api_key: SecretStr | None = None

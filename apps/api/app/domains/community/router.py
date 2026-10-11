@@ -34,9 +34,7 @@ def create_community_router(
     ) -> CommunityFeedView:
         return await service.feed(actor, cursor=cursor, limit=limit)
 
-    @router.post(
-        "/posts", response_model=CommunityPostView, status_code=status.HTTP_201_CREATED
-    )
+    @router.post("/posts", response_model=CommunityPostView, status_code=status.HTTP_201_CREATED)
     async def create_post(
         payload: CreatePostRequest,
         actor: CurrentActor,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import select, tuple_
+from sqlalchemy import func, select, text, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.avatar.contracts import AvatarState
@@ -33,6 +33,26 @@ class SqlAlchemyAvatarRepository:
     async def add(self, avatar: AvatarRecord) -> None:
         self._session.add(avatar)
         await self._session.flush()
+
+    async def enforce_generation_budget(self, owner: str, limit: int) -> None:
+        from app.core.errors import AppError
+
+        await self._session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+            {"key": f"avatar-budget:{owner}"},
+        )
+        count = await self._session.scalar(
+            select(func.count())
+            .select_from(AvatarRecord)
+            .where(
+                AvatarRecord.owner_id == owner,
+                AvatarRecord.created_at >= func.date_trunc("day", func.now()),
+            )
+        )
+        if count >= limit:
+            raise AppError(
+                "avatar_budget_reached", "Daily generation limit reached. Try tomorrow.", 429
+            )
 
     async def get_for_owner(self, avatar_id: UUID, owner_id: str) -> AvatarRecord | None:
         statement = select(AvatarRecord).where(

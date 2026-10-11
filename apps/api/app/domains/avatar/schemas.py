@@ -48,6 +48,8 @@ class AvatarView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    measurement_snapshot: dict | None = None
+    illustration_only: bool = True
     state: AvatarState
     style: str
     presentation: str

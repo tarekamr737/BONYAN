@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile, status
 
 from app.core.rate_limit import limit_avatar
 from app.domains.avatar.contracts import BodyAvatarPresentation
@@ -48,11 +48,15 @@ def create_avatar_router(
         service: CurrentService,
         user_id: CurrentUserId,
         photo: Annotated[UploadFile, File()],
+        processing_consent: Annotated[bool, Form()],
         _: Annotated[None, Depends(limit_avatar)],
     ) -> AvatarSourcePhotoView:
         content = await photo.read(10 * 1024 * 1024 + 1)
         return await service.save_source_photo(
-            user_id, content, photo.content_type or "application/octet-stream"
+            user_id,
+            content,
+            photo.content_type or "application/octet-stream",
+            processing_consent=processing_consent,
         )
 
     @router.delete("/source-photos/{source_photo_id}", status_code=status.HTTP_204_NO_CONTENT)

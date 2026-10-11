@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, String, Table, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -42,6 +43,7 @@ class AvatarRecord(Base):
     shape_profile: Mapped[str] = mapped_column(String(16))
     provider_model: Mapped[str] = mapped_column(String(160), default="TBD")
     measurement_source: Mapped[str] = mapped_column(String(32))
+    measurement_snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     measurements_recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     failure_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -56,4 +58,7 @@ class AvatarSourcePhotoRecord(Base):
     owner_id: Mapped[str] = mapped_column(String(128), index=True)
     object_key: Mapped[str] = mapped_column(String(512), unique=True)
     media_type: Mapped[str] = mapped_column(String(64))
+    processing_consent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

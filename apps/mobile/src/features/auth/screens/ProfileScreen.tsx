@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton, ScreenState } from "../../../core/components";
 import { useAuthSession } from "../../../core/auth/session";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 import { useHomeTour } from "../../../core/tour/HomeTour";
 import {
   accountDeletionConfirmationActions,
@@ -23,6 +24,7 @@ import { ProfilePhotoEditor } from "../components/ProfilePhotoEditor";
 
 
 export function ProfileScreen() {
+  const {t} = useLocale();
   const [editing, setEditing] = useState(false);
   const { signOut } = useAuthSession();
   const [showWebDeletionConfirmation, setShowWebDeletionConfirmation] = useState(false);
@@ -110,6 +112,7 @@ export function ProfileScreen() {
             {coachingCopy("Your goal, assessments and progress, connected in one place.", profile.data.preferred_language.startsWith("ar"))}
           </Text>
         </View>
+        <AppButton label={t("privacySettings")} onPress={() => router.push("/privacy")} />
         <View style={styles.profileContent}>
           <ProfilePhotoEditor profile={profile.data} />
           <ProfileOverview profile={profile.data} onEdit={() => setEditing(true)} />

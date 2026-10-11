@@ -552,7 +552,7 @@ def test_private_source_photo_is_owner_scoped_and_never_exposed() -> None:
             source_photo_repository=source_repository,
         )
         source = await service.save_source_photo(
-            "owner", b"\x89PNG\r\n\x1a\nsource", "image/png"
+            "owner", b"\x89PNG\r\n\x1a\nsource", "image/png", processing_consent=True
         )
 
         with pytest.raises(AppError) as cross_user:
@@ -597,7 +597,7 @@ def test_source_photo_repository_failure_removes_private_upload() -> None:
 
         with pytest.raises(AppError) as error:
             await service.save_source_photo(
-                "owner", b"\x89PNG\r\n\x1a\nsource", "image/png"
+                "owner", b"\x89PNG\r\n\x1a\nsource", "image/png", processing_consent=True
             )
 
         assert error.value.code == "avatar_source_upload_failed"
@@ -605,6 +605,29 @@ def test_source_photo_repository_failure_removes_private_upload() -> None:
         assert storage.deleted == ["private/avatar-1"]
         assert not storage.items
 
+    asyncio.run(scenario())
+
+
+def test_photo_processing_requires_explicit_consent_before_any_storage() -> None:
+    async def scenario():
+        service, _, storage, _ = make_service()
+        with pytest.raises(AppError) as error:
+            await service.save_source_photo("owner", b"photo", "image/png")
+        assert error.value.code == "photo_consent_required"
+        assert not storage.items
+    asyncio.run(scenario())
+
+
+def test_avatar_private_provenance_is_immutable_and_public_view_hides_raw_metrics() -> None:
+    async def scenario():
+        service, repository, _, _ = make_service()
+        avatar = await service.create("owner", create_request())
+        record = repository.items[avatar.id]
+        assert record.measurement_snapshot["weight_kg"] == CONFIRMED_METRICS.weight_kg
+        assert record.measurement_snapshot["version"] == 1
+        assert avatar.measurement_snapshot["source"] == "inbody"
+        assert "weight_kg" not in avatar.measurement_snapshot
+        assert avatar.illustration_only
     asyncio.run(scenario())
 
 

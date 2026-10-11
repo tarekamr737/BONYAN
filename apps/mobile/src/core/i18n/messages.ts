@@ -39,6 +39,16 @@ export const messages = {
   reject: ["Keep current exercise", "خلّي التمرين زي ما هو"], undo: ["Undo before starting", "ارجع قبل ما تبدأ"],
   remainingSets: ["Only remaining sets change. Your previous sets keep their original exercise.", "هنغيّر المجموعات الباقية بس. المجموعات اللي سجّلتها هتفضل باسم تمرينها الأصلي."],
   restTimer: ["Rest timer", "وقت الراحة"], restReady: ["Rest complete. Continue when you feel ready.", "وقت الراحة خلص. كمّل لما تحس إنك جاهز."],
+  photoConsent: ["I consent to private processing of this photo by the configured image provider. I can delete it anytime.", "موافق إن مزوّد الصور يعالج الصورة دي بشكل خاص عشان يعمل شخصيتي. أقدر أمسحها في أي وقت."],
+  avatar_budget_reached: ["Your daily generation limit is reached. Try tomorrow.", "وصلت لحدّ الصور المسموح النهارده. جرّب بكرة."],
+  avatar_generation_disabled: ["Avatar generation is unavailable in this build.", "إنشاء الشخصية مش متاح في النسخة دي."],
+  photo_consent_required: ["Consent to private photo processing before generating.", "وافق على معالجة الصورة بشكل خاص قبل ما تعمل شخصيتك."],
+  privacySettings: ["Privacy and sharing", "الخصوصية والمشاركة"],
+  exportData: ["Export my private data", "نزّل نسخة من بياناتي الخاصة"],
+  shareName: ["Share my display name", "شارك اسم العرض بتاعي"], shareAvatar: ["Allow my approved Avatar in public", "اسمح بظهور شخصيتي اللي وافقت عليها"],
+  shareBadges: ["Share earned badges", "شارك الشارات اللي كسبتها"], shareProgress: ["Share Progress Score", "شارك درجة تقدمي"], sharePosts: ["Show my published posts", "اعرض منشوراتي اللي نشرتها"],
+  blockedMembers: ["Blocked members", "الأعضاء اللي حظرتهم"], block: ["Block member", "احظر العضو"], unblock: ["Unblock", "شيل الحظر"],
+  bodyAlwaysPrivate: ["Source photos, weight and body fat stay private. Turning sharing off hides it from new public requests.", "صورك الأصلية ووزنك ونسبة الدهون بيضلوا خاصين بيك. لما تقفل المشاركة مش هيظهروا في أي طلب عام جديد."],
   previousPerformance: ["Previous performance", "آخر أداء ليك"], noPreviousPerformance: ["Your first recorded workout for this movement.", "أول تمرين مسجّل ليك للحركة دي."],
 } as const;
 export type MessageKey = keyof typeof messages;

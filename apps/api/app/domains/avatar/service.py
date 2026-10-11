@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import asdict
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -34,6 +35,7 @@ from app.domains.avatar.schemas import (
 )
 from app.domains.avatar.shape import classify_body_shape
 from app.domains.avatar.validation import validate_generated_image, validate_source_image
+from app.domains.users.privacy import PrivacyRepository
 
 logger = get_logger("providers")
 
@@ -49,6 +51,9 @@ class AvatarService:
         source_photo_repository: AvatarSourcePhotoRepository | None = None,
         *,
         provider_timeout_seconds: float = 30,
+        privacy: PrivacyRepository | None = None,
+        generation_enabled: bool = True,
+        generation_daily_limit: int = 3,
     ) -> None:
         self._repository = repository
         self._provider = provider
@@ -57,11 +62,25 @@ class AvatarService:
         self._manual_metrics_writer = manual_metrics_writer
         self._source_photo_repository = source_photo_repository
         self._provider_timeout_seconds = provider_timeout_seconds
+        self._privacy = privacy
+        self._generation_enabled = generation_enabled
+        self._generation_daily_limit = generation_daily_limit
 
     async def create(self, owner_id: str, request: CreateAvatarRequest) -> AvatarView:
+        if not self._generation_enabled:
+            raise AppError(
+                "avatar_generation_disabled", "Avatar generation is unavailable in this build.", 503
+            )
+        budget = getattr(self._repository, "enforce_generation_budget", None)
+        if budget:
+            await budget(owner_id, self._generation_daily_limit)
         metrics = await self._require_body_metrics(owner_id)
         if request.source_photo_id is not None:
-            await self._require_source_photo(owner_id, request.source_photo_id)
+            source = await self._require_source_photo(owner_id, request.source_photo_id)
+            if not getattr(source, "processing_consent_at", None):
+                raise AppError(
+                    "photo_consent_required", "Consent to private photo processing first.", 409
+                )
         now = datetime.now(UTC)
         avatar = AvatarRecord(
             id=uuid4(),
@@ -75,6 +94,12 @@ class AvatarService:
             shape_profile=classify_body_shape(metrics, request.presentation).value,
             provider_model="TBD",
             measurement_source=metrics.source.value,
+            measurement_snapshot={
+                **asdict(metrics),
+                "recorded_at": metrics.recorded_at.isoformat(),
+                "source": metrics.source.value,
+                "version": 1,
+            },
             measurements_recorded_at=metrics.recorded_at,
             failure_code=None,
             is_public=False,
@@ -86,8 +111,12 @@ class AvatarService:
         return await self._to_view(avatar)
 
     async def save_source_photo(
-        self, owner_id: str, content: bytes, media_type: str
+        self, owner_id: str, content: bytes, media_type: str, *, processing_consent: bool = False
     ) -> AvatarSourcePhotoView:
+        if not processing_consent:
+            raise AppError(
+                "photo_consent_required", "Consent to private photo processing first.", 409
+            )
         if self._source_photo_repository is None:
             raise AppError(
                 code="avatar_source_unavailable",
@@ -101,6 +130,7 @@ class AvatarService:
             owner_id=owner_id,
             object_key=object_key,
             media_type=source.media_type,
+            processing_consent_at=datetime.now(UTC),
             created_at=datetime.now(UTC),
         )
         try:
@@ -232,9 +262,7 @@ class AvatarService:
             ),
         )
 
-    async def set_public_use(
-        self, owner_id: str, avatar_id: UUID, *, enabled: bool
-    ) -> AvatarView:
+    async def set_public_use(self, owner_id: str, avatar_id: UUID, *, enabled: bool) -> AvatarView:
         avatar = await self._require_owned(owner_id, avatar_id)
         if enabled and avatar.state is not AvatarState.APPROVED:
             raise AppError(
@@ -243,6 +271,8 @@ class AvatarService:
                 status_code=409,
             )
         avatar.is_public = enabled
+        if self._privacy:
+            await self._privacy.update(owner_id, {"avatar": enabled})
         self._touch(avatar)
         await self._repository.save(avatar)
         return await self._to_view(avatar)
@@ -263,6 +293,8 @@ class AvatarService:
     async def get_community_identity(
         self, owner_id: str, avatar_id: UUID
     ) -> AvatarCommunityIdentity | None:
+        if self._privacy and not (await self._privacy.get(owner_id)).avatar:
+            return None
         avatar = await self._repository.get_for_owner(avatar_id, owner_id)
         if (
             avatar is None
@@ -283,6 +315,8 @@ class AvatarService:
         avatars = await self._repository.list_public_for_references(unique_references)
         identities: dict[tuple[str, UUID], AvatarCommunityIdentity] = {}
         for avatar in avatars:
+            if self._privacy and not (await self._privacy.get(avatar.owner_id)).avatar:
+                continue
             if avatar.generated_object_key is None:
                 continue
             image_url = await self._storage.create_read_url(
@@ -315,9 +349,7 @@ class AvatarService:
                 timeout=self._provider_timeout_seconds,
             )
             generated = validate_generated_image(result.content, result.media_type)
-            generated_key = await self._storage.put_private(
-                generated.content, generated.media_type
-            )
+            generated_key = await self._storage.put_private(generated.content, generated.media_type)
         except TimeoutError:
             logger.warning(
                 "provider_request_failed",
@@ -414,6 +446,12 @@ class AvatarService:
             public_in_community=avatar.is_public,
             failure_code=avatar.failure_code,
             measurement_source=avatar.measurement_source,
+            measurement_snapshot={
+                key: value
+                for key, value in (getattr(avatar, "measurement_snapshot", None) or {}).items()
+                if key in {"version", "source", "recorded_at", "source_record_id"}
+            }
+            or None,
             measurements_recorded_at=avatar.measurements_recorded_at,
             created_at=avatar.created_at,
             updated_at=avatar.updated_at,
@@ -440,9 +478,7 @@ class AvatarService:
                 message="Source photo uploads are unavailable right now.",
                 status_code=503,
             )
-        source_photo = await self._source_photo_repository.get_for_owner(
-            source_photo_id, owner_id
-        )
+        source_photo = await self._source_photo_repository.get_for_owner(source_photo_id, owner_id)
         if source_photo is None:
             raise AppError(
                 code="avatar_source_not_found",

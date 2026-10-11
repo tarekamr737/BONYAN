@@ -16,6 +16,7 @@ from app.domains.nutrition import models as nutrition_models  # noqa: F401
 from app.domains.training import models as training_models  # noqa: F401
 from app.domains.training import substitution_models  # noqa: F401
 from app.domains.users import models as user_models  # noqa: F401
+from app.domains.users import privacy  # noqa: F401
 
 config = context.config
 

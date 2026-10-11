@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.community.contracts import ReactionKind
 from app.domains.community.models import CommunityPost, PostReaction, PostReport
+from app.domains.users.privacy import PrivacyPreferences, UserBlock
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,8 +67,21 @@ class SqlAlchemyCommunityRepository:
         before_created_at: datetime | None,
         before_id: UUID | None,
         limit: int,
+        viewer_id: str | None = None,
     ) -> list[CommunityPost]:
         statement = select(CommunityPost)
+        if viewer_id:
+            blocked = select(UserBlock.blocked_id).where(UserBlock.owner_id == viewer_id)
+            blocking = select(UserBlock.owner_id).where(UserBlock.blocked_id == viewer_id)
+            permitted = select(PrivacyPreferences.owner_id).where(
+                PrivacyPreferences.permissions["posts"].as_boolean().is_(True)
+            )
+            statement = statement.where(
+                CommunityPost.sharing_confirmed.is_(True),
+                CommunityPost.owner_id.not_in(blocked),
+                CommunityPost.owner_id.not_in(blocking),
+                CommunityPost.owner_id.in_(permitted),
+            )
         if before_created_at is not None and before_id is not None:
             statement = statement.where(
                 or_(
