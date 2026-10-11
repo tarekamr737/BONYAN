@@ -5,8 +5,9 @@ from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.game.models import AwardLedger, GameEvent, ProgressSnapshot, WeeklyTargets
-from app.domains.game.rules import RULES_VERSION, week_start
+from app.core.config import get_settings
+from app.domains.game.models import AwardLedger, GameEvent, ProgressSnapshot, Season, WeeklyTargets
+from app.domains.game.rules import RULES_VERSION, season_bounds, week_start
 from app.domains.users.repository import SqlAlchemyProfileRepository
 
 
@@ -19,6 +20,32 @@ class GameRepository:
             text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
             {"key": f"game:{owner}"},
         )
+
+    async def season(self, now: datetime) -> Season:
+        day = now.date()
+        existing = await self.session.scalar(
+            select(Season)
+            .where(Season.starts_at <= day, Season.ends_at > day)
+            .order_by(Season.starts_at.desc())
+            .limit(1)
+        )
+        if existing:
+            return existing
+        await self.session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended('game-season', 0))")
+        )
+        existing = await self.session.scalar(
+            select(Season).where(Season.starts_at <= day, Season.ends_at > day).limit(1)
+        )
+        if existing:
+            return existing
+        start, end = season_bounds(day, get_settings().game_season_days)
+        await self.session.execute(
+            insert(Season)
+            .values(id=str(start), starts_at=start, ends_at=end, rules_version=RULES_VERSION)
+            .on_conflict_do_nothing()
+        )
+        return await self.session.get(Season, str(start))
 
     async def targets(self, owner: str, now: datetime) -> WeeklyTargets:
         week = week_start(now)

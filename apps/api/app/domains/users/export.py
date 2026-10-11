@@ -6,14 +6,22 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
 from app.core.database import get_db_session
 from app.domains.avatar.models import AvatarRecord, manual_body_metrics
 from app.domains.community.models import CommunityPost
-from app.domains.game.models import AwardLedger, GameEvent, ProgressSnapshot, WeeklyTargets
+from app.domains.game.models import (
+    AwardLedger,
+    Challenge,
+    Friendship,
+    GameEvent,
+    ProgressSnapshot,
+    RewardClaim,
+    WeeklyTargets,
+)
 from app.domains.inbody.models import InBodyScan
 from app.domains.nutrition.models import FoodLogRecord
 from app.domains.training.models import CoachMessageRecord, WorkoutPlanRecord, WorkoutSessionRecord
@@ -55,6 +63,10 @@ async def export_owned_data(db: AsyncSession, owner: str) -> dict:
         "awards": (
             AwardLedger,
             ["id", "event_id", "reverses_id", "category", "xp", "points", "created_at"],
+        ),
+        "reward_claims": (
+            RewardClaim,
+            ["id", "inventory_id", "provider_claim_id", "state", "audit", "created_at"],
         ),
         "progress_history": (ProgressSnapshot, ["id", "result", "created_at"]),
         "weekly_targets": (
@@ -131,6 +143,24 @@ async def export_owned_data(db: AsyncSession, owner: str) -> dict:
     for key, (model, fields) in collections.items():
         rows = await db.execute(
             select(*(getattr(model, field) for field in fields)).where(model.owner_id == owner)
+        )
+        data[key] = [dict(row) for row in rows.mappings()]
+    for key, model, condition, fields in [
+        (
+            "friendships",
+            Friendship,
+            or_(Friendship.member_a == owner, Friendship.member_b == owner),
+            ["id", "status", "created_at"],
+        ),
+        (
+            "challenges",
+            Challenge,
+            or_(Challenge.creator_id == owner, Challenge.recipient_id == owner),
+            ["id", "category", "status", "target_points", "starts_at", "ends_at"],
+        ),
+    ]:
+        rows = await db.execute(
+            select(*(getattr(model, field) for field in fields)).where(condition)
         )
         data[key] = [dict(row) for row in rows.mappings()]
     manual = await db.execute(

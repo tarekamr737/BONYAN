@@ -5,12 +5,11 @@ from zoneinfo import ZoneInfo
 
 from app.core.errors import AppError
 from app.domains.game.repository import GameRepository
-from app.domains.game.rules import level_for_xp, mission_reward, progress_score, season_bounds
+from app.domains.game.rules import level_for_xp, mission_reward, progress_for_habits
 from app.domains.nutrition.models import FoodLogRecord
 from app.domains.training.models import WorkoutSessionRecord
 from app.domains.users.coaching_schemas import CoachingPreferences
 from app.domains.users.repository import SqlAlchemyProfileRepository
-from app.domains.users.scoring import coaching_score
 
 
 class GameService:
@@ -132,30 +131,8 @@ class GameService:
             if profile
             else CoachingPreferences()
         )
-        personal = coaching_score(targets.goal, preferences, targets.workout_days)
-        goal_dimensions = [
-            value
-            for value in personal.dimensions
-            if value.key != "consistency" and value.key != "body_goal"
-        ]
-        goal = (
-            sum(item.value * item.weight for item in goal_dimensions)
-            / sum(item.weight for item in goal_dimensions)
-            if goal_dimensions
-            else None
-        )
-        progress = progress_score(
-            {
-                "training": min(100, counts["workout"] / targets.workout_days * 100)
-                if counts["workout"]
-                else None,
-                "personal_goal": goal,
-                "nutrition": counts["nutrition"] / 7 * 100 if counts["nutrition"] else None,
-                "recovery": min(100, counts["recovery"] / max(1, 7 - targets.workout_days) * 100)
-                if counts["recovery"]
-                else None,
-            }
-        )
+        progress = progress_for_habits(counts, targets.workout_days, targets.goal, preferences)
+        goal = progress.dimensions["personal_goal"]
         evidence = {
             "week": str(targets.week_start),
             "counts": counts,
@@ -165,7 +142,7 @@ class GameService:
         }
         fingerprint = hashlib.sha256(json.dumps(evidence, sort_keys=True).encode()).hexdigest()
         await self.repository.snapshot(owner, fingerprint, progress.model_dump())
-        start, end = season_bounds(now.date())
+        season = await self.repository.season(now)
         missions = [
             {
                 "category": kind,
@@ -181,12 +158,14 @@ class GameService:
                 ("checkin", 1, 0),
             ]
         ]
+        reversed_ids = {item.reverses_id for item in awards if item.reverses_id}
+        active_awards = [item for item in awards if item.id not in reversed_ids and item.xp > 0]
         badges = [
             key
             for key, condition in [
                 (
                     "first_workout",
-                    any(item.category == "workout" and item.xp > 0 for item in awards),
+                    any(item.category == "workout" for item in active_awards),
                 ),
                 (
                     "balanced_week",
@@ -209,7 +188,7 @@ class GameService:
             "mission_points": max(0, sum(row.points for row in weekly)),
             "missions": missions,
             "badges": badges,
-            "season": {"id": str(start), "starts_at": start, "ends_at": end},
+            "season": {"id": season.id, "starts_at": season.starts_at, "ends_at": season.ends_at},
             "league_opt_in": targets.league_opt_in,
             "partner_redemption_enabled": False,
         }

@@ -56,3 +56,76 @@ class ActivityView(BaseModel):
 class ActivityPage(BaseModel):
     items: list[ActivityView]
     next_cursor: UUID | None
+
+
+class OptInRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool
+
+
+class LeagueEntry(BaseModel):
+    rank: int | None
+    display_name: str
+    avatar_url: str | None
+    points: int
+    is_me: bool
+    progress_score: int | None = None
+    unranked_reason: str | None = None
+
+
+class LeagueView(BaseModel):
+    mode: Literal["weekly", "friends", "all_time"]
+    opted_in: bool
+    week_end: date
+    season: SeasonView
+    personal_rank: int | None
+    participants: list[LeagueEntry]
+    rules_version: str = "sustainable-v1"
+    partner_redemption_enabled: bool = False
+
+
+class FriendInvitation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    invite_code: UUID
+
+
+class InvitationReply(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    accept: bool
+
+
+class FriendView(BaseModel):
+    id: UUID
+    display_name: str
+    status: str
+    incoming: bool
+
+
+class FriendsView(BaseModel):
+    invite_code: UUID
+    items: list[FriendView]
+
+
+class ChallengeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    friendship_id: UUID
+    category: Literal["workout", "nutrition", "recovery"]
+
+
+class ChallengeView(BaseModel):
+    id: UUID
+    category: str
+    status: str
+    incoming: bool
+    target_points: int
+    my_points: int
+    friend_points: int
+    starts_at: datetime
+    ends_at: datetime
+
+
+class WalletView(BaseModel):
+    badges: list[str]
+    xp: int
+    partner_redemption_enabled: bool = False
+    partner_offers: list[dict] = []

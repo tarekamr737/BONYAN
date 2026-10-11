@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     avatar_timeout_seconds: float = 45
     avatar_generation_enabled: bool = True
     avatar_generation_daily_limit: int = Field(default=3, ge=0, le=20)
+    game_season_days: int = Field(default=28, ge=7, le=90)
     mistral_api_key: SecretStr | None = None
     mistral_timeout_seconds: float = 45
     musclewiki_api_key: SecretStr | None = None

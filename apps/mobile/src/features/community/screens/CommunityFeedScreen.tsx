@@ -14,6 +14,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CinematicHero } from "../../../core/components/CinematicHero";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
+import { router } from "expo-router";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
+import { Action } from "../../game/GamePage";
 import { PostCard } from "../components/PostCard";
 import { useCommunityFeed, useCommunityMutations } from "../hooks";
 import type { ReactionKind } from "../types";
@@ -24,6 +27,7 @@ type CommunityFeedScreenProps = {
 };
 
 export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScreenProps) {
+  const {t} = useLocale();
   const arabic = useContext(LanguageDirection);
   const feedQuery = useCommunityFeed();
   const mutations = useCommunityMutations();
@@ -122,6 +126,7 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
         }
         ListHeaderComponent={
           <View style={styles.headerBlock}>
+            <View style={{gap: spacing.sm}}><Action label={t("league")} onPress={() => router.push("/league")}/><Action label={t("inviteFriends")} onPress={() => router.push("/challenges")}/><Action label={t("rewards")} onPress={() => router.push("/rewards")}/></View>
             <View style={styles.topBar}>
               <Pressable
                 accessibilityLabel={phrase("copy_2a52671ad634", arabic)}

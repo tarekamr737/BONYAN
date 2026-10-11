@@ -53,6 +53,7 @@ class WeeklyTargets(Base):
     experience: Mapped[str] = mapped_column(String(32), nullable=False)
     goal: Mapped[str] = mapped_column(String(40), nullable=False)
     league_opt_in: Mapped[bool] = mapped_column(nullable=False, default=False)
+    league_id: Mapped[UUID | None] = mapped_column(ForeignKey("game_leagues.id"))
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -66,4 +67,89 @@ class ProgressSnapshot(Base):
     owner_id: Mapped[str] = mapped_column(String(128), nullable=False)
     evidence_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     result: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Season(Base):
+    __tablename__ = "game_seasons"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    starts_at: Mapped[date] = mapped_column(Date, nullable=False)
+    ends_at: Mapped[date] = mapped_column(Date, nullable=False)
+    rules_version: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class League(Base):
+    __tablename__ = "game_leagues"
+    __table_args__ = (
+        UniqueConstraint(
+            "week_start", "goal", "experience", "workout_days", "cohort", name="uq_league_cohort"
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    season_id: Mapped[str] = mapped_column(ForeignKey("game_seasons.id"), nullable=False)
+    week_start: Mapped[date] = mapped_column(Date, nullable=False)
+    goal: Mapped[str] = mapped_column(String(40), nullable=False)
+    experience: Mapped[str] = mapped_column(String(32), nullable=False)
+    workout_days: Mapped[int] = mapped_column(nullable=False)
+    cohort: Mapped[int] = mapped_column(nullable=False)
+
+
+class GameIdentity(Base):
+    __tablename__ = "game_identities"
+    owner_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    invite_code: Mapped[UUID] = mapped_column(unique=True, nullable=False, default=uuid4)
+
+
+class Friendship(Base):
+    __tablename__ = "game_friendships"
+    __table_args__ = (
+        UniqueConstraint("member_a", "member_b", name="uq_friend_pair"),
+        Index("ix_friend_recipient_status", "recipient_id", "status"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    member_a: Mapped[str] = mapped_column(String(128), nullable=False)
+    member_b: Mapped[str] = mapped_column(String(128), nullable=False)
+    inviter_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    recipient_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Challenge(Base):
+    __tablename__ = "game_challenges"
+    __table_args__ = (Index("ix_challenge_recipient_status", "recipient_id", "status"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    creator_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    recipient_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    category: Mapped[str] = mapped_column(String(24), nullable=False)
+    target_points: Mapped[int] = mapped_column(nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False)
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class RewardInventory(Base):
+    __tablename__ = "game_reward_inventory"
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    partner_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    verified: Mapped[bool] = mapped_column(nullable=False, default=False)
+    remaining: Mapped[int] = mapped_column(nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    terms: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+
+class RewardClaim(Base):
+    __tablename__ = "game_reward_claims"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "inventory_id", name="uq_reward_owner_inventory"),
+        UniqueConstraint("provider_claim_id", name="uq_reward_provider_claim"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    owner_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    inventory_id: Mapped[UUID] = mapped_column(
+        ForeignKey("game_reward_inventory.id"), nullable=False
+    )
+    provider_claim_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    state: Mapped[str] = mapped_column(String(32), nullable=False)
+    audit: Mapped[dict] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

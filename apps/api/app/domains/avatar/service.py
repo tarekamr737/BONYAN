@@ -328,6 +328,18 @@ class AvatarService:
             )
         return identities
 
+    async def get_public_identities_for_owners(self, owners: list[str]):
+        avatars = await self._repository.list_public_for_owners(owners)
+        latest = {}
+        for avatar in avatars:
+            latest.setdefault(avatar.owner_id, avatar.id)
+        identities = await self.get_community_identities(list(latest.items()))
+        return {
+            owner: identities[(owner, id)]
+            for owner, id in latest.items()
+            if (owner, id) in identities
+        }
+
     async def _generate(self, avatar: AvatarRecord, metrics: BodyMetricsSnapshot) -> None:
         previous_generated_key = avatar.generated_object_key
         avatar.state = AvatarState.PROCESSING

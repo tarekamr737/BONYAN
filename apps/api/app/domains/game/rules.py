@@ -5,6 +5,9 @@ from math import isfinite
 
 from pydantic import BaseModel
 
+from app.domains.users.coaching_schemas import CoachingPreferences
+from app.domains.users.scoring import coaching_score
+
 RULES_VERSION = "sustainable-v1"
 WEIGHTS = {"training": 35, "personal_goal": 25, "recovery": 20, "nutrition": 20}
 MINIMUM_COVERAGE = 60
@@ -44,6 +47,34 @@ def progress_score(values: dict[str, float | None]) -> ProgressScore:
         ranked=coverage >= MINIMUM_COVERAGE,
         dimensions=dimensions,
         missing=[key for key, value in dimensions.items() if value is None],
+    )
+
+
+def progress_for_habits(
+    counts: dict[str, int], workout_days: int, goal: str, preferences: CoachingPreferences
+) -> ProgressScore:
+    personal = coaching_score(goal, preferences, workout_days)
+    # Unvalidated weight targets do not become body-based rank evidence.
+    dimensions = [
+        item for item in personal.dimensions if item.key not in {"consistency", "body_goal"}
+    ]
+    personal_goal = (
+        sum(item.value * item.weight for item in dimensions)
+        / sum(item.weight for item in dimensions)
+        if dimensions
+        else None
+    )
+    return progress_score(
+        {
+            "training": min(100, counts.get("workout", 0) / workout_days * 100)
+            if counts.get("workout")
+            else None,
+            "personal_goal": personal_goal,
+            "nutrition": counts.get("nutrition", 0) / 7 * 100 if counts.get("nutrition") else None,
+            "recovery": min(100, counts.get("recovery", 0) / max(1, 7 - workout_days) * 100)
+            if counts.get("recovery")
+            else None,
+        }
     )
 
 

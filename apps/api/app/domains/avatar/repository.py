@@ -69,6 +69,19 @@ class SqlAlchemyAvatarRepository:
         )
         return list((await self._session.scalars(statement)).all())
 
+    async def list_public_for_owners(self, owners: list[str]):
+        return list(
+            await self._session.scalars(
+                select(AvatarRecord)
+                .where(
+                    AvatarRecord.owner_id.in_(owners),
+                    AvatarRecord.is_public.is_(True),
+                    AvatarRecord.state == AvatarState.APPROVED,
+                )
+                .order_by(AvatarRecord.updated_at.desc())
+            )
+        )
+
     async def list_public_for_references(
         self, references: list[tuple[str, UUID]]
     ) -> list[AvatarRecord]:
