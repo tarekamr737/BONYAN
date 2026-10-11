@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domains.game.rules import ProgressScore
 
@@ -70,6 +70,7 @@ class OptInRequest(BaseModel):
 
 
 class LeagueEntry(BaseModel):
+    badges: list[str] = Field(default_factory=list)
     rank: int | None
     display_name: str
     avatar_url: str | None

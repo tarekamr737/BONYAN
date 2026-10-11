@@ -28,5 +28,11 @@ def test_exercisedb_search_detail_and_media_live(record_property) -> None:
     assert details.name
     assert access is not None
     assert access.url.startswith("https://static.exercisedb.dev/media/")
+    bodyweight = asyncio.run(
+        ExerciseDbClient().search_exercises(
+            ExerciseSearchFilters(muscles=("chest",), equipment=("bodyweight",)), page_size=3
+        )
+    )
+    assert bodyweight.items and all("bodyweight" in item.equipment for item in bodyweight.items)
     record_property("latency_ms", round((time.perf_counter() - started) * 1000, 2))
     record_property("result_count", len(page.items))

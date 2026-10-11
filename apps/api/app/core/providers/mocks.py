@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from app.core.providers.contracts import (
     AvatarRequest,
     AvatarResult,
@@ -21,9 +23,17 @@ class MockLLMProvider:
     async def complete(self, request: LLMRequest) -> LLMResponse:
         if "Estimate nutrition" in request.prompt:
             return LLMResponse(
-                text=(
-                    '{"calories":420,"protein_g":28,"carbs_g":46,"fat_g":14,'
-                    '"summary":"Development estimate; review every value before saving."}'
+                text=json.dumps(
+                    {
+                        "calories": 420,
+                        "protein_g": 28,
+                        "carbs_g": 46,
+                        "fat_g": 14,
+                        "summary": "تقدير تجريبي للتطوير؛ راجع كل قيمة قبل ما تحفظها."
+                        if "only in natural Egyptian Arabic" in request.prompt
+                        else "Development estimate; review every value before saving.",
+                    },
+                    ensure_ascii=False,
                 ),
                 model=self._model,
             )

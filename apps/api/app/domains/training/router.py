@@ -26,6 +26,7 @@ from app.domains.training.schemas import (
     CoachMessageRequest,
     CoachMessageResponse,
     CoachMessageView,
+    ExerciseCatalogStatus,
     ExerciseMediaAccessResponse,
     ExerciseSearchItem,
     ExerciseSearchResponse,
@@ -47,9 +48,26 @@ from app.integrations.musclewiki.media import MuscleWikiMediaRelay, MuscleWikiMe
 router = APIRouter(prefix="/training", tags=["training"])
 
 
+@router.get("/catalog", response_model=ExerciseCatalogStatus)
+async def catalog_status(
+    current_user: CurrentUserDep,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ExerciseCatalogStatus:
+    return ExerciseCatalogStatus(
+        available=settings.exercise_provider != "exercisedb"
+        or settings.api_env in {"development", "test"}
+        or settings.exercise_catalog_license_approved,
+        source_name="AscendAPI" if settings.exercise_provider == "exercisedb" else "MuscleWiki",
+    )
+
+
 def get_exercise_provider(settings: Settings) -> ExerciseProvider:
     if settings.exercise_provider == "exercisedb":
-        return ExerciseDbClient(base_url=settings.exercisedb_base_url)
+        return ExerciseDbClient(
+            base_url=settings.exercisedb_base_url,
+            enabled=settings.api_env in {"development", "test"}
+            or settings.exercise_catalog_license_approved,
+        )
     return MuscleWikiClient(settings=settings)
 
 
@@ -296,7 +314,12 @@ async def get_exercise_media_access(
     )
     if access is None:
         raise AppError("exercise_media_unavailable", "Exercise media is unavailable.", 404)
-    return ExerciseMediaAccessResponse(url=access.url, expires_at=access.expires_at)
+    return ExerciseMediaAccessResponse(
+        url=access.url,
+        expires_at=access.expires_at,
+        media_type=access.media_type,
+        source_name=access.source_name,
+    )
 
 
 @router.get("/media", include_in_schema=False)

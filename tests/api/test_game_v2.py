@@ -13,7 +13,13 @@ from app.core.errors import AppError
 from app.domains.game.lifecycle import delete_game_account_data
 from app.domains.game.models import AwardLedger
 from app.domains.game.repository import GameRepository
-from app.domains.game.rules import mission_reward, progress_score, season_bounds, week_start
+from app.domains.game.rules import (
+    earned_badges,
+    mission_reward,
+    progress_score,
+    season_bounds,
+    week_start,
+)
 from app.domains.game.schemas import CheckInRequest
 from app.domains.game.service import GameService
 from app.domains.users.models import UserProfile
@@ -39,6 +45,19 @@ def test_client_dates_and_raw_body_scores_cannot_enter_checkins():
     for field in ("date", "weight", "xp", "points", "timezone"):
         with pytest.raises(ValidationError):
             CheckInRequest.model_validate({"kind": "checkin", field: 999})
+
+
+def test_badges_use_historical_weeks_and_revocable_evidence():
+    old_week = datetime(2026, 9, 7, tzinfo=UTC).date()
+    evidence = [
+        {"week": old_week, "category": kind, "count": 1, "xp": xp}
+        for kind, xp in (("workout", 20), ("nutrition", 5), ("recovery", 5))
+    ]
+    assert earned_badges(evidence) == ["first_workout", "balanced_week"]
+    evidence[0].update(count=0, xp=0)
+    assert earned_badges(evidence) == []
+    evidence[0].update(count=25, xp=500)
+    assert earned_badges(evidence) == ["first_workout", "balanced_week", "steady_builder"]
 
 
 def test_seasons_and_week_use_server_time_and_stable_boundaries():

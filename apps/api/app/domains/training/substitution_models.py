@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -16,6 +16,10 @@ class SessionSubstitutionProposal(Base):
     __table_args__ = (
         Index("ix_substitution_owner_session", "owner_id", "session_id"),
         UniqueConstraint("owner_id", "approval_key", name="uq_substitution_owner_approval"),
+        CheckConstraint("scope IN ('session','plan','equipment')", name="substitution_scope"),
+        CheckConstraint(
+            "status IN ('pending','approved','rejected','undone')", name="substitution_status"
+        ),
     )
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     owner_id: Mapped[str] = mapped_column(String(120), nullable=False)

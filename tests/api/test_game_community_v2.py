@@ -58,12 +58,17 @@ async def _scenario():
                 entry.display_name == "BONYAN member"
                 and entry.avatar_url is None
                 and entry.progress_score is None
+                and entry.badges == []
                 for entry in league.participants
             )
-            await PrivacyRepository(db).update(b, {"display_name": True, "progress": True})
+            await PrivacyRepository(db).update(
+                b, {"display_name": True, "progress": True, "badges": True}
+            )
             shared = await service.league(a, "weekly")
             assert any(
-                entry.display_name == "Private name" and entry.progress_score is not None
+                entry.display_name == "Private name"
+                and entry.progress_score is not None
+                and entry.badges == ["first_workout"]
                 for entry in shared.participants
             )
             code = (await service.friends(b)).invite_code
@@ -80,6 +85,7 @@ async def _scenario():
                 await service.reply_challenge(a, challenge.id, True)
             with pytest.raises(AppError):
                 await service.reply_challenge(different, challenge.id, True)
+            await service.reply_challenge(b, challenge.id, True)
             await service.reply_challenge(b, challenge.id, True)
             challenges = await service.challenges(a)
             assert challenges[0].status == "active" and challenges[0].my_points == 0

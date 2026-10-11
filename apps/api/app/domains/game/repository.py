@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, text
+from sqlalchemy import case, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -134,6 +134,25 @@ class GameRepository:
         return list(
             await self.session.scalars(statement.order_by(AwardLedger.created_at, AwardLedger.id))
         )
+
+    async def badge_evidence(self, owners: list[str]) -> list[dict]:
+        if not owners:
+            return []
+        result = await self.session.execute(
+            select(
+                AwardLedger.owner_id,
+                GameEvent.week_start.label("week"),
+                AwardLedger.category,
+                func.sum(AwardLedger.xp).label("xp"),
+                func.sum(case((AwardLedger.xp > 0, 1), (AwardLedger.xp < 0, -1), else_=0)).label(
+                    "count"
+                ),
+            )
+            .join(GameEvent, GameEvent.id == AwardLedger.event_id)
+            .where(AwardLedger.owner_id.in_(owners), GameEvent.owner_id == AwardLedger.owner_id)
+            .group_by(AwardLedger.owner_id, GameEvent.week_start, AwardLedger.category)
+        )
+        return [dict(row) for row in result.mappings()]
 
     async def revoke(self, owner: str, source: str) -> None:
         await self.lock(owner)

@@ -245,5 +245,12 @@ class CoachMessageView(BaseModel):
 
 
 class ExerciseMediaAccessResponse(BaseModel):
+    media_type: str | None = None
+    source_name: str | None = None
     url: str
     expires_at: datetime | None = None
+
+
+class ExerciseCatalogStatus(BaseModel):
+    available: bool
+    source_name: str

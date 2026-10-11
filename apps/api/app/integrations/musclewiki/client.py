@@ -85,9 +85,7 @@ class MuscleWikiClient:
         if isinstance(payload, dict):
             raw_total = payload.get("total", payload.get("count"))
             total = raw_total if isinstance(raw_total, int) else None
-            has_more = bool(payload.get("next")) or (
-                total is not None and page * page_size < total
-            )
+            has_more = bool(payload.get("next")) or (total is not None and page * page_size < total)
             next_page = page + 1 if has_more else None
         return ExerciseSearchPage(
             items=items, page=page, page_size=page_size, total=total, next_page=next_page
@@ -97,9 +95,7 @@ class MuscleWikiClient:
         cached = self.cache.get(exercise_id)
         if cached is not None:
             return cached
-        item = self._parse_exercise(
-            await self._get_json(f"/exercises/{parse.quote(exercise_id)}/")
-        )
+        item = self._parse_exercise(await self._get_json(f"/exercises/{parse.quote(exercise_id)}/"))
         self.cache.set(item.id, item)
         return item
 
@@ -117,6 +113,8 @@ class MuscleWikiClient:
         return MediaAccess(
             url=f"{self.api_public_url}/api/v1/training/media?token={token}",
             expires_at=verified.expires_at,
+            media_type="video/mp4",
+            source_name="MuscleWiki",
         )
 
     async def _get_json(self, path: str) -> object:
@@ -140,9 +138,7 @@ class MuscleWikiClient:
             with request.urlopen(req, timeout=self.timeout_seconds) as response:
                 encoded = response.read(MAX_RESPONSE_BYTES + 1)
             if len(encoded) > MAX_RESPONSE_BYTES:
-                raise MuscleWikiInvalidResponseError(
-                    "MuscleWiki returned an oversized response."
-                )
+                raise MuscleWikiInvalidResponseError("MuscleWiki returned an oversized response.")
             return json.loads(encoded.decode("utf-8"))
         except error.HTTPError as exc:
             if exc.code in {401, 403}:

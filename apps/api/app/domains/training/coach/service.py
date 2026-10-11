@@ -3,13 +3,13 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import re
 
 from fastapi import status
 
 from app.core.errors import AppError
 from app.core.logging import get_logger
 from app.core.providers.contracts import LLMProvider, LLMRequest, LLMToolResult
+from app.core.providers.locale import response_matches_locale
 from app.domains.training.coach.schemas import CoachToolCall
 from app.domains.training.coach.tools import CoachToolExecutor
 from app.domains.training.schemas import CoachMessageResponse
@@ -188,12 +188,7 @@ class CoachService:
                 "The coach is unavailable right now. Please try again.",
                 status.HTTP_503_SERVICE_UNAVAILABLE,
             ) from exc
-        letters = re.findall(r"[^\W\d_]", response.text, re.UNICODE)
-        arabic_count = sum("\u0600" <= letter <= "\u06ff" for letter in letters)
-        if letters and (
-            (locale.startswith("ar") and arabic_count / len(letters) < 0.25)
-            or (not locale.startswith("ar") and arabic_count > 0)
-        ):
+        if not response_matches_locale(response.text, locale):
             raise AppError(
                 "coach_language_mismatch",
                 "The Coach response did not match your saved language. Please retry.",

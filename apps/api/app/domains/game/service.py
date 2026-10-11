@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from app.core.errors import AppError
 from app.domains.game.repository import GameRepository
-from app.domains.game.rules import level_for_xp, mission_reward, progress_for_habits
+from app.domains.game.rules import earned_badges, level_for_xp, mission_reward, progress_for_habits
 from app.domains.nutrition.models import FoodLogRecord
 from app.domains.training.models import WorkoutSessionRecord
 from app.domains.users.coaching_schemas import CoachingPreferences
@@ -114,11 +114,9 @@ class GameService:
     async def overview(self, owner: str) -> dict:
         now = datetime.now(UTC)
         targets = await self.repository.targets(owner, now)
-        awards, weekly = (
-            await self.repository.awards(owner),
-            await self.repository.awards(owner, targets.week_start),
-        )
-        total_xp = max(0, sum(item.xp for item in awards))
+        badge_evidence = await self.repository.badge_evidence([owner])
+        weekly = await self.repository.awards(owner, targets.week_start)
+        total_xp = max(0, sum(item["xp"] for item in badge_evidence))
         counts = {
             category: max(
                 0, sum(1 if row.xp > 0 else -1 for row in weekly if row.category == category)
@@ -158,23 +156,7 @@ class GameService:
                 ("checkin", 1, 0),
             ]
         ]
-        reversed_ids = {item.reverses_id for item in awards if item.reverses_id}
-        active_awards = [item for item in awards if item.id not in reversed_ids and item.xp > 0]
-        badges = [
-            key
-            for key, condition in [
-                (
-                    "first_workout",
-                    any(item.category == "workout" for item in active_awards),
-                ),
-                (
-                    "balanced_week",
-                    all(counts[kind] for kind in ("workout", "nutrition", "recovery")),
-                ),
-                ("steady_builder", total_xp >= 500),
-            ]
-            if condition
-        ]
+        badges = earned_badges(badge_evidence)
         return {
             "rules_version": "sustainable-v1",
             "server_time": now,

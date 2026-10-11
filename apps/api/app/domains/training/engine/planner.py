@@ -115,7 +115,7 @@ class WorkoutPlanner:
         if muscle not in catalog:
             page = await self.exercise_provider.search_exercises(
                 ExerciseSearchFilters(
-                    muscles=(muscle,), equipment=equipment, difficulty=difficulty
+                    muscles=(muscle,), equipment=equipment
                 ),
                 page=1,
                 page_size=40,
@@ -125,6 +125,8 @@ class WorkoutPlanner:
             item
             for item in catalog[muscle]
             if item.id not in used_ids
+            and {"beginner": 0, "intermediate": 1, "advanced": 2}.get(item.difficulty, 2)
+            <= {"beginner": 0, "intermediate": 1, "advanced": 2}[difficulty]
             and not item.id.startswith("fallback-")
             # These prescriptions use reps and progressive load, not timed stretches.
             and not re.search(r"\bstretch(?:es|ing)?\b", item.name, re.IGNORECASE)

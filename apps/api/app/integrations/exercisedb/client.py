@@ -36,7 +36,7 @@ _MUSCLE_NAMES = {
     "arms": "biceps",
 }
 _EQUIPMENT_NAMES = {
-    "bodyweight": ("body weight",),
+    "bodyweight": ("bodyweight",),
     "machine": ("leverage machine", "smith machine", "sled machine", "cable"),
 }
 _LOCAL_MUSCLES = {value: key for key, value in _MUSCLE_NAMES.items() if key != "arms"}
@@ -55,6 +55,7 @@ class ExerciseDbClient:
         timeout_seconds: float = 8,
         max_attempts: int = 3,
         retry_delay_seconds: float = 0.25,
+        enabled: bool = True,
     ) -> None:
         self.base_url = _validated_base_url(base_url)
         self.cache = cache or MetadataCache[ExerciseDetails]()
@@ -64,10 +65,12 @@ class ExerciseDbClient:
         self.retry_delay_seconds = max(0, retry_delay_seconds)
         self._search_lock = asyncio.Lock()
         self._next_search_at = 0.0
+        self.enabled = enabled
 
     async def search_exercises(
         self, filters: ExerciseSearchFilters, *, page: int = 1, page_size: int = 20
     ) -> ExerciseSearchPage:
+        self._require_enabled()
         if not 1 <= page <= MAX_PAGE:
             raise ValueError(f"page must be between 1 and {MAX_PAGE}")
         if not 1 <= page_size <= MAX_PAGE_SIZE:
@@ -99,6 +102,7 @@ class ExerciseDbClient:
         raise AssertionError("validated page loop did not return")
 
     async def get_exercise(self, exercise_id: str) -> ExerciseDetails:
+        self._require_enabled()
         normalized_id = exercise_id.strip()
         if not normalized_id or len(normalized_id) > 120:
             raise ValueError("exercise_id must contain between 1 and 120 characters")
@@ -121,12 +125,20 @@ class ExerciseDbClient:
         if available is None:
             available = await asyncio.to_thread(self._media_available, media_url)
             self.media_cache.set(media_url, available)
-        return MediaAccess(url=media_url) if available else None
+        return (
+            MediaAccess(url=media_url, media_type="image/gif", source_name="AscendAPI")
+            if available
+            else None
+        )
+
+    def _require_enabled(self) -> None:
+        if not self.enabled:
+            raise ExerciseProviderUnavailableError(
+                "A verified production dataset license is required."
+            )
 
     def _media_available(self, media_url: str) -> bool:
-        outbound = request.Request(
-            media_url, method="HEAD", headers={"User-Agent": "BONYAN/1.0"}
-        )
+        outbound = request.Request(media_url, method="HEAD", headers={"User-Agent": "BONYAN/1.0"})
         try:
             with request.urlopen(outbound, timeout=min(self.timeout_seconds, 3)):
                 return True
@@ -232,9 +244,7 @@ class ExerciseDbClient:
             raise ExerciseProviderUnavailableError("ExerciseDB is unavailable.") from exc
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             _log_failure("provider_invalid_json")
-            raise ExerciseProviderInvalidResponseError(
-                "ExerciseDB returned invalid JSON."
-            ) from exc
+            raise ExerciseProviderInvalidResponseError("ExerciseDB returned invalid JSON.") from exc
 
 
 def _query_parameters(

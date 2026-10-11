@@ -94,6 +94,23 @@ def level_for_xp(xp: int) -> int:
     return max(0, xp) // 100 + 1
 
 
+def earned_badges(evidence: list[dict]) -> list[str]:
+    """Historical badges survive rollover and disappear if their evidence is revoked."""
+    weeks: dict[date, set[str]] = {}
+    for row in evidence:
+        if row["count"] > 0:
+            weeks.setdefault(row["week"], set()).add(row["category"])
+    conditions = (
+        ("first_workout", any("workout" in kinds for kinds in weeks.values())),
+        (
+            "balanced_week",
+            any({"workout", "nutrition", "recovery"} <= kinds for kinds in weeks.values()),
+        ),
+        ("steady_builder", sum(row["xp"] for row in evidence) >= 500),
+    )
+    return [key for key, condition in conditions if condition]
+
+
 def mission_reward(category: str, count: int, workout_days: int) -> tuple[int, int]:
     """(XP, points). Rounding distributes exactly the same maximum to every schedule."""
     target, maximum, xp_each = {

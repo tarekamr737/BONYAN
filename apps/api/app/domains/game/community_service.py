@@ -6,7 +6,7 @@ from app.domains.avatar.service import AvatarService
 from app.domains.game.community_repository import GameCommunityRepository
 from app.domains.game.models import Challenge
 from app.domains.game.repository import GameRepository
-from app.domains.game.rules import progress_for_habits
+from app.domains.game.rules import earned_badges, progress_for_habits
 from app.domains.game.schemas import (
     ChallengeView,
     FriendsView,
@@ -63,6 +63,7 @@ class GameCommunityService:
             else {}
         )
         ranking = []
+        badge_evidence = await self.game.badge_evidence(owners)
         for member in members:
             if await self.privacy.blocked(owner, member.owner_id):
                 continue
@@ -91,6 +92,11 @@ class GameCommunityService:
                     member.joined_at,
                     member.owner_id,
                     LeagueEntry(
+                        badges=earned_badges(
+                            [row for row in badge_evidence if row["owner_id"] == member.owner_id]
+                        )
+                        if permission.badges
+                        else [],
                         rank=None,
                         display_name=display_name,
                         avatar_url=identity.image_url if identity else None,
@@ -221,6 +227,8 @@ class GameCommunityService:
         ):
             raise AppError("challenge_unavailable", "This challenge is unavailable.", 404)
         if challenge.status != "invited" or challenge.ends_at <= datetime.now(UTC):
+            if challenge.status == ("active" if accept else "declined"):
+                return
             raise AppError("challenge_closed", "This challenge is no longer pending.", 409)
         challenge.status = "active" if accept else "declined"
         if accept:

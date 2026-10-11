@@ -35,6 +35,18 @@ def run(coro):
     return asyncio.run(coro)
 
 
+def test_unlicensed_catalog_is_disabled_before_network_or_cached_access() -> None:
+    client = ExerciseDbClient(enabled=False)
+    with patch("app.integrations.exercisedb.client.request.urlopen") as outbound:
+        with pytest.raises(ExerciseProviderUnavailableError):
+            run(client.search_exercises(ExerciseSearchFilters()))
+        with pytest.raises(ExerciseProviderUnavailableError):
+            run(client.get_exercise("cached-exercise"))
+        with pytest.raises(ExerciseProviderUnavailableError):
+            run(client.get_media_access("cached-exercise", user_id="owner"))
+        outbound.assert_not_called()
+
+
 def exercise_payload() -> dict[str, object]:
     return {
         "exerciseId": "abc-123",
@@ -106,7 +118,7 @@ def test_search_translates_local_plan_terms_to_exercisedb_terms() -> None:
         )
 
     assert "targetMuscles=pectorals" in captured[0]
-    assert "equipments=body+weight" in captured[0]
+    assert "equipments=bodyweight" in captured[0]
     assert page.items[0].equipment == ("bodyweight",)
     assert page.items[0].muscles == ("chest",)
 

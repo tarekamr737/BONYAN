@@ -77,11 +77,23 @@ async def _profile_timezone(session: AsyncSession, user_id: str) -> str:
     return profile.timezone if profile else "UTC"
 
 
+async def _profile_locale(session: AsyncSession, user_id: str) -> str:
+    profile = await SqlAlchemyProfileRepository(session).get(user_id)
+    return profile.preferred_language if profile else "en"
+
+
 @router.post("/analyze", response_model=FoodLogView, status_code=status.HTTP_201_CREATED)
 async def analyze_food(
-    request: AnalyzeFoodRequest, current_user: CurrentUserDep, service: ServiceDep
+    request: AnalyzeFoodRequest,
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> FoodLogView:
-    return await service.analyze_and_log(user_id=current_user.id, request=request)
+    return await service.analyze_and_log(
+        user_id=current_user.id,
+        request=request,
+        locale=await _profile_locale(session, current_user.id),
+    )
 
 
 @router.get("/today", response_model=DailyDashboard)
@@ -99,9 +111,16 @@ async def get_today(
 
 @router.post("/preview", response_model=FoodPreview)
 async def preview_food(
-    request: AnalyzeFoodRequest, current_user: CurrentUserDep, service: ServiceDep
+    request: AnalyzeFoodRequest,
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> FoodPreview:
-    analysis = await service.preview(user_id=current_user.id, request=request)
+    analysis = await service.preview(
+        user_id=current_user.id,
+        request=request,
+        locale=await _profile_locale(session, current_user.id),
+    )
     return FoodPreview(**analysis.model_dump())
 
 
@@ -110,6 +129,7 @@ async def preview_food_image(
     current_user: CurrentUserDep,
     service: ServiceDep,
     photo: Annotated[UploadFile, File()],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
     meal_type: Annotated[MealType, Form()] = MealType.SNACK,
     description: Annotated[str, Form(max_length=1000)] = "",
 ) -> FoodPreview:
@@ -121,6 +141,7 @@ async def preview_food_image(
         image=image.content,
         media_type=image.media_type,
         description=description,
+        locale=await _profile_locale(session, current_user.id),
     )
     return FoodPreview(**analysis.model_dump())
 

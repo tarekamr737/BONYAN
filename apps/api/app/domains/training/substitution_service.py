@@ -57,9 +57,7 @@ class SessionSubstitutionService:
         equipment = sorted(set(plan.equipment).difference(unavailable) | {"bodyweight"})
         difficulty = plan.experience
         page = await self.training.exercise_provider.search_exercises(
-            ExerciseSearchFilters(
-                muscles=tuple(original.muscles), equipment=tuple(equipment), difficulty=difficulty
-            ),
+            ExerciseSearchFilters(muscles=tuple(original.muscles), equipment=tuple(equipment)),
             page=1,
             page_size=40,
         )
@@ -151,9 +149,12 @@ class SessionSubstitutionService:
         levels = {"beginner": 0, "intermediate": 1, "advanced": 2}
         if levels.get(candidate.difficulty, 2) > levels.get(plan.experience, 0):
             raise AppError("proposal_stale", "This alternative is no longer compatible.", 409)
-        if not set(candidate.equipment).issubset(set(proposal.available_equipment)) or not set(
-            candidate.muscles
-        ).intersection(current.muscles):
+        if (
+            choose_substitution(
+                current, [candidate], available_equipment=tuple(proposal.available_equipment)
+            )
+            is None
+        ):
             raise AppError("proposal_stale", "This alternative is no longer compatible.", 409)
         revision_id = None
         equipment_changed = False

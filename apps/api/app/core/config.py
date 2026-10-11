@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     chat_timeout_seconds: float = 20
     exercise_provider: Literal["exercisedb", "musclewiki"] = "exercisedb"
     exercisedb_base_url: str = "https://oss.exercisedb.dev/api/v1"
+    exercise_catalog_license_approved: bool = False
     avatar_provider: Literal["mock", "gemini", "cloudflare", "openrouter"] = "mock"
     avatar_model: str = "TBD"
     avatar_api_key: SecretStr | None = None
