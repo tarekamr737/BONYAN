@@ -27,6 +27,9 @@ import { AuthLoadingScreen } from "../src/features/auth/screens/AuthLoadingScree
 import { readIntroCompleted, storeIntroCompleted } from "../src/core/auth/introStorage";
 import { AuthEntryPreferences } from "../src/features/auth/screens/SignInScreen";
 import { IntroScreen } from "../src/features/auth/screens/IntroScreen";
+import { useLocale } from "../src/core/i18n/LocaleProvider";
+import { normalizeLocale } from "../src/core/i18n/messages";
+import { CoachShortcut } from "../src/core/components/CoachShortcut";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -66,6 +69,7 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
+  const { setLocale, t } = useLocale();
   const { isAuthenticated, isRestoring } = useAuthSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -80,6 +84,8 @@ function RootNavigator() {
     queryFn: getMyProfile,
     queryKey: ["profile", "me"],
   });
+  const profileLanguage = profile.data?.preferred_language;
+  useEffect(() => { if (profileLanguage) void setLocale(normalizeLocale(profileLanguage)); }, [profileLanguage, setLocale]);
   const inAuthGroup = pathname === "/sign-in";
   const inOnboardingGroup = pathname === "/onboarding";
   function completeIntro(register: boolean, arabic: boolean) {
@@ -89,7 +95,7 @@ function RootNavigator() {
     router.replace({ pathname: "/sign-in", params: choice });
   }
 
-  if (introError) return <SafeAreaView style={styles.gateState}><ScreenState variant="error" title="Startup unavailable" message="Your device preferences could not be loaded." actionLabel="Try again" onAction={restoreIntro} /></SafeAreaView>;
+  if (introError) return <SafeAreaView style={styles.gateState}><ScreenState variant="error" title={t("startup")} message={t("preferencesError")} actionLabel={t("retry")} onAction={restoreIntro} /></SafeAreaView>;
   if (isRestoring || intro === null) {
     return <AuthLoadingScreen />;
   }
@@ -104,10 +110,10 @@ function RootNavigator() {
     return (
       <SafeAreaView style={styles.gateState}>
         <ScreenState
-          actionLabel="Try again"
-          message="Your secure profile could not be loaded."
+          actionLabel={t("retry")}
+          message={t("profileError")}
           onAction={() => void profile.refetch()}
-          title="Profile unavailable"
+          title={t("profile")}
           variant="error"
         />
       </SafeAreaView>
@@ -120,7 +126,7 @@ function RootNavigator() {
     return <Redirect href="/" />;
   }
   const arabic = profile.data.preferred_language.startsWith("ar");
-  return <LanguageDirection.Provider value={arabic}><HomeTourProvider arabic={arabic} profile={profile.data}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <AppTaskbar arabic={arabic} /> : null}</View></HomeTourProvider></LanguageDirection.Provider>;
+  return <LanguageDirection.Provider value={arabic}><HomeTourProvider arabic={arabic} profile={profile.data}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <><CoachShortcut /><AppTaskbar arabic={arabic} /></> : null}</View></HomeTourProvider></LanguageDirection.Provider>;
 }
 
 const styles = StyleSheet.create({

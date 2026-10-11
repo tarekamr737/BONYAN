@@ -1,3 +1,4 @@
+import { phrase } from "../i18n/copy";
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import { ActivityIndicator, Pressable, View } from "react-native";
@@ -17,18 +18,18 @@ export function NotificationsScreen() {
   return (
     <CoachingPage arabic={state.arabic}>
       <View style={{ alignItems: "center", flexDirection: "row", gap: 12, justifyContent: "space-between" }}>
-        <Pressable accessibilityLabel={state.arabic ? "رجوع" : "Back"} accessibilityRole="button" hitSlop={8} onPress={() => goBackOr("/")} style={({ pressed }) => ({ alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.line, borderRadius: 16, borderWidth: 1, height: 48, justifyContent: "center", opacity: pressed ? 0.72 : 1, width: 48 })}>
+        <Pressable accessibilityLabel={phrase("copy_436170a81a03", state.arabic)} accessibilityRole="button" hitSlop={8} onPress={() => goBackOr("/")} style={({ pressed }) => ({ alignItems: "center", backgroundColor: colors.surfaceRaised, borderColor: colors.line, borderRadius: 16, borderWidth: 1, height: 48, justifyContent: "center", opacity: pressed ? 0.72 : 1, width: 48 })}>
           <Feather color={colors.text} name={state.arabic ? "arrow-right" : "arrow-left"} size={21} />
         </Pressable>
         <BrandMark />
       </View>
       <View style={{ gap: 8 }}>
-        <Text accessibilityRole="header" style={[ui.title, state.arabic && ui.rtl]}>{state.arabic ? "مركز المتابعة" : "Your updates"}</Text>
-        <Text style={[ui.text, state.arabic && ui.rtl]}>{state.arabic ? "خطوات مهمة من ملفك وخطتك والـAvatar في مكان واحد." : "Useful next steps from your profile, plan and avatar in one place."}</Text>
+        <Text accessibilityRole="header" style={[ui.title, state.arabic && ui.rtl]}>{phrase("copy_050ca84e45ea", state.arabic)}</Text>
+        <Text style={[ui.text, state.arabic && ui.rtl]}>{phrase("copy_abe0c61f50d5", state.arabic)}</Text>
       </View>
-      {pending ? <GlassCard><ActivityIndicator color={colors.bronze} /><Text style={ui.text}>{state.arabic ? "نراجع آخر تحديثاتك…" : "Checking your latest updates…"}</Text></GlassCard> : null}
-      {hasError ? <AppButton label={state.arabic ? "إعادة المحاولة" : "Try again"} onPress={() => void state.refetch()} variant="secondary" /> : null}
-      {!pending && state.notifications.length === 0 ? <GlassCard><Feather color={colors.positive} name="check-circle" size={28} /><Text style={ui.heading}>{state.arabic ? "كل شيء مضبوط" : "You are all caught up"}</Text><Text style={ui.text}>{state.arabic ? "لا توجد خطوات مطلوبة الآن." : "There are no actions waiting for you right now."}</Text></GlassCard> : null}
+      {pending ? <GlassCard><ActivityIndicator color={colors.bronze} /><Text style={ui.text}>{phrase("copy_3d5f7cc29d3c", state.arabic)}</Text></GlassCard> : null}
+      {hasError ? <AppButton label={phrase("copy_3400efd81139", state.arabic)} onPress={() => void state.refetch()} variant="secondary" /> : null}
+      {!pending && state.notifications.length === 0 ? <GlassCard><Feather color={colors.positive} name="check-circle" size={28} /><Text style={ui.heading}>{phrase("copy_498976fd3361", state.arabic)}</Text><Text style={ui.text}>{phrase("copy_c6d9036179ed", state.arabic)}</Text></GlassCard> : null}
       {!pending ? state.notifications.map((item, index) => (
         <MotionReveal delay={Math.min(index * 45, 180)} key={item.id}>
           <Pressable accessibilityRole="button" onPress={() => router.push(item.href)} style={({ pressed }) => ({ opacity: pressed ? 0.76 : 1 })}>

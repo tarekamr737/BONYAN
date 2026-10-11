@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { GlassBackdrop } from "../../../core/components/GlassSurface";
 import { coachingCopy } from "../coachingCopy";
@@ -53,16 +54,14 @@ export function ProfileScreen() {
       return;
     }
     Alert.alert(
-      arabic ? "حذف حساب بُنيان؟" : "Delete your BONYAN account?",
-      arabic
-        ? "سيتم حذف ملفك وتقارير InBody والتمارين والصور والملفات الخاصة نهائيًا. لا يمكن التراجع عن هذا الإجراء."
-        : "This permanently deletes your profile, InBody reports, workouts, avatars, posts, and private files. This cannot be undone.",
+      phrase("copy_85c7cda597bb", arabic),
+      phrase("copy_1514f3549ea7", arabic),
       [
-        { style: "cancel", text: arabic ? "الاحتفاظ بالحساب" : "Keep account" },
+        { style: "cancel", text: phrase("copy_4e3da0c0ce06", arabic) },
         {
           onPress: () => deletion.mutate(),
           style: "destructive",
-          text: arabic ? "حذف نهائي" : "Delete permanently",
+          text: phrase("copy_d5e2a7db1f28", arabic),
         },
       ],
     );
@@ -116,7 +115,7 @@ export function ProfileScreen() {
           <ProfileOverview profile={profile.data} onEdit={() => setEditing(true)} />
         </View>
         <View style={styles.sessionActions}>
-          <AppButton label={arabic ? "إعادة جولة الصفحة الرئيسية" : "Replay Home tour"} loading={replayTour.isPending} onPress={() => replayTour.mutate()} variant="secondary" />
+          <AppButton label={phrase("copy_49f2d3b93452", arabic)} loading={replayTour.isPending} onPress={() => replayTour.mutate()} variant="secondary" />
           <AppButton label={coachingCopy("Back to BONYAN", profile.data.preferred_language.startsWith("ar"))} onPress={() => router.canGoBack() ? router.back() : router.replace("/")} variant="secondary" />
           <AppButton
             label={coachingCopy("Sign out", profile.data.preferred_language.startsWith("ar"))}
@@ -129,24 +128,20 @@ export function ProfileScreen() {
         </View>
         <View style={styles.dangerZone}>
           <Text accessibilityRole="header" style={styles.dangerTitle}>
-            {arabic ? "حذف الحساب" : "Delete account"}
+            {phrase("copy_6cbb38874eb1", arabic)}
           </Text>
           <Text style={styles.dangerCopy}>
-            {arabic
-              ? "حذف حساب بُنيان وكل بياناتك نهائيًا، بما فيها التقارير الخاصة والمجسّمات التي تم إنشاؤها."
-              : "Permanently remove your BONYAN account and all data you own, including private reports and generated avatars."}
+            {phrase("copy_b50b6fea50c1", arabic)}
           </Text>
           {deletion.isError ? (
             <Text accessibilityLiveRegion="polite" style={styles.dangerError}>
               {deletion.error instanceof Error
                 ? deletion.error.message
-                : arabic
-                  ? "تعذّر حذف حسابك. حاول مرة أخرى."
-                  : "Your account could not be deleted. Please try again."}
+                : phrase("copy_ad94ce5b6101", arabic)}
             </Text>
           ) : null}
           <AppButton
-            label={arabic ? "حذف حسابي" : "Delete my account"}
+            label={phrase("copy_a203959391cb", arabic)}
             loading={deletion.isPending}
             onPress={confirmAccountDeletion}
             variant="danger"
@@ -154,23 +149,21 @@ export function ProfileScreen() {
           {showWebDeletionConfirmation ? (
             <View accessibilityRole="alert" style={styles.deletionConfirmation}>
               <Text accessibilityRole="header" style={styles.confirmationTitle}>
-                {arabic ? "حذف هذا الحساب نهائيًا؟" : "Permanently delete this account?"}
+                {phrase("copy_1af9505821fa", arabic)}
               </Text>
               <Text style={styles.dangerCopy}>
-                {arabic
-                  ? "لا يمكن التراجع عن هذا الإجراء. سيتم حذف تقاريرك وتمارينك ومجسّماتك ومنشوراتك."
-                  : "This action cannot be undone. Your private reports, workouts, avatars, and posts will be removed."}
+                {phrase("copy_ab5951f302bb", arabic)}
               </Text>
               <View style={styles.confirmationActions}>
                 <AppButton
-                  accessibilityLabel={arabic ? "إلغاء حذف الحساب" : "Cancel account deletion"}
-                  label={arabic ? "الاحتفاظ بالحساب" : "Keep account"}
+                  accessibilityLabel={phrase("copy_71f7c928770a", arabic)}
+                  label={phrase("copy_4e3da0c0ce06", arabic)}
                   onPress={webConfirmation.cancel}
                   variant="secondary"
                 />
                 <AppButton
-                  accessibilityLabel={arabic ? "تأكيد حذف الحساب نهائيًا" : "Confirm permanent account deletion"}
-                  label={arabic ? "حذف نهائي" : "Delete permanently"}
+                  accessibilityLabel={phrase("copy_cc059a1714c5", arabic)}
+                  label={phrase("copy_d5e2a7db1f28", arabic)}
                   loading={deletion.isPending}
                   onPress={webConfirmation.confirm}
                   variant="danger"

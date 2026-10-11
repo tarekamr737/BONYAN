@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { View } from "react-native";
 import type { WorkoutDay } from "../types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,14 +29,14 @@ export function PlanReviewScreen() {
     finally { busy.current = false; }
   }
   return <CoachingPage arabic={arabic}>
-    <Text accessibilityRole="header" style={ui.title}>{arabic ? "راجع خطتك" : "Review your plan"}</Text>
-    <Text style={ui.text}>{arabic ? "راجع التمارين قبل الاعتماد. اعتماد الخطة يستبدل خطتك النشطة ويحافظ على سجل تمريناتك." : "Review every exercise before approval. Approving replaces your active plan and preserves workout history."}</Text>
-    {!planId ? <ScreenState message={arabic ? "معرّف الخطة مفقود." : "Plan link is incomplete."} variant="error" title={arabic ? "الخطة غير متاحة" : "Plan unavailable"} actionLabel={arabic ? "العودة للتدريب" : "Back to training"} onAction={() => router.replace("/training")} /> : plan.isError ? <ScreenState message={arabic ? "تعذر تحميل الخطة." : "Could not load the plan."} variant="error" title={arabic ? "الخطة غير متاحة" : "Plan unavailable"} actionLabel={arabic ? "إعادة المحاولة" : "Retry"} onAction={() => void plan.refetch()} /> : plan.isPending ? <ScreenState variant="loading" message={arabic ? "جارٍ تحميل الخطة" : "Loading plan"} /> : plan.data.days.map(day => <ViewDay key={day.key} day={day} arabic={arabic} />)}
-    {approve.isError ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذر اعتماد الخطة. جرّب تاني." : "Could not approve the plan. Please retry."}</Text> : null}
+    <Text accessibilityRole="header" style={ui.title}>{phrase("copy_e17648ea8965", arabic)}</Text>
+    <Text style={ui.text}>{phrase("copy_003a0a35c958", arabic)}</Text>
+    {!planId ? <ScreenState message={phrase("copy_fcfd6aa02e90", arabic)} variant="error" title={phrase("copy_6f10dedda5fc", arabic)} actionLabel={phrase("copy_4fbb7fee1e9e", arabic)} onAction={() => router.replace("/training")} /> : plan.isError ? <ScreenState message={phrase("copy_9cf131dc887e", arabic)} variant="error" title={phrase("copy_6f10dedda5fc", arabic)} actionLabel={phrase("copy_bb30cda7c34e", arabic)} onAction={() => void plan.refetch()} /> : plan.isPending ? <ScreenState variant="loading" message={phrase("copy_08206818d955", arabic)} /> : plan.data.days.map(day => <ViewDay key={day.key} day={day} arabic={arabic} />)}
+    {approve.isError ? <Text accessibilityRole="alert" style={ui.error}>{phrase("copy_24f5f76c575f", arabic)}</Text> : null}
     {planNeedsRefresh(plan.data) ? <Text accessibilityRole="alert" style={ui.error}>{planRefreshMessage(arabic)}</Text> : null}
-    <AppButton label={arabic ? "اعتماد الخطة" : "Approve plan"} disabled={!plan.data || planNeedsRefresh(plan.data) || plan.data.status === "archived"} loading={approve.isPending} onPress={() => void confirm()} />
-    <AppButton variant="secondary" label={arabic ? "طلب تعديل من الكوتش" : "Request changes from Coach"} disabled={approve.isPending} onPress={() => router.push("/training/coach")} />
-    <AppButton variant="secondary" label={arabic ? "رجوع بدون اعتماد" : "Back without approving"} disabled={approve.isPending} onPress={() => router.replace("/training")} />
+    <AppButton label={phrase("copy_4fbe9593f5eb", arabic)} disabled={!plan.data || planNeedsRefresh(plan.data) || plan.data.status === "archived"} loading={approve.isPending} onPress={() => void confirm()} />
+    <AppButton variant="secondary" label={phrase("copy_9fbc86337ebd", arabic)} disabled={approve.isPending} onPress={() => router.push("/training/coach")} />
+    <AppButton variant="secondary" label={phrase("copy_10037d2cd763", arabic)} disabled={approve.isPending} onPress={() => router.replace("/training")} />
   </CoachingPage>;
 }
 

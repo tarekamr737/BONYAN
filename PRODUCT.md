@@ -1,4 +1,20 @@
-# BONYAN Workstream 01 — Core Platform
+# BONYAN V2
+
+Register: product. North Star: **Build Your Real-Life Character. Train in real life. Level up in BONYAN.**
+
+The approved V2 mandate supersedes the historical workstream scope and non-goals below.
+Implement the integrated, private, evidence-aware fitness platform in Egyptian Arabic and English:
+confirmed InBody measurements and consented photos inform a private illustrative Avatar;
+real workouts and sustainable nutrition/recovery earn capped server-authoritative XP and missions.
+Progress is goal-relative, never attractiveness or a medical grade. Five destinations: Today, Train,
+Avatar, Nutrition, Community. Coach edits require preview, explicit scope, approval and atomic commit.
+
+Preserve Human Foundry tokens, ownership/security, useful services, existing data and additive migrations.
+No fake user metrics, ornamental glow or neon. Voice and partner redemption are disabled until genuine
+permissioned integrations pass release gates. Granular consent, private media and deletion/export apply.
+Canonical decisions and active checkboxes: `docs/product/BONYAN_V2.md`, `docs/product/BONYAN_V2_TASKS.md`.
+
+## Historical foundation (retained context, superseded product restrictions)
 
 ## Purpose
 Create the shared mobile/backend foundation that every BONYAN feature depends on.

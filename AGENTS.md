@@ -1,4 +1,11 @@
-# BONYAN Workstream 01 — Core Platform Agent Rules
+# BONYAN V2 — Platform Agent Rules
+
+## Active V2 mandate
+The approved V2 master prompt supersedes the legacy product, design, branch and
+workstream implementation scope below for this feature. Implement the complete
+V2 vertical slices on `feat/bonyan-v2-game-fitness`, preserving existing work and
+security/architecture/quality rules. Canonical decisions and active checkboxes:
+`docs/product/BONYAN_V2.md` and `docs/product/BONYAN_V2_TASKS.md`.
 
 ## Engineering Principles
 
@@ -29,10 +36,10 @@ Build and own BONYAN's shared production foundation so all other workstreams can
 
 ## Repository
 - Repo: https://github.com/tarekamr737/BONYAN
-- Branch: `feat/01-core-platform`
+- Branch: `feat/bonyan-v2-game-fitness`
 - Prototype: https://bonyan-mobile.vercel.app/
-- Treat the prototype as the visual/product source of truth.
-- Do not redesign BONYAN unless PRODUCT.md explicitly requires it.
+- V2 concept and extracted screen designs own visual hierarchy; existing tokens own brand styling.
+- PRODUCT.md explicitly authorizes the complete V2 redesign.
 
 ## Owned Paths
 - `apps/mobile/src/core/**`
@@ -46,7 +53,7 @@ Build and own BONYAN's shared production foundation so all other workstreams can
 - central FastAPI router integration
 
 ## Forbidden Ownership
-Do not implement business logic owned by:
+Legacy parallel-workstream boundaries (superseded for approved V2 slices; preserve other uncommitted work):
 - Workstream 02: InBody/OCR
 - Workstream 03: Training/MuscleWiki/Coach
 - Workstream 04: Avatar/Community
@@ -98,7 +105,7 @@ Provide mocks so development never blocks on model selection.
 - Avoid exposing internal DB fields.
 
 ## Git / Parallel Rules
-- Work only on `feat/01-core-platform`.
+- Work only on `feat/bonyan-v2-game-fitness` for this mandate; never change main directly.
 - Never rewrite another workstream's owned files.
 - Other workstreams export routers/screens/modules.
 - This workstream performs final central registration after merges.

@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { router } from "expo-router";
 import { AppButton } from "../../../core/components";
@@ -54,19 +55,19 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text accessibilityRole="header" style={styles.title}>
-          {arabic ? "راجع التقرير" : "Review Scan"}
+          {phrase("copy_20f16a768dae", arabic)}
         </Text>
-        <Text style={styles.subtitle}>{arabic ? "أكّد بس القيم اللي مطابقة لتقريرك." : "Confirm only values that match your report."}</Text>
+        <Text style={styles.subtitle}>{phrase("copy_e7779428bb4f", arabic)}</Text>
 
         <SurfaceCard>
-          {isLoading ? <Text style={styles.stateText}>{arabic ? "بنقرأ التقرير…" : "Reading scan..."}</Text> : null}
+          {isLoading ? <Text style={styles.stateText}>{phrase("copy_75a2fa3e31fe", arabic)}</Text> : null}
           {isError ? (
             <Pressable
               accessibilityRole="button"
               onPress={() => void refetch()}
               style={styles.secondaryButton}
             >
-              <Text style={styles.secondaryButtonText}>{arabic ? "جرّب تحميل التقرير تاني" : "Retry Loading Scan"}</Text>
+              <Text style={styles.secondaryButtonText}>{phrase("copy_a1af7493c131", arabic)}</Text>
             </Pressable>
           ) : null}
           {reviewState === "failed" ? (
@@ -75,19 +76,19 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
                 {arabic ? "ما قدرناش نعالج التقرير ده." : data?.failure_message ?? "This report could not be processed."}
               </Text>
               <Text style={styles.subtitle}>
-                {arabic ? "التقرير ما اتأكدش. جرّب ترفعه تاني، أو ضيف القياسات يدويًا من ملفك الشخصي." : "Your report has not been confirmed. Try uploading it again, or add measurements manually from your profile."}
+                {phrase("copy_78f26b868ea9", arabic)}
               </Text>
-              <AppButton label={arabic ? "ارفع التقرير تاني" : "Try uploading again"} onPress={() => router.replace("/inbody")} />
-              <AppButton label={arabic ? "اكتب القياسات يدويًا" : "Enter measurements manually"} variant="secondary" onPress={() => router.replace("/profile")} />
+              <AppButton label={phrase("copy_6c2a53bb6a8c", arabic)} onPress={() => router.replace("/inbody")} />
+              <AppButton label={phrase("copy_8986b24d8720", arabic)} variant="secondary" onPress={() => router.replace("/profile")} />
             </View>
           ) : reviewState === "confirmed" ? (
             <View style={styles.confirmedState}>
-              <Text style={styles.confirmedTitle}>{arabic ? "التقرير ده متأكد بالفعل" : "This report is already confirmed"}</Text>
+              <Text style={styles.confirmedTitle}>{phrase("copy_844f9c0ef373", arabic)}</Text>
               <Text style={styles.stateText}>
-                {arabic ? "بنيان تعرّف على تقرير حفظته قبل كده. هو موجود بالفعل في سجل تقدمك ومش محتاج تأكيد تاني." : "BONYAN recognized a report you previously saved. It is already included in your progress history, so there is nothing to confirm again."}
+                {phrase("copy_4ded223ac59b", arabic)}
               </Text>
               <Pressable accessibilityRole="button" onPress={onConfirmed} style={styles.button}>
-                <Text style={styles.buttonText}>{arabic ? "شوف تقدم InBody" : "View InBody Progress"}</Text>
+                <Text style={styles.buttonText}>{phrase("copy_ec60f955dfd5", arabic)}</Text>
               </Pressable>
             </View>
           ) : reviewState === "review" ? (
@@ -99,7 +100,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
                     accessibilityLabel={arabic ? `صحّح ${measurementLabel(measurement.key, true)}` : `Correct ${measurementLabel(measurement.key, false)}`}
                     keyboardType="decimal-pad"
                     onChangeText={(value) => updateValue(measurement.key, value)}
-                    placeholder={arabic ? "القيمة" : "Value"}
+                    placeholder={phrase("copy_53cdbd5e3c85", arabic)}
                     placeholderTextColor={colors.muted}
                     style={[styles.input, arabic && styles.inputArabic]}
                     value={draftValues[measurement.key] ?? (measurement.value === null ? "" : String(measurement.value))}
@@ -113,7 +114,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
                 style={[styles.secondaryButton, !data?.result ? styles.disabledButton : undefined]}
               >
                 <Text style={styles.secondaryButtonText}>
-                  {saveMutation.isPending ? (arabic ? "بنحفظ…" : "Saving...") : (arabic ? "احفظ التعديلات" : "Save Corrections")}
+                  {saveMutation.isPending ? (phrase("copy_fdb50efd5953", arabic)) : (phrase("copy_828a42113e4f", arabic))}
                 </Text>
               </Pressable>
               {saveMutation.isError ? (
@@ -131,7 +132,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
                 ]}
               >
                 <Text style={styles.buttonText}>
-                  {confirmMutation.isPending ? (arabic ? "بنأكد…" : "Confirming...") : (arabic ? "أكّد التقرير" : "Confirm Scan")}
+                  {confirmMutation.isPending ? (phrase("copy_fcc0bf81fd5b", arabic)) : (phrase("copy_2bf426da5cc4", arabic))}
                 </Text>
               </Pressable>
               {confirmMutation.isError ? (
@@ -142,8 +143,8 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
             </>
           ) : data && !isLoading && !isError ? (
             <View style={styles.failedState}>
-              <Text style={styles.stateText}>{arabic ? "التقرير لسه بيتعالج. جرّب تحمّله تاني بعد لحظة." : "This scan is still being processed. Try loading it again in a moment."}</Text>
-              <AppButton label={arabic ? "حدّث التقرير" : "Refresh scan"} variant="secondary" onPress={() => void refetch()} />
+              <Text style={styles.stateText}>{phrase("copy_2645a252bba5", arabic)}</Text>
+              <AppButton label={phrase("copy_38de786493db", arabic)} variant="secondary" onPress={() => void refetch()} />
             </View>
           ) : null}
         </SurfaceCard>

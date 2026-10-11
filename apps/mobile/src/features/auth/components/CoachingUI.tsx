@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text , LanguageDirection } from "../../../core/components/DirectionalText";
 import { coachingCopy } from "../coachingCopy";
 import { useEffect, useRef, type ComponentProps, type PropsWithChildren, type ReactNode } from "react";
@@ -76,10 +77,10 @@ export function ProgressMeter({value, label}: {value: number; label: string}) {
 }
 
 export function ScoreCard({score, arabic = false}: {score: CoachingScore; arabic?: boolean}) {
-  return <GlassCard><View style={ui.row}><Text style={[ui.heading, {flex: 1}]}>{arabic ? "التقدم نحو أهدافك" : "Your target progress"}</Text><Text style={[ui.title, {color: colors.bronze}]}>{score.value === null ? "—" : `${score.value}/100`}</Text></View>
-    <Text style={ui.small}>{arabic ? "مؤشر إرشادي حسب أهدافك الشخصية، وليس تقييمًا طبيًا أو معيار قبول عسكري." : "A coaching indicator against your personal targets. Not a medical assessment or military admission standard."}</Text>
+  return <GlassCard><View style={ui.row}><Text style={[ui.heading, {flex: 1}]}>{phrase("copy_177a85c23c9f", arabic)}</Text><Text style={[ui.title, {color: colors.bronze}]}>{score.value === null ? "—" : `${score.value}/100`}</Text></View>
+    <Text style={ui.small}>{phrase("copy_a716c623b63c", arabic)}</Text>
     {score.dimensions.map(d => <View key={d.key} style={{gap: 8}}><View style={ui.row}><Text style={[ui.text, {flex: 1}]}>{coachingCopy(dimensionLabel[d.key] ?? d.key, arabic)}</Text><Text style={ui.text}>{d.value}%</Text></View><ProgressMeter value={d.value} label={coachingCopy(dimensionLabel[d.key] ?? d.key, arabic)} /><Text style={ui.small}>{coachingCopy(d.basis, arabic)}</Text></View>)}
-    <Text style={ui.small}>{score.coverage}% {arabic ? "من عناصر التقييم متاحة" : "of score inputs available"}. {score.missing.map(k => coachingCopy(dimensionLabel[k] ?? k, arabic)).join(" · ")}</Text>
+    <Text style={ui.small}>{score.coverage}% {phrase("copy_cd596f6f06a5", arabic)}. {score.missing.map(k => coachingCopy(dimensionLabel[k] ?? k, arabic)).join(" · ")}</Text>
     {score.strongest ? <Text style={ui.text}>{coachingCopy("Strongest", arabic)}: {coachingCopy(dimensionLabel[score.strongest] ?? "", arabic)}. {coachingCopy("Next focus", arabic)}: {coachingCopy(dimensionLabel[score.improve ?? ""] ?? "", arabic)}.</Text> : null}
     <Text style={ui.text}>{coachingCopy(score.recommendation, arabic)}</Text>
   </GlassCard>;

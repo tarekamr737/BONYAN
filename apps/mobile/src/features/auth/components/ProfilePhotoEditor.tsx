@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -19,7 +20,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
     onSuccess: (updated) => {
       queryClient.setQueryData(["profile", "me"], updated);
       setNotice({
-        message: arabic ? "تم تحديث صورة ملفك." : "Your profile photo is updated.",
+        message: phrase("copy_f3f23e0ccb76", arabic),
         tone: "success",
       });
     },
@@ -33,7 +34,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
           : current,
       );
       setNotice({
-        message: arabic ? "تم حذف صورة الملف." : "Your profile photo was removed.",
+        message: phrase("copy_adcc0637325b", arabic),
         tone: "success",
       });
     },
@@ -46,9 +47,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         setNotice({
-          message: arabic
-            ? "اسمح لبُنيان بالوصول للصور من إعدادات جهازك، ثم حاول مرة أخرى."
-            : "Allow BONYAN to access your photos in device settings, then try again.",
+          message: phrase("copy_3b824b2d4569", arabic),
           tone: "error",
         });
         return;
@@ -69,9 +68,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
       });
     } catch {
       setNotice({
-        message: arabic
-          ? "تعذّر فتح مكتبة الصور. حاول مرة أخرى."
-          : "Couldn’t open your photo library. Please try again.",
+        message: phrase("copy_82da3abcf836", arabic),
         tone: "error",
       });
     }
@@ -83,7 +80,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
     <GlassCard>
       <View style={[ui.row, { alignItems: "center", flexWrap: "nowrap" }]}>
         <ProfileAvatar
-          accessibilityLabel={arabic ? "صورة ملفي" : "My profile photo"}
+          accessibilityLabel={phrase("copy_0f5992eea234", arabic)}
           displayName={profile.display_name}
           hasPhoto={profile.has_profile_photo}
           photoUpdatedAt={profile.profile_photo_updated_at}
@@ -91,12 +88,10 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
         />
         <View style={{ flex: 1, gap: 7 }}>
           <Text style={[ui.heading, arabic && ui.rtl]}>
-            {arabic ? "صورتك الشخصية" : "Your profile photo"}
+            {phrase("copy_de2847cd4922", arabic)}
           </Text>
           <Text style={[ui.small, arabic && ui.rtl]}>
-            {arabic
-              ? "اختر صورة واضحة. هتفضل خاصة بحسابك وتقدر تغيّرها في أي وقت."
-              : "Choose a clear photo. It stays private to your account and can be changed anytime."}
+            {phrase("copy_4f658ab58c9a", arabic)}
           </Text>
         </View>
       </View>
@@ -105,9 +100,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
           accessibilityLiveRegion="polite"
           style={[ui.small, { color: colors.error }, arabic && ui.rtl]}
         >
-          {arabic
-            ? "تعذّر حفظ الصورة. استخدم JPEG أو PNG أو WebP أصغر من 10 ميجابايت."
-            : "Couldn’t save the photo. Use a JPEG, PNG, or WebP smaller than 10 MB."}
+          {phrase("copy_61fcf231ad43", arabic)}
         </Text>
       ) : null}
       {notice ? (
@@ -127,8 +120,8 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
           <AppButton
             label={
               profile.has_profile_photo
-                ? arabic ? "تغيير الصورة" : "Change photo"
-                : arabic ? "اختيار صورة" : "Choose photo"
+                ? phrase("copy_65cd590e1720", arabic)
+                : phrase("copy_bc69feee80d2", arabic)
             }
             disabled={pending}
             loading={upload.isPending}
@@ -139,7 +132,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
         {profile.has_profile_photo ? (
           <View style={{ flex: 1, minWidth: 140 }}>
             <AppButton
-              label={arabic ? "حذف الصورة" : "Remove photo"}
+              label={phrase("copy_46aa3ae4ad11", arabic)}
               disabled={pending}
               loading={remove.isPending}
               onPress={() => remove.mutate()}
@@ -150,7 +143,7 @@ export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
       </View>
       {pending ? (
         <Text style={[ui.small, arabic && ui.rtl]}>
-          {arabic ? "جاري تحديث الصورة…" : "Updating your photo…"}
+          {phrase("copy_22da77e5913f", arabic)}
         </Text>
       ) : null}
     </GlassCard>

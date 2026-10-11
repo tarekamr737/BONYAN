@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -30,7 +31,7 @@ function paramValue(value: string | string[] | undefined): string | undefined {
 }
 
 function displayDayName(value: string | undefined, arabic: boolean): string {
-  if (!value) return arabic ? "التمرين" : "Workout";
+  if (!value) return phrase("copy_3c088a2a4e7a", arabic);
   return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value;
 }
 
@@ -134,41 +135,41 @@ export function WorkoutDayScreen() {
 
         {sessionId && !session && savedSession.isPending ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "جارٍ استعادة الجلسة" : "Loading session"}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_99efe666a4a1", arabic)}</Text>
           </SurfaceCard>
         ) : null}
 
         {(!sessionId || session) && planQuery.isPending ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "جارٍ تحميل التمرين" : "Loading workout"}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_198116c26fad", arabic)}</Text>
           </SurfaceCard>
         ) : null}
 
         {planQuery.isError ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "تعذر تحميل التمرين" : "Workout unavailable"}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_26d85bd5316d", arabic)}</Text>
             <Pressable accessibilityRole="button" onPress={() => planQuery.refetch()} style={styles.completeButton}>
-              <Text style={styles.completeButtonText}>{arabic ? "جرّب تاني" : "Retry"}</Text>
+              <Text style={styles.completeButtonText}>{phrase("copy_0aef5de01d6c", arabic)}</Text>
             </Pressable>
           </SurfaceCard>
         ) : null}
 
         {!planQuery.isPending && !planQuery.isError && !day ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "لا يوجد يوم تمرين" : "No workout day"}</Text>
-            <Text style={styles.stateCopy}>{arabic ? "أنشئ خطة تدريب للبدء." : "Create a plan to begin."}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_480df73fe366", arabic)}</Text>
+            <Text style={styles.stateCopy}>{phrase("copy_98e859472f0b", arabic)}</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => router.push("/training")}
               style={styles.completeButton}
             >
-              <Text style={styles.completeButtonText}>{arabic ? "ارجع للتمرين" : "Back to Training"}</Text>
+              <Text style={styles.completeButtonText}>{phrase("copy_3a8f0dbac970", arabic)}</Text>
             </Pressable>
           </SurfaceCard>
         ) : null}
 
-        {needsRefresh ? <SurfaceCard><Text accessibilityRole="alert" style={styles.stateCopy}>{planRefreshMessage(arabic)}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{arabic ? "العودة للتدريب" : "Back to training"}</Text></Pressable></SurfaceCard> : null}
-        {sessionId && savedSession.isError ? <SurfaceCard><Text style={styles.errorText}>{arabic ? "تعذر استعادة الجلسة." : "Could not restore the session."}</Text><Pressable accessibilityRole="button" onPress={() => void savedSession.refetch()} style={styles.completeButton}><Text style={styles.completeButtonText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text></Pressable></SurfaceCard> : null}
+        {needsRefresh ? <SurfaceCard><Text accessibilityRole="alert" style={styles.stateCopy}>{planRefreshMessage(arabic)}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{phrase("copy_4fbb7fee1e9e", arabic)}</Text></Pressable></SurfaceCard> : null}
+        {sessionId && savedSession.isError ? <SurfaceCard><Text style={styles.errorText}>{phrase("copy_282999cf84e4", arabic)}</Text><Pressable accessibilityRole="button" onPress={() => void savedSession.refetch()} style={styles.completeButton}><Text style={styles.completeButtonText}>{phrase("copy_bb30cda7c34e", arabic)}</Text></Pressable></SurfaceCard> : null}
         {day && active && (!sessionId || session) ? (
           <>
             <SurfaceCard>
@@ -194,21 +195,21 @@ export function WorkoutDayScreen() {
                   >
                     <Text style={styles.videoText}>
                       {placeholderExercise
-                        ? (arabic ? "التمرين القديم ده مالوش عرض. جهّز خطة جديدة." : "This legacy exercise has no demonstration. Prepare a new plan.")
+                        ? (phrase("copy_fd416d6e6f1c", arabic))
                         : noDemonstration
-                        ? (arabic ? "مفيش عرض للتمرين ده حاليًا. تقدر تطلب بديل من تحت." : "No demonstration is available for this exercise. You can request an alternative below.")
+                        ? (phrase("copy_a921cc49ec65", arabic))
                         : mediaQuery.isPending
-                        ? (arabic ? "جارٍ تحميل العرض…" : "Loading media…")
-                        : (arabic ? "العرض غير متاح. اضغط لإعادة المحاولة." : "Media unavailable. Tap to retry.")}
+                        ? (phrase("copy_a6e8ff074c0e", arabic))
+                        : (phrase("copy_a3cea479915e", arabic))}
                     </Text>
                   </Pressable>
                 )}
               </View>
               <View style={styles.stepperRow}>
-                <SetStepper arabic={arabic} label={arabic ? "التكرارات" : "Reps"} max={50} min={0} onChange={setReps} step={1} value={reps} />
+                <SetStepper arabic={arabic} label={phrase("copy_85ba154f815e", arabic)} max={50} min={0} onChange={setReps} step={1} value={reps} />
                 <SetStepper
                   arabic={arabic}
-                  label={arabic ? "كجم" : "Kg"}
+                  label={phrase("copy_2fb6ec488d9a", arabic)}
                   max={300}
                   min={0}
                   onChange={setWeight}
@@ -223,7 +224,7 @@ export function WorkoutDayScreen() {
                   onPress={() => startMutation.mutate()}
                   style={[styles.logButton, (needsRefresh || startMutation.isPending) && styles.disabledAction]}
                 >
-                  <Text style={styles.logButtonText}>{startMutation.isPending ? (arabic ? "بنبدأ…" : "Starting...") : (arabic ? "ابدأ الجلسة" : "Start session")}</Text>
+                  <Text style={styles.logButtonText}>{startMutation.isPending ? (phrase("copy_0d3f000d39a0", arabic)) : (phrase("copy_51cc7ab66cf6", arabic))}</Text>
                 </Pressable>
               ) : (
                 <Pressable
@@ -236,18 +237,18 @@ export function WorkoutDayScreen() {
                   ]}
                 >
                   <Text style={styles.logButtonText}>
-                    {nextSetNumber > active.sets ? (arabic ? "المجموعات اكتملت" : "Sets complete") : (arabic ? `سجّل المجموعة ${nextSetNumber}` : `Log set ${nextSetNumber}`)}
+                    {nextSetNumber > active.sets ? (phrase("copy_e3b75f09ab2d", arabic)) : (arabic ? `سجّل المجموعة ${nextSetNumber}` : `Log set ${nextSetNumber}`)}
                   </Text>
                 </Pressable>
               )}
               {startMutation.isError || logMutation.isError ? (
-                <Text style={styles.errorText}>{arabic ? "ما قدرناش نحفظ تحديث التمرين." : "This workout update could not be saved."}</Text>
+                <Text style={styles.errorText}>{phrase("copy_3c8a982a67e3", arabic)}</Text>
               ) : null}
             </SurfaceCard>
 
-            {activeIndex < day.prescriptions.length - 1 ? <Pressable accessibilityRole="button" disabled={logMutation.isPending || completeMutation.isPending || swap.isPending} style={styles.completeButton} onPress={() => { setActiveIndex(index => index + 1); setAlternative(null); setAlternativeReason(false); }}><Text style={styles.completeButtonText}>{arabic ? "التمرين التالي" : "Next exercise"}</Text></Pressable> : null}
-            {sessionComplete ? <SurfaceCard><Text style={styles.stateTitle}>{arabic ? "تم تسجيل التمرين" : "Workout recorded"}</Text><Text style={styles.detail}>{session.logged_sets.length} {arabic ? "مجموعات مسجلة" : "sets recorded"}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{arabic ? "العودة للتدريب" : "Back to training"}</Text></Pressable></SurfaceCard> : null}
-            {!sessionComplete && completedSets === 0 ? <SurfaceCard><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => setAlternativeReason(!alternativeReason)}><Text style={styles.completeButtonText}>{arabic ? "طلب بديل للتمرين" : "Request an alternative"}</Text></Pressable>{alternativeReason ? <><Text style={styles.detail}>{arabic ? "إذا شعرت بألم أو تعرضت لإصابة، أوقف التمرين واستشر مختصًا." : "If you have pain or an injury, stop and seek professional advice."}</Text>{[arabic ? "المعدات مش متاحة" : "Equipment unavailable", arabic ? "أفضل تمرين آخر" : "Prefer another exercise"].map(label => <Pressable key={label} accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(true)}><Text style={styles.completeButtonText}>{label}</Text></Pressable>)}{replacement ? <><Text style={styles.activeName}>{replacement.name}</Text><Text style={styles.detail}>{replacement.equipment.join(" · ")}</Text><Pressable accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(false)}><Text style={styles.completeButtonText}>{arabic ? "تأكيد البديل" : "Confirm alternative"}</Text></Pressable><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => {setAlternative(null);setAlternativeReason(false);}}><Text style={styles.completeButtonText}>{arabic ? "إلغاء" : "Cancel"}</Text></Pressable></> : null}{swap.isError ? <Text style={styles.errorText}>{arabic ? "تعذر توفير البديل. جرّب تاني." : "Alternative unavailable. Please retry."}</Text> : null}</> : null}</SurfaceCard> : null}
+            {activeIndex < day.prescriptions.length - 1 ? <Pressable accessibilityRole="button" disabled={logMutation.isPending || completeMutation.isPending || swap.isPending} style={styles.completeButton} onPress={() => { setActiveIndex(index => index + 1); setAlternative(null); setAlternativeReason(false); }}><Text style={styles.completeButtonText}>{phrase("copy_2b5f2b340a3f", arabic)}</Text></Pressable> : null}
+            {sessionComplete ? <SurfaceCard><Text style={styles.stateTitle}>{phrase("copy_373f1549859f", arabic)}</Text><Text style={styles.detail}>{session.logged_sets.length} {phrase("copy_a91f53f9767a", arabic)}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{phrase("copy_4fbb7fee1e9e", arabic)}</Text></Pressable></SurfaceCard> : null}
+            {!sessionComplete && completedSets === 0 ? <SurfaceCard><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => setAlternativeReason(!alternativeReason)}><Text style={styles.completeButtonText}>{phrase("copy_0eeb6d2faa70", arabic)}</Text></Pressable>{alternativeReason ? <><Text style={styles.detail}>{phrase("copy_85c50705251d", arabic)}</Text>{[phrase("copy_31fd0baf89d0", arabic), phrase("copy_b31914ccf429", arabic)].map(label => <Pressable key={label} accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(true)}><Text style={styles.completeButtonText}>{label}</Text></Pressable>)}{replacement ? <><Text style={styles.activeName}>{replacement.name}</Text><Text style={styles.detail}>{replacement.equipment.join(" · ")}</Text><Pressable accessibilityRole="button" disabled={swap.isPending} style={styles.completeButton} onPress={() => swap.mutate(false)}><Text style={styles.completeButtonText}>{phrase("copy_c5163118f200", arabic)}</Text></Pressable><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => {setAlternative(null);setAlternativeReason(false);}}><Text style={styles.completeButtonText}>{phrase("copy_428808b5e23b", arabic)}</Text></Pressable></> : null}{swap.isError ? <Text style={styles.errorText}>{phrase("copy_eeedb2b570f0", arabic)}</Text> : null}</> : null}</SurfaceCard> : null}
             <View style={styles.list}>
               {day.prescriptions.map((exercise, index) => (
                 <ExerciseCard
@@ -268,10 +269,10 @@ export function WorkoutDayScreen() {
               style={[styles.completeButton, (!session || sessionComplete || completeMutation.isPending) && styles.disabledAction]}
             >
               <Text style={styles.completeButtonText}>
-                {sessionComplete ? (arabic ? "التمرين اكتمل" : "Workout complete") : completeMutation.isPending ? (arabic ? "بنكمل…" : "Completing...") : (arabic ? "أنهِ التمرين" : "Complete workout")}
+                {sessionComplete ? (phrase("copy_8239294ae760", arabic)) : completeMutation.isPending ? (phrase("copy_e406f91cd7ae", arabic)) : (phrase("copy_02092457a239", arabic))}
               </Text>
             </Pressable>
-            {completeMutation.isError ? <Text style={styles.errorText}>{arabic ? "ما قدرناش ننهي التمرين." : "Workout could not be completed."}</Text> : null}
+            {completeMutation.isError ? <Text style={styles.errorText}>{phrase("copy_5b78311a1bf2", arabic)}</Text> : null}
           </>
         ) : null}
       </ScrollView>

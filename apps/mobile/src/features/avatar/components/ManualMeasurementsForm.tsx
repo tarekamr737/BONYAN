@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
@@ -44,22 +45,22 @@ function validatePayload(values: Record<FieldKey, string>, arabic = false): {
   const muscleMass = parseValue(values.muscleMass);
 
   if (height === null || height < 100 || height > 240) {
-    return { error: arabic ? "اكتب طول بين 100 و240 سم." : "Enter a height between 100 and 240 cm.", payload: null };
+    return { error: phrase("copy_d304041cc1b0", arabic), payload: null };
   }
   if (weight === null || weight < 30 || weight > 350) {
-    return { error: arabic ? "اكتب وزن بين 30 و350 كجم." : "Enter a weight between 30 and 350 kg.", payload: null };
+    return { error: phrase("copy_4885912deebd", arabic), payload: null };
   }
   if (values.bodyFat.trim() && (bodyFat === null || bodyFat < 2 || bodyFat > 70)) {
-    return { error: arabic ? "نسبة الدهون لازم تكون بين 2% و70%." : "Body fat must be between 2% and 70%.", payload: null };
+    return { error: phrase("copy_cf8e51346cdc", arabic), payload: null };
   }
   if (
     values.muscleMass.trim() &&
     (muscleMass === null || muscleMass < 5 || muscleMass > 150)
   ) {
-    return { error: arabic ? "الكتلة العضلية لازم تكون بين 5 و150 كجم." : "Muscle mass must be between 5 and 150 kg.", payload: null };
+    return { error: phrase("copy_9f9b95e266d6", arabic), payload: null };
   }
   if (muscleMass !== null && muscleMass >= weight) {
-    return { error: arabic ? "الكتلة العضلية لازم تكون أقل من وزن الجسم." : "Muscle mass must be lower than body weight.", payload: null };
+    return { error: phrase("copy_ccab677bd636", arabic), payload: null };
   }
 
   return {
@@ -103,21 +104,21 @@ export function ManualMeasurementsForm({ arabic = false, onCancel, onSaved }: Ma
     (mutation.error instanceof Error
       ? mutation.error.message
       : mutation.isError
-        ? arabic ? "ما قدرناش نحفظ القياسات. جرّب تاني." : "Manual measurements could not be saved. Try again."
+        ? phrase("copy_75c4b1d9075a", arabic)
         : null);
 
   return (
     <View style={styles.form}>
       <View style={styles.headingRow}>
         <View style={styles.headingCopy}>
-          <Text style={styles.title}>{arabic ? "اكتب قياسات مؤكدة" : "Enter confirmed measurements"}</Text>
+          <Text style={styles.title}>{phrase("copy_ecdc0186a003", arabic)}</Text>
           <Text style={styles.copy}>
-            {arabic ? "الطول والوزن مطلوبين. البيانات الإضافية بتخلي تقدير شكل الجسم أدق." : "Height and weight are required. More data makes the body estimate more specific."}
+            {phrase("copy_d7e559f214c5", arabic)}
           </Text>
         </View>
         {onCancel ? (
           <Pressable accessibilityRole="button" onPress={onCancel} style={styles.closeButton}>
-            <Text style={styles.closeLabel}>{arabic ? "إلغاء" : "Cancel"}</Text>
+            <Text style={styles.closeLabel}>{phrase("copy_428808b5e23b", arabic)}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -150,10 +151,10 @@ export function ManualMeasurementsForm({ arabic = false, onCancel, onSaved }: Ma
         </Text>
       ) : null}
       <Text style={styles.privacyNote}>
-        {arabic ? "بتتستخدم بشكل خاص لحساب النسب، والقيم نفسها عمرها ما بتظهر في المجتمع." : "Used privately to calculate proportions. Raw values never appear in the community."}
+        {phrase("copy_973b4a6af66c", arabic)}
       </Text>
       <AvatarButton loading={mutation.isPending} onPress={save}>
-        {arabic ? "احفظ القياسات واحسب الشكل" : "Save measurements & calculate shape"}
+        {phrase("copy_000b9cae78f5", arabic)}
       </AvatarButton>
     </View>
   );

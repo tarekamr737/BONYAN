@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { getMyProfile } from "../../auth/api/profileApi";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -88,20 +89,20 @@ export function TrainingHomeScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/training.jpg")} title={arabic ? "نظام تمرينك" : "Your training plan"} subtitle={arabic ? "انضباط اليوم. نتائج بكرة." : "Discipline today. Results tomorrow."} />
+        <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/training.jpg")} title={phrase("copy_025e07c3f331", arabic)} subtitle={phrase("copy_e5a5ec3cd07f", arabic)} />
         {hasLimitations ? <SurfaceCard>
-          <Text style={styles.stateTitle}>{arabic ? "التدريب متوقف مؤقتًا" : "Training paused"}</Text>
-          <Text style={styles.stateCopy}>{arabic ? "ملفك يتضمن إصابة أو قيدًا حركيًا. راجع مختصًا مؤهلًا قبل التدريب، ثم حدّث ملفك عندما تصبح مستعدًا." : "Your profile lists an injury or movement limitation. Check with a qualified professional before training, then update your profile when cleared."}</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "تعديل ملفي" : "Review my profile"}</Text></Pressable>
+          <Text style={styles.stateTitle}>{phrase("copy_ea2ea06dab85", arabic)}</Text>
+          <Text style={styles.stateCopy}>{phrase("copy_37df55acee57", arabic)}</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{phrase("copy_e02bb8f5017c", arabic)}</Text></Pressable>
         </SurfaceCard> : null}
 
 
-        {planJustPrepared && generateMutation.data?.id === plan?.id ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{arabic ? "الخطة جاهزة" : "Your plan is ready"}</Text><Text style={styles.stateCopy}>{arabic ? "اختر يوم التمرين الذي تريد البدء به." : "Choose a workout day to get started."}</Text></View></View></SurfaceCard></MotionReveal> : null}
+        {planJustPrepared && generateMutation.data?.id === plan?.id ? <MotionReveal><SurfaceCard><View style={[styles.feedbackRow, arabic && styles.rowReverse]}><View style={styles.successIcon}><Text style={styles.successIconText}>✓</Text></View><View style={styles.feedbackCopy}><Text style={styles.feedbackTitle}>{phrase("copy_be9206d9bed4", arabic)}</Text><Text style={styles.stateCopy}>{phrase("copy_9d503aae25a4", arabic)}</Text></View></View></SurfaceCard></MotionReveal> : null}
 
         {needsRefresh ? <SurfaceCard>
           <Text accessibilityRole="alert" style={styles.stateCopy}>{planRefreshMessage(arabic)}</Text>
           <Pressable accessibilityRole="button" disabled={hasLimitations || generateMutation.isPending || !profile.data} style={styles.primaryAction} onPress={() => { if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => { generating.current = false; }); }}>
-            <Text style={styles.primaryActionText}>{generateMutation.isPending ? (arabic ? "جارٍ التجهيز…" : "Preparing…") : (arabic ? "تجهيز خطة جديدة" : "Prepare a new plan")}</Text>
+            <Text style={styles.primaryActionText}>{generateMutation.isPending ? (phrase("copy_31ef84bf1419", arabic)) : (phrase("copy_4102dae6574d", arabic))}</Text>
           </Pressable>
         </SurfaceCard> : null}
 
@@ -110,28 +111,28 @@ export function TrainingHomeScreen() {
         {planQuery.isPending ? (
           <SurfaceCard>
             <ActivityIndicator color={colors.bronze} />
-            <Text style={styles.stateTitle}>{arabic ? "بنراجع خطة تمرينك" : "Checking your plan"}</Text>
-            <Text style={styles.stateCopy}>{arabic ? "لحظات ونجيب آخر نظام نشط على حسابك." : "We are loading the latest active training cycle for your account."}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_f6cc9a28b593", arabic)}</Text>
+            <Text style={styles.stateCopy}>{phrase("copy_01f190a2cb47", arabic)}</Text>
           </SurfaceCard>
         ) : null}
 
         {planQuery.isError ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "تعذر تحميل الخطة" : "Plan unavailable"}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_2bbd1d1c3de0", arabic)}</Text>
             <Text style={styles.stateCopy}>
-              {arabic ? "بياناتك محفوظة. حاول مرة أخرى عند استقرار الاتصال." : "Your data is safe. Retry when the connection is back."}
+              {phrase("copy_633c343c52f3", arabic)}
             </Text>
             <Pressable accessibilityRole="button" onPress={() => planQuery.refetch()} style={styles.secondaryAction}>
-              <Text style={styles.secondaryActionText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text>
+              <Text style={styles.secondaryActionText}>{phrase("copy_bb30cda7c34e", arabic)}</Text>
             </Pressable>
           </SurfaceCard>
         ) : null}
 
         {!planQuery.isPending && !planQuery.isError && !plan ? (
           <SurfaceCard>
-            <Text style={styles.stateTitle}>{arabic ? "كيف تحب تبدأ تمرينك؟" : "How would you like to start?"}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_b80dba744499", arabic)}</Text>
             <Text style={styles.stateCopy}>
-              {arabic ? "اختر خطة ذكية من بيانات ملفك أو ابنِ تمرينًا سريعًا بنفسك." : "Use your saved profile for an AI plan, or build a focused workout yourself."}
+              {phrase("copy_97208e899a38", arabic)}
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -140,11 +141,11 @@ export function TrainingHomeScreen() {
               style={[styles.primaryAction, (hasLimitations || generateMutation.isPending) && styles.disabledAction]}
             >
               <Text style={styles.primaryActionText}>
-                {generateMutation.isPending ? arabic ? "جارٍ تجهيز الخطة…" : "Preparing your plan…" : arabic ? "توليد التمرين بالذكاء الاصطناعي" : "Generate my workout with AI"}
+                {generateMutation.isPending ? phrase("copy_5a581cc7bbe4", arabic) : phrase("copy_abb3d0e816ba", arabic)}
               </Text>
             </Pressable>
             <Pressable accessibilityRole="button" disabled={hasLimitations} onPress={() => router.push("/training/manual")} style={[styles.secondaryAction, {marginTop: spacing.sm}, hasLimitations && styles.disabledAction]}>
-              <Text style={styles.secondaryActionText}>{arabic ? "اختيار التمرين يدويًا" : "Choose my workout manually"}</Text>
+              <Text style={styles.secondaryActionText}>{phrase("copy_4a919149f16e", arabic)}</Text>
             </Pressable>
           </SurfaceCard>
         ) : null}
@@ -153,7 +154,7 @@ export function TrainingHomeScreen() {
           <>
             <SurfaceCard>
               <View style={styles.dayPicker}>
-                <Text style={styles.label}>{arabic ? "اختر يوم التمرين" : "CHOOSE A WORKOUT DAY"}</Text>
+                <Text style={styles.label}>{phrase("copy_4b0059b2849c", arabic)}</Text>
                 <View style={[styles.dayOptions, arabic && styles.rowReverse]}>
                   {days.map((day, index) => {
                     const selected = day.key === selectedDay.key;
@@ -175,11 +176,11 @@ export function TrainingHomeScreen() {
               </View>
               <View style={styles.planHeader}>
                 <View style={styles.titleWrap}>
-                  <Text style={styles.label}>{arabic ? "الخطة الحالية" : "CURRENT PLAN"}</Text>
+                  <Text style={styles.label}>{phrase("copy_6e8924ec2632", arabic)}</Text>
                   <Text style={styles.planTitle}>{dayName(selectedDay.name, arabic)}</Text>
                 </View>
                 <View style={styles.durationPill}>
-                  <Text style={styles.durationText}>{selectedDay.estimated_minutes} {arabic ? "دقيقة" : "min"}</Text>
+                  <Text style={styles.durationText}>{selectedDay.estimated_minutes} {phrase("copy_2c0d20895fc8", arabic)}</Text>
                 </View>
               </View>
               <View style={styles.planStats}>
@@ -194,16 +195,16 @@ export function TrainingHomeScreen() {
                 style={[styles.primaryAction, (hasLimitations || needsRefresh || startMutation.isPending) && styles.disabledAction]}
               >
                 <Text style={styles.primaryActionText}>
-                  {startMutation.isPending ? arabic ? "بنبدأ…" : "Starting…" : arabic ? "ابدأ التمرين" : "Start workout"}
+                  {startMutation.isPending ? phrase("copy_28d8af7d06cb", arabic) : phrase("copy_4020e910bba7", arabic)}
                 </Text>
               </Pressable>
               {startMutation.isError ? <Text accessibilityRole="alert" style={styles.errorText}>{startMutation.error instanceof ApiError
                 ? (arabic ? `تعذر بدء التمرين (${startMutation.error.code}). حاول مرة أخرى.` : startMutation.error.message)
-                : (arabic ? "تعذر بدء التمرين. حاول مرة أخرى." : "Workout could not be started. Try again.")}</Text> : null}
+                : (phrase("copy_cab569f1735b", arabic))}</Text> : null}
             </SurfaceCard>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{arabic ? "تمارين اليوم المختار" : "Selected day exercises"}</Text>
+              <Text style={styles.sectionTitle}>{phrase("copy_e1942b4c94ea", arabic)}</Text>
               {selectedDay.prescriptions.map((exercise, index) => (
                 <ExerciseCard
                   arabic={arabic}
@@ -218,29 +219,29 @@ export function TrainingHomeScreen() {
         ) : null}
 
         <SurfaceCard>
-          <Text style={styles.stateTitle}>{arabic ? "تحليل التدريب" : "Training analysis"}</Text>
+          <Text style={styles.stateTitle}>{phrase("copy_4043e31f9a34", arabic)}</Text>
           {sessions.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
-          {sessions.isError ? <><Text style={styles.stateCopy}>{arabic ? "تعذّر تحميل سجل التمرين." : "Your workout history could not be loaded."}</Text><Pressable accessibilityRole="button" onPress={() => sessions.refetch()} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "إعادة المحاولة" : "Retry"}</Text></Pressable></> : null}
-          {sessions.data?.length === 0 ? <Text style={styles.stateCopy}>{arabic ? "أكمل أول تمرين لتظهر هنا تحليلات التقدم والسجل." : "Complete your first workout to unlock progress insights and history."}</Text> : null}
-          {completedSessions.length > 0 ? <><View style={styles.planStats}><Text style={styles.stat}>{arabic ? `${completedSessions.length} تمرين مكتمل` : `${completedSessions.length} completed`}</Text><Text style={styles.stat}>{arabic ? `${Math.round(totalVolume)} كجم حجم تدريبي` : `${Math.round(totalVolume)} kg volume`}</Text></View>{completedSessions.slice(0, 5).map(session => <Pressable accessibilityRole="button" key={session.id} onPress={() => router.push({pathname: "/training/day", params: {dayKey: session.day_key, sessionId: session.id}})} style={styles.historyRow}><View style={styles.titleWrap}><Text style={styles.historyTitle}>{session.day_key.replaceAll("-", " ")}</Text><Text style={styles.stateCopy}>{new Intl.DateTimeFormat(arabic ? "ar-EG" : "en", {day: "numeric", month: "short", year: "numeric"}).format(new Date(session.completed_at ?? session.started_at))}</Text></View><Text style={styles.historyMeta}>{Number(session.summary.sets ?? session.logged_sets.length)} {arabic ? "مجموعات" : "sets"}</Text></Pressable>)}</> : null}
+          {sessions.isError ? <><Text style={styles.stateCopy}>{phrase("copy_07f4bcd08b43", arabic)}</Text><Pressable accessibilityRole="button" onPress={() => sessions.refetch()} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{phrase("copy_bb30cda7c34e", arabic)}</Text></Pressable></> : null}
+          {sessions.data?.length === 0 ? <Text style={styles.stateCopy}>{phrase("copy_464fb63049b4", arabic)}</Text> : null}
+          {completedSessions.length > 0 ? <><View style={styles.planStats}><Text style={styles.stat}>{arabic ? `${completedSessions.length} تمرين مكتمل` : `${completedSessions.length} completed`}</Text><Text style={styles.stat}>{arabic ? `${Math.round(totalVolume)} كجم حجم تدريبي` : `${Math.round(totalVolume)} kg volume`}</Text></View>{completedSessions.slice(0, 5).map(session => <Pressable accessibilityRole="button" key={session.id} onPress={() => router.push({pathname: "/training/day", params: {dayKey: session.day_key, sessionId: session.id}})} style={styles.historyRow}><View style={styles.titleWrap}><Text style={styles.historyTitle}>{session.day_key.replaceAll("-", " ")}</Text><Text style={styles.stateCopy}>{new Intl.DateTimeFormat(arabic ? "ar-EG" : "en", {day: "numeric", month: "short", year: "numeric"}).format(new Date(session.completed_at ?? session.started_at))}</Text></View><Text style={styles.historyMeta}>{Number(session.summary.sets ?? session.logged_sets.length)} {phrase("copy_bb2fdf6e13c9", arabic)}</Text></Pressable>)}</> : null}
         </SurfaceCard>
 
         <View style={styles.actions}>
-          {profile.data?.training_goal === "military_preparation" ? <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{arabic ? "تحديث مستوى البداية" : "Update baseline"}</Text></Pressable> : null}
+          {profile.data?.training_goal === "military_preparation" ? <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{phrase("copy_db4bf00709b8", arabic)}</Text></Pressable> : null}
           <Pressable
             accessibilityRole="button"
             disabled={hasLimitations}
             onPress={() => router.push("/training/manual")}
             style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
           >
-            <Text style={styles.secondaryActionText}>{arabic ? "تمرين يدوي" : "Build manually"}</Text>
+            <Text style={styles.secondaryActionText}>{phrase("copy_edf0639cbc1f", arabic)}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/training/coach")}
             style={styles.secondaryAction}
           >
-            <Text style={styles.secondaryActionText}>{arabic ? "تحدث مع الكوتش" : "Ask coach"}</Text>
+            <Text style={styles.secondaryActionText}>{phrase("copy_e4f1553b5872", arabic)}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -249,7 +250,7 @@ export function TrainingHomeScreen() {
             style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
           >
             <Text style={styles.secondaryActionText}>
-              {generateMutation.isPending ? arabic ? "جارٍ التجهيز…" : "Preparing…" : plan ? arabic ? "تجهيز خطة جديدة" : "Replace plan" : arabic ? "تجهيز الخطة" : "Prepare plan"}
+              {generateMutation.isPending ? phrase("copy_31ef84bf1419", arabic) : plan ? phrase("copy_3d83416def04", arabic) : phrase("copy_5b45c7321c4d", arabic)}
             </Text>
           </Pressable>
         </View>

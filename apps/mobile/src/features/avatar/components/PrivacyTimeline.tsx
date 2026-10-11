@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { StyleSheet, View } from "react-native";
 
@@ -20,7 +21,7 @@ const privacyStepsArabic = [
 export function PrivacyTimeline({ arabic = false }: { arabic?: boolean }) {
   const steps = arabic ? privacyStepsArabic : privacySteps;
   return (
-    <View accessibilityLabel={arabic ? "مراحل خصوصية الصورة" : "Body avatar privacy stages"} style={styles.container}>
+    <View accessibilityLabel={phrase("copy_7d8f64da231e", arabic)} style={styles.container}>
       {steps.map(([title, detail], index) => (
         <View key={title} style={styles.step}>
           <View style={styles.markerColumn}>

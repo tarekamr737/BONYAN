@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -74,18 +75,18 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   function generate() {
     if (!sourcePhoto) {
       Alert.alert(
-        arabic ? "اختار صورة شخصية خاصة" : "Choose a private source photo",
-        arabic ? "ضيف صورة واضحة قبل ما تنشئ صورتك." : "Add a clear photo before building your avatar.",
+        phrase("copy_df639f8ddf60", arabic),
+        phrase("copy_4dc0ec248d50", arabic),
       );
       return;
     }
     mutations.resetErrors();
-    setBuildStage(arabic ? "بنرفع صورتك الخاصة بأمان" : "Uploading your private source photo");
+    setBuildStage(phrase("copy_012599780e36", arabic));
     mutations.sourcePhotoMutation.mutate(sourcePhoto, {
       onError: () => setBuildStage(null),
       onSuccess: (uploadedPhoto) => {
         setUploadedSourcePhotoId(uploadedPhoto.id);
-        setBuildStage(arabic ? "بنجهز صورتك من ملامحك وقياساتك" : "Creating a portrait from your photo and measurements");
+        setBuildStage(phrase("copy_eb6eef64d6f9", arabic));
         mutations.createMutation.mutate(
           { style: "photo_measured", presentation, source_photo_id: uploadedPhoto.id },
           {
@@ -113,7 +114,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
-        arabic ? "محتاجين إذن الصور" : "Photo access is needed",
+        phrase("copy_599cebc19378", arabic),
         arabic
           ? `اسمح لبنيان باستخدام ${fromCamera ? "الكاميرا" : "مكتبة الصور"} وبعدين جرّب تاني.`
           : `Allow BONYAN to use your ${fromCamera ? "camera" : "photo library"}, then try again.`,
@@ -146,15 +147,15 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
     const needsSourcePhoto = displayedAvatar.failure_code === "source_image_required";
     Alert.alert(
       needsSourcePhoto
-        ? arabic ? "تحذف النسخة اللي ما اكتملتش؟" : "Delete failed version?"
-        : arabic ? "تحذف صورتك؟" : "Delete body avatar?",
+        ? phrase("copy_419975a812a2", arabic)
+        : phrase("copy_8182491de279", arabic),
       needsSourcePhoto
-        ? arabic ? "احذف النسخة دي، وبعدها اختار صورة خاصة واضحة. تقرير InBody مش هيتغير." : "Delete this failed version, then choose a private source photo to build your Avatar. Your InBody report stays unchanged."
-        : arabic ? "ده هيحذف الصورة المتولدة بس. تقرير InBody وقياساتك هيفضلوا زي ما هم." : "This removes the generated portrait. Your InBody report and profile measurements stay unchanged.",
+        ? phrase("copy_c54487b118ac", arabic)
+        : phrase("copy_f0d690c37f80", arabic),
       [
-        { text: arabic ? "إلغاء" : "Cancel", style: "cancel" },
+        { text: phrase("copy_428808b5e23b", arabic), style: "cancel" },
         {
-          text: arabic ? "حذف" : "Delete",
+          text: phrase("copy_0104911cfea6", arabic),
           style: "destructive",
           onPress: () =>
             mutations.deleteMutation.mutate(displayedAvatar.id, {
@@ -170,49 +171,47 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable
-            accessibilityLabel={arabic ? "رجوع" : "Go back"}
+            accessibilityLabel={phrase("copy_2a52671ad634", arabic)}
             accessibilityRole="button"
             hitSlop={8}
             onPress={onBack}
             style={styles.backButton}
           >
-            <Text style={styles.backLabel}>{arabic ? "رجوع" : "Back"}</Text>
+            <Text style={styles.backLabel}>{phrase("copy_436170a81a03", arabic)}</Text>
           </Pressable>
           <Text accessibilityRole="header" style={styles.heading}>
-            {arabic ? "صورتي" : "Body avatar"}
+            {phrase("copy_c05fd35f7778", arabic)}
           </Text>
           <View style={styles.headerBalance} />
         </View>
 
         <View style={styles.privacyPanel}>
           <View style={styles.privateBadge}>
-            <Text style={styles.privateBadgeText}>{arabic ? "صورة مصدر خاصة" : "PRIVATE SOURCE PHOTO"}</Text>
+            <Text style={styles.privateBadgeText}>{phrase("copy_f06d7f4640d5", arabic)}</Text>
           </View>
-          <Text style={styles.privacyTitle}>{arabic ? "صورة بتعكس تقدمك الحقيقي." : "A portrait shaped by your real progress."}</Text>
+          <Text style={styles.privacyTitle}>{phrase("copy_99e242286cc3", arabic)}</Text>
           <Text style={styles.privacyCopy}>
-            {arabic
-              ? "بنيان بيستخدم صورتك للحفاظ على ملامحك، وآخر قياسات مؤكدة لشكل الجسم. راجع كل نسخة قبل اعتمادها، والمشاركة في المجتمع بتفضل مقفولة."
-              : "BONYAN uses your photo for identity and your latest confirmed measurements for body proportions. Review every new version before approval. Community sharing stays off."}
+            {phrase("copy_6fad82754d1b", arabic)}
           </Text>
           <PrivacyTimeline arabic={arabic} />
         </View>
 
         {!activeAvatar && avatarsQuery.isPending ? (
-          <View accessibilityLabel={arabic ? "تحميل الصور المحفوظة" : "Loading saved body avatars"} style={styles.queryStatePanel}>
+          <View accessibilityLabel={phrase("copy_b3ecef7bdba7", arabic)} style={styles.queryStatePanel}>
             <ActivityIndicator color={colors.bronze} size="large" />
-            <Text style={styles.queryStateTitle}>{arabic ? "بنراجع صورك الخاصة" : "Checking your private avatars"}</Text>
+            <Text style={styles.queryStateTitle}>{phrase("copy_cffeb59a4687", arabic)}</Text>
             <Text style={styles.queryStateCopy}>
-              {arabic ? "بنحمّل النسخ المحفوظة وإعدادات المشاركة." : "Your saved review and community settings are loading."}
+              {phrase("copy_9f99cd3b6120", arabic)}
             </Text>
           </View>
         ) : !activeAvatar && avatarsQuery.isError && !avatarsQuery.data ? (
           <View accessibilityRole="alert" style={styles.queryStatePanel}>
-            <Text style={styles.queryStateTitle}>{arabic ? "ما قدرناش نحمّل صورك" : "Your body avatars could not load"}</Text>
+            <Text style={styles.queryStateTitle}>{phrase("copy_a53ab480e532", arabic)}</Text>
             <Text style={styles.queryStateCopy}>
-              {arabic ? "إعدادات الخصوصية ما اتغيرتش. اتأكد من الاتصال قبل إنشاء نسخة جديدة." : "No privacy state changed. Reconnect before generating another version."}
+              {phrase("copy_f64f77ca3e1d", arabic)}
             </Text>
             <AvatarButton onPress={() => void avatarsQuery.refetch()} tone="secondary">
-              {arabic ? "جرّب تاني" : "Try again"}
+              {phrase("copy_0d7b38c28dab", arabic)}
             </AvatarButton>
           </View>
         ) : buildStage ? (
@@ -238,10 +237,10 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           />
         ) : (
           <View style={styles.creationSection}>
-            {createNewVersion ? <AvatarButton onPress={() => setCreateNewVersion(false)} tone="secondary">{arabic ? "الرجوع للصورة المحفوظة" : "Back to saved portrait"}</AvatarButton> : null}
+            {createNewVersion ? <AvatarButton onPress={() => setCreateNewVersion(false)} tone="secondary">{phrase("copy_36d676949b08", arabic)}</AvatarButton> : null}
             <View style={styles.selectorSection}>
-              <Text style={styles.selectorEyebrow}>{arabic ? "شكل الصورة" : "PORTRAIT PRESENTATION"}</Text>
-              <Text style={styles.selectorTitle}>{arabic ? "تحب الصورة تتقدم بشكل إيه؟" : "How should your portrait be presented?"}</Text>
+              <Text style={styles.selectorEyebrow}>{phrase("copy_110a4294c421", arabic)}</Text>
+              <Text style={styles.selectorTitle}>{phrase("copy_b2a78c0b87c0", arabic)}</Text>
               <View accessibilityRole="radiogroup" style={styles.segmentedControl}>
                 {(["men", "women"] as const).map((option) => {
                   const selected = presentation === option;
@@ -254,24 +253,24 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
                       style={[styles.segment, selected && styles.segmentSelected]}
                     >
                       <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
-                        {option === "men" ? (arabic ? "رجالي" : "Men") : (arabic ? "نسائي" : "Women")}
+                        {option === "men" ? (phrase("copy_611d98717a14", arabic)) : (phrase("copy_94573a479c8d", arabic))}
                       </Text>
                     </Pressable>
                   );
                 })}
               </View>
               <Text style={styles.selectorHelp}>
-                {arabic ? "ده بيوجه شكل الصورة، وصورتك الأصلية هي المرجع لملامحك." : "This guides the image style. Your photo remains the source of your identity."}
+                {phrase("copy_52b3e14b6eaf", arabic)}
               </Text>
             </View>
             <MeasurementPanel arabic={arabic} query={measurementQuery} />
             <View style={styles.sourcePhotoSection}>
-              <Text style={styles.selectorEyebrow}>{arabic ? "صورة المصدر الخاصة" : "PRIVATE SOURCE PHOTO"}</Text>
+              <Text style={styles.selectorEyebrow}>{phrase("copy_86ef0e9a9dd1", arabic)}</Text>
               <Text style={styles.sourcePhotoTitle}>
-                {sourcePhoto ? (arabic ? "الصورة جاهزة للإنشاء الخاص" : "Photo ready for private generation") : (arabic ? "ضيف صورة واضحة ليك" : "Add a clear photo of you")}
+                {sourcePhoto ? (phrase("copy_31f82e9c4139", arabic)) : (phrase("copy_6948bcd08844", arabic))}
               </Text>
               <Text style={styles.sourcePhotoHelp}>
-                {arabic ? "اختار صورة كاملة للجسم، واضحة وفي إضاءة كويسة، ووشك ظاهر فيها. صورة الوش بس ممكن تحفظ ملامحك، لكنها مش هتعكس شكل جسمك الحالي بدقة." : "Choose a clear, well-lit, clothed full-body photo with your face visible. A face-only photo can preserve identity but cannot show your current body shape reliably."}
+                {phrase("copy_b76798b5bae8", arabic)}
               </Text>
               {sourcePhoto ? (
                 <Image
@@ -283,17 +282,17 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               ) : null}
               <View style={styles.sourcePhotoActions}>
                 <AvatarButton onPress={() => void chooseSourcePhoto(false)} tone="secondary">
-                  {sourcePhoto ? (arabic ? "اختار صورة تانية" : "Choose Another Photo") : (arabic ? "اختار من الصور" : "Choose from Photos")}
+                  {sourcePhoto ? (phrase("copy_1436cb3d7073", arabic)) : (phrase("copy_1d5b670fdd92", arabic))}
                 </AvatarButton>
                 <AvatarButton onPress={() => void chooseSourcePhoto(true)} tone="secondary">
-                  {arabic ? "صوّر دلوقتي" : "Take Photo"}
+                  {phrase("copy_986e526d8019", arabic)}
                 </AvatarButton>
               </View>
             </View>
             <View style={styles.explainer}>
-              <Text style={styles.explainerTitle}>{arabic ? "قارن النتيجة بصورتك" : "Check the result against your photo"}</Text>
+              <Text style={styles.explainerTitle}>{phrase("copy_fcf6baabb636", arabic)}</Text>
               <Text style={styles.explainerCopy}>
-                {arabic ? "توليد الصور ممكن يغيّر تفاصيل في الوش أو نسب الجسم. ارفض أي نسخة مش شبهك؛ والنتيجة مش فحص طبي للجسم." : "Image generation can miss facial details or body proportions. Reject a version that does not look like you; the numbers are never a medical body scan."}
+                {phrase("copy_77e39d86bce5", arabic)}
               </Text>
             </View>
             <AvatarButton
@@ -301,14 +300,14 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               loading={mutations.createMutation.isPending || mutations.sourcePhotoMutation.isPending}
               onPress={generate}
             >
-              {arabic ? "أنشئ صورتي الخاصة" : "Create my private portrait"}
+              {phrase("copy_f3c14001c1ad", arabic)}
             </AvatarButton>
           </View>
         )}
 
         {mutationError ? (
           <View accessibilityRole="alert" style={styles.errorPanel}>
-            <Text style={styles.errorTitle}>{arabic ? "في حاجة محتاجة مراجعة" : "Something needs attention"}</Text>
+            <Text style={styles.errorTitle}>{phrase("copy_6b3d12ab0228", arabic)}</Text>
             <Text style={styles.errorCopy}>{mutationError}</Text>
           </View>
         ) : null}
@@ -327,11 +326,11 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
 
   if (query.isPending) {
     return (
-      <View accessibilityLabel={arabic ? "مراجعة بيانات الجسم" : "Checking body data"} style={styles.measurementPanel}>
+      <View accessibilityLabel={phrase("copy_8f7534f3f496", arabic)} style={styles.measurementPanel}>
         <ActivityIndicator color={colors.bronze} />
         <View style={styles.measurementCopy}>
-          <Text style={styles.measurementTitle}>{arabic ? "بنراجع قياساتك المؤكدة" : "Checking confirmed body data"}</Text>
-          <Text style={styles.measurementDetail}>{arabic ? "بندور على أحدث نتيجة InBody." : "Looking for your latest InBody result."}</Text>
+          <Text style={styles.measurementTitle}>{phrase("copy_335eefd1223d", arabic)}</Text>
+          <Text style={styles.measurementDetail}>{phrase("copy_744ba32d0d2b", arabic)}</Text>
         </View>
       </View>
     );
@@ -340,11 +339,11 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
     return (
       <View accessibilityRole="alert" style={styles.measurementPanel}>
         <View style={styles.measurementCopy}>
-          <Text style={styles.measurementTitle}>{arabic ? "ما قدرناش نحمّل بيانات الجسم" : "Body data could not load"}</Text>
-          <Text style={styles.measurementDetail}>{arabic ? "ما اتعملتش أي صورة. اتأكد من الاتصال وجرّب تاني." : "Nothing was generated. Reconnect and retry."}</Text>
+          <Text style={styles.measurementTitle}>{phrase("copy_254767833e08", arabic)}</Text>
+          <Text style={styles.measurementDetail}>{phrase("copy_d392d7533717", arabic)}</Text>
         </View>
         <Pressable accessibilityRole="button" onPress={() => void query.refetch()}>
-          <Text style={styles.retryLabel}>{arabic ? "إعادة المحاولة" : "Retry"}</Text>
+          <Text style={styles.retryLabel}>{phrase("copy_bb30cda7c34e", arabic)}</Text>
         </Pressable>
       </View>
     );
@@ -354,13 +353,13 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
       <View style={styles.measurementSourceSection}>
         <View style={styles.measurementPanel}>
           <View style={styles.measurementCopy}>
-            <Text style={styles.measurementTitle}>{arabic ? "اختار مصدر القياسات" : "Choose your measurement source"}</Text>
+            <Text style={styles.measurementTitle}>{phrase("copy_e7bf15012528", arabic)}</Text>
             <Text style={styles.measurementDetail}>
-              {arabic ? "ارفع تقرير InBody أو اكتب قياسات مؤكدة تحت." : "Complete an InBody scan, or enter confirmed measurements below."}
+              {phrase("copy_42a0ced24ef7", arabic)}
             </Text>
           </View>
           <Pressable accessibilityRole="button" onPress={() => void query.refetch()}>
-            <Text style={styles.retryLabel}>{arabic ? "راجع InBody" : "Check InBody"}</Text>
+            <Text style={styles.retryLabel}>{phrase("copy_0884436f7af9", arabic)}</Text>
           </Pressable>
         </View>
         <ManualMeasurementsForm arabic={arabic} onSaved={() => void query.refetch()} />
@@ -369,10 +368,10 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
   }
 
   const fields = [
-    arabic ? "الطول" : "Height",
-    arabic ? "الوزن" : "Weight",
-    query.data.body_fat_available ? arabic ? "دهون الجسم" : "Body fat" : null,
-    query.data.muscle_mass_available ? arabic ? "الكتلة العضلية" : "Muscle mass" : null,
+    phrase("copy_19301b5212ba", arabic),
+    phrase("copy_f2d1e4db833a", arabic),
+    query.data.body_fat_available ? phrase("copy_179df426220f", arabic) : null,
+    query.data.muscle_mass_available ? phrase("copy_f539c6095891", arabic) : null,
   ].filter((field): field is string => field !== null);
   return (
     <View style={styles.measurementSourceSection}>
@@ -380,14 +379,14 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
         <View style={styles.measurementReadyHeader}>
           <View style={styles.readyDot} />
           <Text style={styles.readyLabel}>
-            {query.data.source === "inbody" ? (arabic ? "أحدث INBODY جاهز" : "LATEST INBODY READY") : (arabic ? "القياسات اليدوية جاهزة" : "MANUAL DATA READY")}
+            {query.data.source === "inbody" ? (phrase("copy_4c978e0766a1", arabic)) : (phrase("copy_cc36cecec3da", arabic))}
           </Text>
         </View>
-        <Text style={styles.measurementReadyTitle}>{arabic ? "البيانات كفاية لتجهيز صورتك" : "Enough data to shape your avatar"}</Text>
+        <Text style={styles.measurementReadyTitle}>{phrase("copy_eabc10742329", arabic)}</Text>
         <View style={styles.shapeRow}>
-          <Text style={styles.shapeLabel}>{arabic ? "الشكل التقديري" : "CALCULATED SHAPE"}</Text>
+          <Text style={styles.shapeLabel}>{phrase("copy_3fb3e0b5eb43", arabic)}</Text>
           <Text style={styles.shapeValue}>
-            {query.data.shape_profile ? shapeLabel(query.data.shape_profile, arabic) : arabic ? "هيظهر بعد الإنشاء" : "Ready after build"}
+            {query.data.shape_profile ? shapeLabel(query.data.shape_profile, arabic) : phrase("copy_fe799fe53d93", arabic)}
           </Text>
         </View>
         <View style={styles.fieldRow}>
@@ -400,7 +399,7 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
         {query.data.recorded_at ? (
           <Text style={styles.recordedAt}>{arabic ? `مسجلة ${formatDate(query.data.recorded_at, true)}` : `Recorded ${formatDate(query.data.recorded_at, false)}`}</Text>
         ) : null}
-        <Text style={styles.sourceRule}>{arabic ? "بنستخدم أحدث مصدر قياسات مؤكد." : "The most recently confirmed source is used."}</Text>
+        <Text style={styles.sourceRule}>{phrase("copy_9708ccb57d5d", arabic)}</Text>
       </View>
       <Pressable
         accessibilityRole="button"
@@ -409,10 +408,10 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
       >
         <Text style={styles.manualActionText}>
           {showManualForm
-            ? arabic ? "خلي المصدر الحالي" : "Keep current source"
+            ? phrase("copy_06aa5ac9508b", arabic)
             : query.data.source === "profile"
-              ? arabic ? "حدّث القياسات اليدوية" : "Update manual measurements"
-              : arabic ? "استخدم قياسات يدوية بدلًا منها" : "Use manual measurements instead"}
+              ? phrase("copy_31935170b169", arabic)
+              : phrase("copy_33282c155282", arabic)}
         </Text>
       </Pressable>
       {showManualForm ? (
@@ -464,47 +463,47 @@ function AvatarReview({
       {avatar.preview_url ? (
         <View style={styles.portraitReview}>
           <Image
-            accessibilityLabel={arabic ? "الصورة الخاصة المتولدة للمراجعة" : "Generated private avatar portrait for review"}
+            accessibilityLabel={phrase("copy_37df4f84a2f3", arabic)}
             resizeMode="contain"
             source={{ uri: avatar.preview_url }}
             style={styles.generatedPortrait}
           />
           <Text style={styles.portraitStatus}>
-            {avatar.public_in_community ? (arabic ? "المشاركة في المجتمع مفعّلة" : "COMMUNITY ENABLED") : (arabic ? "خاصة لحد ما تعتمدها وتفعّل المشاركة" : "PRIVATE UNTIL YOU APPROVE AND ENABLE SHARING")}
+            {avatar.public_in_community ? (phrase("copy_d4927c3c5f42", arabic)) : (phrase("copy_aa392cd97ff1", arabic))}
           </Text>
           {sourcePhoto ? <View style={styles.identityComparison}>
             <Image
-              accessibilityLabel={arabic ? "صورتك الخاصة لمقارنة الملامح" : "Your private source photo for identity comparison"}
+              accessibilityLabel={phrase("copy_ef6a059d2968", arabic)}
               resizeMode="cover"
               source={{ uri: sourcePhoto.uri }}
               style={styles.identityReference}
             />
             <View style={styles.identityComparisonCopy}>
-              <Text style={styles.identityComparisonTitle}>{arabic ? "الصورة شبهك؟" : "Does this look like you?"}</Text>
-              <Text style={styles.identityComparisonDetail}>{arabic ? "قارن ملامح الوش ولون البشرة ونسب الجسم بصورتك. ارفض أي اختلاف واضح." : "Compare facial features, skin tone and body proportions with your photo. Reject mismatches."}</Text>
+              <Text style={styles.identityComparisonTitle}>{phrase("copy_306781c3bf59", arabic)}</Text>
+              <Text style={styles.identityComparisonDetail}>{phrase("copy_f07604bc9e7c", arabic)}</Text>
             </View>
           </View> : null}
         </View>
       ) : (
-        <View accessibilityLabel={arabic ? "حالة إنشاء الصورة" : "Body avatar generation status"} style={styles.statusPanel}>
+        <View accessibilityLabel={phrase("copy_1cb72d602af8", arabic)} style={styles.statusPanel}>
           {avatar.state === "processing" ? (
             <ActivityIndicator color={colors.bronze} size="large" />
           ) : null}
           <Text style={styles.statusLabel}>
-            {avatar.state === "failed" ? (arabic ? "الإنشاء متوقف" : "GENERATION PAUSED") : (arabic ? "بنجهز صورتك" : "CREATING YOUR PORTRAIT")}
+            {avatar.state === "failed" ? (phrase("copy_269e80c5000d", arabic)) : (phrase("copy_f89bb24b2306", arabic))}
           </Text>
         </View>
       )}
       <View style={styles.sourceLine}>
-        <Text style={styles.sourceLabel}>{arabic ? "صورة + قياسات" : "PHOTO + MEASUREMENTS"}</Text>
+        <Text style={styles.sourceLabel}>{phrase("copy_f15decfef8aa", arabic)}</Text>
         <View style={styles.sourceDot} />
         <Text style={styles.sourceLabel}>
-          {avatar.measurement_source === "inbody" ? "INBODY" : arabic ? "الملف الشخصي" : "PROFILE"}
+          {avatar.measurement_source === "inbody" ? "INBODY" : phrase("copy_74105421148d", arabic)}
         </Text>
         <Text style={styles.sourceDate}>{formatDate(avatar.measurements_recorded_at, arabic)}</Text>
       </View>
       <View style={styles.shapeSummary}>
-        <Text style={styles.shapeSummaryLabel}>{arabic ? "الشكل" : "SHAPE"}</Text>
+        <Text style={styles.shapeSummaryLabel}>{phrase("copy_281576819055", arabic)}</Text>
         <Text style={styles.shapeSummaryValue}>{shapeLabel(avatar.shape_profile, arabic)}</Text>
         <Text style={styles.shapeSummaryMeta}>{arabic ? `عرض ${avatar.presentation === "men" ? "رجالي" : "نسائي"}` : `${titleCase(avatar.presentation)} presentation`}</Text>
       </View>
@@ -518,7 +517,7 @@ function AvatarReview({
             loading={mutations.approveMutation.isPending}
             onPress={() => updateAvatar(mutations.approveMutation)}
           >
-            {arabic ? "اعتمد الصورة دي" : "Approve this portrait"}
+            {phrase("copy_5bdec0bde691", arabic)}
           </AvatarButton>
           <View style={styles.actionRow}>
             <View style={styles.actionHalf}>
@@ -528,7 +527,7 @@ function AvatarReview({
                 onPress={() => updateAvatar(mutations.regenerateMutation)}
                 tone="secondary"
               >
-                {arabic ? "جرّب نسخة تانية" : "Try another version"}
+                {phrase("copy_26dd0deaec0c", arabic)}
               </AvatarButton>
             </View>
             <View style={styles.actionHalf}>
@@ -538,7 +537,7 @@ function AvatarReview({
                 onPress={() => updateAvatar(mutations.rejectMutation)}
                 tone="secondary"
               >
-                {arabic ? "رفض" : "Reject"}
+                {phrase("copy_62eef33c4b1b", arabic)}
               </AvatarButton>
             </View>
           </View>
@@ -547,23 +546,23 @@ function AvatarReview({
 
       {avatar.approved ? (
         <View style={styles.renewalPanel}>
-          <Text style={styles.communityTitle}>{renewal === "new_measurements" ? (arabic ? "قياسات جسمك اتغيرت" : "Your body data has changed") : renewal === "reassessment_due" ? (arabic ? "وقت تحديث قياساتك" : "Time to check in on your measurements") : (arabic ? "خلي صورتك محدثة" : "Keep this portrait current")}</Text>
-          <Text style={styles.communityDetail}>{renewal === "new_measurements" ? (arabic ? "اعمل نسخة خاصة جديدة بأحدث قياسات مؤكدة. الصورة المعتمدة هتفضل موجودة لحد ما تراجع الجديدة." : "Create a new private version from your latest confirmed measurements. This approved image stays available until you review the new one.") : renewal === "reassessment_due" ? (arabic ? "عدّى حوالي شهرين من آخر تقييم للجسم. حدّث قياساتك قبل ما تعمل صورة جديدة." : "It has been about two months since your last body assessment. Update it before creating your next portrait.") : (arabic ? "لما شكل جسمك يتغير، أكد قياسات جديدة واعمل نسخة خاصة للمراجعة." : "When your shape changes, confirm new measurements and make another private version for review.")}</Text>
-          {renewal === "new_measurements" ? <AvatarButton disabled={pending} onPress={() => updateAvatar(mutations.regenerateMutation)} tone="secondary">{arabic ? "حدّث بأحدث القياسات" : "Refresh from latest measurements"}</AvatarButton> : null}
-          {renewal === "reassessment_due" ? <AvatarButton onPress={onUpdateMeasurements} tone="secondary">{arabic ? "حدّث قياسات الجسم" : "Update body measurements"}</AvatarButton> : null}
+          <Text style={styles.communityTitle}>{renewal === "new_measurements" ? (phrase("copy_e0e5441f0801", arabic)) : renewal === "reassessment_due" ? (phrase("copy_e789a0d55eba", arabic)) : (phrase("copy_21925c7736ce", arabic))}</Text>
+          <Text style={styles.communityDetail}>{renewal === "new_measurements" ? (phrase("copy_53ee99682f61", arabic)) : renewal === "reassessment_due" ? (phrase("copy_4c8ca42d6d2c", arabic)) : (phrase("copy_bdce5a9f8bc0", arabic))}</Text>
+          {renewal === "new_measurements" ? <AvatarButton disabled={pending} onPress={() => updateAvatar(mutations.regenerateMutation)} tone="secondary">{phrase("copy_43d87c1492f9", arabic)}</AvatarButton> : null}
+          {renewal === "reassessment_due" ? <AvatarButton onPress={onUpdateMeasurements} tone="secondary">{phrase("copy_014e9f43fff6", arabic)}</AvatarButton> : null}
         </View>
       ) : null}
 
       {avatar.approved ? (
         <View style={styles.communityControl}>
           <View style={styles.communityCopy}>
-            <Text style={styles.communityTitle}>{arabic ? "استخدمها في المجتمع" : "Use in community"}</Text>
+            <Text style={styles.communityTitle}>{phrase("copy_81534fa73988", arabic)}</Text>
             <Text style={styles.communityDetail}>
-              {arabic ? "اظهر الصورة المعتمدة جنب المنشورات اللي تختارها. قياساتك تفضل خاصة." : "Show this approved portrait beside chosen posts. Measurements stay private."}
+              {phrase("copy_855e3a065a0c", arabic)}
             </Text>
           </View>
           <Switch
-            accessibilityLabel={arabic ? "استخدام الصورة المعتمدة في المجتمع" : "Use approved body avatar in community"}
+            accessibilityLabel={phrase("copy_ea1d514b8dfd", arabic)}
             disabled={pending}
             onValueChange={(enabled) => {
               mutations.resetErrors();
@@ -581,9 +580,9 @@ function AvatarReview({
 
       {onDeleteSourcePhoto ? (
         <View style={styles.sourcePrivacyControl}>
-          <Text style={styles.communityTitle}>{arabic ? "صورة المصدر الخاصة محفوظة" : "Private source photo retained"}</Text>
+          <Text style={styles.communityTitle}>{phrase("copy_12ab6efb8a43", arabic)}</Text>
           <Text style={styles.communityDetail}>
-            {arabic ? "احتفظ بيها لعمل نسخ تانية، أو احذفها دلوقتي. الصورة المتولدة هتفضل موجودة." : "Keep it for regeneration, or delete it now. Your generated avatar remains available."}
+            {phrase("copy_dc7395987196", arabic)}
           </Text>
           <AvatarButton
             disabled={pending && !mutations.deleteSourcePhotoMutation.isPending}
@@ -591,13 +590,13 @@ function AvatarReview({
             onPress={onDeleteSourcePhoto}
             tone="secondary"
           >
-            {arabic ? "احذف صورة المصدر الخاصة" : "Delete Private Source Photo"}
+            {phrase("copy_82d8daf04dee", arabic)}
           </AvatarButton>
         </View>
       ) : null}
 
       <AvatarButton disabled={pending} onPress={onCreateNew} tone="secondary">
-        {arabic ? "أنشئ صورة جديدة بصورة مختلفة" : "Create a new portrait with another photo"}
+        {phrase("copy_722f9d47a1eb", arabic)}
       </AvatarButton>
 
       {(avatar.state === "failed" && avatar.failure_code !== "source_image_required") ||
@@ -607,46 +606,46 @@ function AvatarReview({
           loading={mutations.regenerateMutation.isPending}
           onPress={() => updateAvatar(mutations.regenerateMutation)}
         >
-          {arabic ? "أنشئ بأحدث البيانات" : "Build from latest data"}
+          {phrase("copy_32b1b028c57a", arabic)}
         </AvatarButton>
       ) : null}
 
       <AvatarButton disabled={pending} onPress={confirmDelete} tone="danger">
         {avatar.failure_code === "source_image_required"
-          ? arabic ? "احذف النسخة وأضف صورة" : "Delete Failed Version and Add Photo"
-          : arabic ? "احذف الصورة" : "Delete body avatar"}
+          ? phrase("copy_d2fac2d266b6", arabic)
+          : phrase("copy_59147eb829df", arabic)}
       </AvatarButton>
     </View>
   );
 }
 
 function avatarStateTitle(avatar: AvatarView, arabic: boolean): string {
-  if (avatar.state === "approved") return arabic ? "إنت اعتمدت الصورة دي" : "Approved by you";
-  if (avatar.state === "rejected") return arabic ? "النسخة دي مرفوضة" : "This version is rejected";
-  if (avatar.state === "failed") return arabic ? "الصورة ما اكتملتش" : "The portrait did not finish";
+  if (avatar.state === "approved") return phrase("copy_9446c8457d60", arabic);
+  if (avatar.state === "rejected") return phrase("copy_2848900658ce", arabic);
+  if (avatar.state === "failed") return phrase("copy_cf4f1cd9c097", arabic);
   if (avatar.state === "processing" || avatar.state === "requested") {
-    return arabic ? "بنجهز صورتك الخاصة" : "Creating your private portrait";
+    return phrase("copy_69963d816b73", arabic);
   }
-  return arabic ? "راجع صورتك الجديدة" : "Review your new portrait";
+  return phrase("copy_19e41ce90d10", arabic);
 }
 
 function avatarStateCopy(avatar: AvatarView, arabic: boolean): string {
   if (avatar.state === "approved") {
-    return arabic ? "محفوظة بشكل خاص. مش هتظهر في المجتمع إلا لو فعّلت الاختيار تحت." : "Saved privately. It appears in the community only if you enable the control below.";
+    return phrase("copy_51f7a7752fc3", arabic);
   }
   if (avatar.state === "rejected") {
-    return arabic ? "ما اتنشرش أي شيء. اعمل نسخة تانية من أحدث بيانات مؤكدة." : "Nothing was published. Build another version from your latest confirmed data.";
+    return phrase("copy_5b87ece5f5f0", arabic);
   }
   if (avatar.state === "failed") {
     if (avatar.failure_code === "source_image_required") {
-      return arabic ? "النسخة دي اتطلبت من غير صورة المصدر الخاصة. احذفها، واختار صورة واضحة، وابدأ تاني." : "This version was created without the private photo required by the Avatar provider. Delete it, then choose a source photo and build again.";
+      return phrase("copy_b0d65becae81", arabic);
     }
-    return arabic ? "ما اتنشرش أي شيء. قياساتك لسه محفوظة وتقدر تجرب تاني." : "Nothing was published. Your measurements remain available for a safe retry.";
+    return phrase("copy_90f7a748cbae", arabic);
   }
   if (avatar.state === "processing" || avatar.state === "requested") {
-    return arabic ? "بنستخدم صورتك وقياساتك المؤكدة علشان نجهز صورة خاصة ليك." : "Your photo and confirmed measurements are being used to create a private portrait.";
+    return phrase("copy_e3859e508afb", arabic);
   }
-  return arabic ? "قارن ملامحك ونسب جسمك بصورة المصدر. ارفض أي نتيجة مش دقيقة." : "Check identity and body proportions against your source photo. Reject anything that does not feel accurate.";
+  return phrase("copy_162c009deb07", arabic);
 }
 
 function formatDate(value: string, arabic = false): string {

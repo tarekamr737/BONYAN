@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useContext } from "react";
 import { StyleSheet, View } from "react-native";
@@ -51,7 +52,7 @@ export function MeasurementRow({ measurement }: { measurement: InBodyMeasurement
   const needsReview = flags.length > 0;
   const value =
     measurement.value === null
-      ? arabic ? "غير موجود" : "Missing"
+      ? phrase("copy_8b935eb10782", arabic)
       : `${measurement.value.toFixed(1)}${measurement.unit ? ` ${arabic && measurement.unit === "score" ? "نقطة" : measurement.unit}` : ""}`;
 
   return (

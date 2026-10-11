@@ -1,3 +1,4 @@
+import { phrase } from "../i18n/copy";
 import Feather from "@expo/vector-icons/Feather";
 import { useQuery } from "@tanstack/react-query";
 import { router, type Href } from "expo-router";
@@ -32,36 +33,36 @@ export function HomeScreen() {
   const scoreRef = useRef<View>(null);
   const planRef = useRef<View>(null);
   const scoreScrollY = useRef(0);
-  const profileButton = <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={arabic ? "فتح ملفي الشخصي" : "Open my profile"} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} onPress={() => router.push("/profile")} photoUpdatedAt={profile.data?.profile_photo_updated_at} size={54} /></View>;
+  const profileButton = <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={phrase("copy_3527c7677a1e", arabic)} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} onPress={() => router.push("/profile")} photoUpdatedAt={profile.data?.profile_photo_updated_at} size={54} /></View>;
   const accountTools = <View style={styles.accountTools}><NotificationBell arabic={arabic} count={state.requiresActionCount} onPress={() => router.push("/notifications")} />{profileButton}</View>;
 
   return <CoachingPage arabic={arabic} onScrollViewRef={setHomeScroller}>
     <View style={styles.header}>{arabic ? accountTools : <BrandMark />}{arabic ? <BrandMark /> : accountTools}</View>
-    <CinematicHero arabic={arabic} source={require("../../../assets/heroes/home.jpg")} title={profile.data?.display_name ? `${arabic ? "أهلًا،" : "Hello,"} ${profile.data.display_name}` : arabic ? "يومك يبدأ من هنا" : "Your day starts here"} subtitle={goalLabel(profile.data?.training_goal, arabic)} />
+    <CinematicHero arabic={arabic} source={require("../../../assets/heroes/home.jpg")} title={profile.data?.display_name ? `${phrase("copy_cb08bc2fde54", arabic)} ${profile.data.display_name}` : phrase("copy_e3c766a8ffc1", arabic)} subtitle={goalLabel(profile.data?.training_goal, arabic)} />
 
 
     <View ref={scoreRef} onLayout={event => {scoreScrollY.current = event.nativeEvent.layout.y; registerTarget("daily-score", scoreRef.current, scoreScrollY.current); if (planRef.current) registerTarget("today-plan", planRef.current, scoreScrollY.current);}}><MotionReveal><GlassCard>
-      <View style={[styles.scoreHeader, arabic && styles.reverse]}><View style={styles.scoreCopy}><Text style={styles.eyebrow}>{arabic ? "نتيجة اليوم" : "DAILY SCORE"}</Text><Text style={[styles.scoreTitle, arabic && ui.rtl]}>{daily.data ? arabic ? "تقدمك اليوم" : "Today's progress" : arabic ? "بنجهز ملخص يومك" : "Preparing today's view"}</Text></View>{daily.isPending ? <ActivityIndicator color={colors.bronze} /> : <Text style={styles.scoreValue}>{daily.data?.score ?? "—"}<Text style={styles.scoreMax}>/100</Text></Text>}</View>
-      {daily.data ? <><ProgressMeter label={arabic ? "نتيجة اليوم" : "Daily score"} value={daily.data.score} /><View style={[styles.metrics, arabic && styles.reverse]}><Text style={ui.small}>{arabic ? `${daily.data.completed_workouts} تمرين مكتمل` : `${daily.data.completed_workouts} workout completed`}</Text><Text style={ui.small}>{arabic ? `${daily.data.meals_logged} وجبات مسجلة` : `${daily.data.meals_logged} meals logged`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? dailyNextAction(daily.data.next_action) : daily.data.next_action}</Text><View ref={planRef} onLayout={() => registerTarget("today-plan", planRef.current, scoreScrollY.current)}><AppButton label={arabic ? "عرض تمرين اليوم" : "View today's plan"} onPress={() => router.push("/training")} variant="secondary" /></View></> : null}
-      {daily.isError ? <AppButton label={arabic ? "إعادة تحميل يومي" : "Reload today"} onPress={() => void daily.refetch()} variant="secondary" /> : null}
+      <View style={[styles.scoreHeader, arabic && styles.reverse]}><View style={styles.scoreCopy}><Text style={styles.eyebrow}>{phrase("copy_6aeb5637e2fc", arabic)}</Text><Text style={[styles.scoreTitle, arabic && ui.rtl]}>{daily.data ? phrase("copy_9f0c371b3dab", arabic) : phrase("copy_4396e0b46f79", arabic)}</Text></View>{daily.isPending ? <ActivityIndicator color={colors.bronze} /> : <Text style={styles.scoreValue}>{daily.data?.score ?? "—"}<Text style={styles.scoreMax}>/100</Text></Text>}</View>
+      {daily.data ? <><ProgressMeter label={phrase("copy_3bdfe943754d", arabic)} value={daily.data.score} /><View style={[styles.metrics, arabic && styles.reverse]}><Text style={ui.small}>{arabic ? `${daily.data.completed_workouts} تمرين مكتمل` : `${daily.data.completed_workouts} workout completed`}</Text><Text style={ui.small}>{arabic ? `${daily.data.meals_logged} وجبات مسجلة` : `${daily.data.meals_logged} meals logged`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? dailyNextAction(daily.data.next_action) : daily.data.next_action}</Text><View ref={planRef} onLayout={() => registerTarget("today-plan", planRef.current, scoreScrollY.current)}><AppButton label={phrase("copy_e03dcdec2b58", arabic)} onPress={() => router.push("/training")} variant="secondary" /></View></> : null}
+      {daily.isError ? <AppButton label={phrase("copy_e7d6fcb350e2", arabic)} onPress={() => void daily.refetch()} variant="secondary" /> : null}
     </GlassCard></MotionReveal></View>
 
     <View style={[styles.statCards, arabic && styles.reverse]}>
-      <HomeStat icon="calendar" label={arabic ? "الأيام المتبقية" : "Days left"} value={stats.daysLeft == null ? "—" : String(stats.daysLeft)} />
-      <HomeStat icon="zap" label={arabic ? "الاستمرارية" : "Day streak"} value={sessions.isPending ? "…" : String(stats.streak)} />
-      <HomeStat icon="bar-chart-2" label={arabic ? "اكتمال الأسبوع" : "Weekly completion"} value={sessions.isPending || stats.weeklyPercent == null ? "—" : `${stats.weeklyPercent}%`} />
+      <HomeStat icon="calendar" label={phrase("copy_ccc64f227f7e", arabic)} value={stats.daysLeft == null ? "—" : String(stats.daysLeft)} />
+      <HomeStat icon="zap" label={phrase("copy_c8c5e1c75bb1", arabic)} value={sessions.isPending ? "…" : String(stats.streak)} />
+      <HomeStat icon="bar-chart-2" label={phrase("copy_e0990b3e3a05", arabic)} value={sessions.isPending || stats.weeklyPercent == null ? "—" : `${stats.weeklyPercent}%`} />
     </View>
 
     {assessment.data ? <ScoreCard score={assessment.data.score} arabic={arabic} /> : null}
 
-    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "صورتك الآن ← خطوتك القادمة" : "Current avatar → next avatar"}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? "تقدم بصري مرتبط بقياساتك الحقيقية" : "Visual progress connected to your real measurements"}</Text></View>
+    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{phrase("copy_8648b24fb3c8", arabic)}</Text><Text style={[ui.small, arabic && ui.rtl]}>{phrase("copy_39f37fe0c44b", arabic)}</Text></View>
     {avatars.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
-    {avatars.isError ? <AppButton label={arabic ? "إعادة تحميل الـAvatar" : "Reload avatar"} onPress={() => void avatars.refetch()} variant="secondary" /> : null}
+    {avatars.isError ? <AppButton label={phrase("copy_8c750146ef1f", arabic)} onPress={() => void avatars.refetch()} variant="secondary" /> : null}
     {avatars.data ? <MotionReveal delay={60}><AvatarJourneyCard arabic={arabic} avatar={avatars.data.items[0]} hasAssessment={Boolean(assessment.data?.latest)} onPress={() => router.push("/avatar")} /></MotionReveal> : null}</View>
 
-    {state.requiresActionCount > 0 ? <Pressable accessibilityRole="button" onPress={() => router.push("/notifications")} style={({pressed}) => [styles.attention, pressed && styles.pressed]}><Feather color={colors.bronze} name="bell" size={20} /><View style={{flex: 1}}><Text style={[styles.attentionTitle, arabic && ui.rtl]}>{arabic ? `${state.requiresActionCount} خطوات تحتاج انتباهك` : `${state.requiresActionCount} next steps need you`}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? "راجع ملفك وخطتك والـAvatar" : "Review profile, plan and avatar updates"}</Text></View><Feather color={colors.bronze} name={arabic ? "chevron-left" : "chevron-right"} size={20} /></Pressable> : null}
+    {state.requiresActionCount > 0 ? <Pressable accessibilityRole="button" onPress={() => router.push("/notifications")} style={({pressed}) => [styles.attention, pressed && styles.pressed]}><Feather color={colors.bronze} name="bell" size={20} /><View style={{flex: 1}}><Text style={[styles.attentionTitle, arabic && ui.rtl]}>{arabic ? `${state.requiresActionCount} خطوات تحتاج انتباهك` : `${state.requiresActionCount} next steps need you`}</Text><Text style={[ui.small, arabic && ui.rtl]}>{phrase("copy_4d0c18da7fef", arabic)}</Text></View><Feather color={colors.bronze} name={arabic ? "chevron-left" : "chevron-right"} size={20} /></Pressable> : null}
 
-    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{arabic ? "متابعة التقدم" : "Recent progress"}</Text></View>
+    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{phrase("copy_611edc7e3a61", arabic)}</Text></View>
     <View style={styles.list}>{recentDestinations.map(item => <Pressable key={item.href} accessibilityRole="button" onPress={() => router.push(item.href as Href)} style={({pressed}) => [styles.listRow, arabic && styles.reverse, pressed && styles.pressed]}><View style={styles.listIcon}><Feather color={colors.bronze} name={item.icon} size={19} /></View><Text style={[styles.listText, arabic && ui.rtl]}>{arabic ? item.ar : item.en}</Text><Feather color={colors.muted} name={arabic ? "chevron-left" : "chevron-right"} size={19} /></Pressable>)}</View></View>
   </CoachingPage>;
 }

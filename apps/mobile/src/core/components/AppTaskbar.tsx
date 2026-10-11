@@ -7,19 +7,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts } from "../theme/tokens";
 import { DirectionalText as Text } from "./DirectionalText";
 import { useHomeTour, type HomeTourTarget } from "../tour/HomeTour";
+import { navigationTabs } from "../navigation/tabs";
 
 type NavItem = { href: string; icon: ComponentProps<typeof Feather>["name"]; label: string; active: boolean };
 
 export function AppTaskbar({arabic}: {arabic: boolean}) {
   const path = usePathname();
   const insets = useSafeAreaInsets();
-  const items = [
-    {href: "/", icon: "home", label: arabic ? "الرئيسية" : "Home", active: path === "/"},
-    {href: "/training", icon: "activity", label: arabic ? "التدريب" : "Training", active: path.startsWith("/training") && !path.startsWith("/training/coach")},
-    {href: "/nutrition", icon: "heart", label: arabic ? "التغذية" : "Nutrition", active: path.startsWith("/nutrition")},
-    {href: "/training/coach", icon: "cpu", label: arabic ? "الكوتش" : "Coach", active: path.startsWith("/training/coach")},
-    {href: "/community", icon: "users", label: arabic ? "المجتمع" : "Community", active: path.startsWith("/community")},
-  ] as const;
+  const items = navigationTabs(path, arabic ? "ar-EG" : "en");
+  if (path === "/training/day") return null;
   return <View style={[styles.shell, {paddingBottom: Math.max(insets.bottom, 7)}]}>
     <View style={[styles.items, arabic && styles.reverse]}>
       {items.map(item => <TaskbarItem item={item} key={item.href} path={path} />)}

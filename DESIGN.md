@@ -254,7 +254,7 @@ states use Direct Coral for the message and a standard secondary retry button.
 - **Do** use the 4, 8, 12, 16, 24, 32, and 48px spacing scale for deliberate mobile rhythm.
 - **Do** keep controls at least 50px high and expose disabled, loading, error, and accessibility states.
 - **Do** state privacy, ownership, and irreversible consequences in plain language near the action.
-- **Do** preserve the current prototype and implemented BONYAN screens as the visual source of truth.
+- **Do** follow the approved V2 concept hierarchy and supporting screen references while reusing brand tokens.
 
 ### Don't:
 
@@ -270,6 +270,11 @@ states use Direct Coral for the message and a standard secondary retry button.
 - **Don't** add decorative motion. Feedback transitions stay between 150 and 250ms and communicate state.
 
 ## 7. Implemented Product Surfaces
+
+V2 supersedes the legacy Home hierarchy below: Today prioritizes the next workout, distinct Progress
+Score and XP/Level, private Avatar, missions and league position. The shell is Today / Train / Avatar /
+Nutrition / Community. Coach is contextual, not a sixth tab. Avatar has provenance and illustration
+disclosure; reference humans and statistics must never appear as actual user data. Arabic mirrors layouts.
 
 The central Home hierarchy is Header / Daily Score / primary actions / Current Avatar to Next Avatar / recent progress. Talk to Bunyan is the earned bronze action; Analyze Food and Start Workout are secondary task controls. Daily Score comes from authenticated meals and workout sessions and is recalculated by the backend.
 

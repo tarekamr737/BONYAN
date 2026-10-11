@@ -1,3 +1,4 @@
+import { phrase } from "../i18n/copy";
 import Feather from "@expo/vector-icons/Feather";
 import { Image } from "expo-image";
 import { useEffect } from "react";
@@ -25,7 +26,7 @@ export function AvatarJourneyCard({ arabic, avatar, hasAssessment, onPress }: { 
             {avatar?.preview_url ? <Image contentFit="cover" source={avatar.preview_url} style={StyleSheet.absoluteFill} transition={180} /> : <Feather color={colors.bronze} name="user" size={34} />}
           </View>
           <View style={styles.copy}>
-            <Text style={styles.eyebrow}>{arabic ? "رحلة الأفاتار" : "AVATAR JOURNEY"}</Text>
+            <Text style={styles.eyebrow}>{phrase("copy_40b1670516c7", arabic)}</Text>
             <Text style={styles.title}>{journey.status}</Text>
             <Text style={styles.body}>{journey.next}</Text>
           </View>

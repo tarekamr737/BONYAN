@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { Image } from "expo-image";
 import { useRef, useState } from "react";
 import { PanResponder, Pressable, StyleSheet, View } from "react-native";
@@ -47,29 +48,29 @@ export function IntroScreen({ onComplete }: { onComplete: (register: boolean, ar
   return <CoachingPage arabic={arabic} step={String(page)}>
     {!last ? <View style={styles.topActions}>
       <Pressable accessibilityRole="button" disabled={saving} onPress={arabic ? skip : next} hitSlop={12}>
-        <Text style={styles.topAction}>{arabic ? "تخطي" : "Next"}</Text>
+        <Text style={styles.topAction}>{phrase("copy_7e27774474eb", arabic)}</Text>
       </Pressable>
       <Pressable accessibilityRole="button" disabled={saving} onPress={arabic ? next : skip} hitSlop={12}>
-        <Text style={styles.topAction}>{arabic ? "التالي" : "Skip"}</Text>
+        <Text style={styles.topAction}>{phrase("copy_7ac39b7f867c", arabic)}</Text>
       </Pressable>
     </View> : null}
     <View style={styles.header}><BrandMark /><AppButton variant="secondary" label={arabic ? "English" : "العربية"} disabled={saving} onPress={() => setArabic(!arabic)} /></View>
     <View {...gesture.panHandlers} style={styles.story}>
       <Image source={images[slide.image]} contentFit="cover" style={styles.image} accessibilityLabel={arabic ? slide.ar : slide.en} />
-      {slide.image === "nutrition" ? <Image source={images.coach} contentFit="cover" style={styles.image} accessibilityLabel={arabic ? "دعم الكوتش لتمرينك" : "Coaching support for training"} /> : null}
+      {slide.image === "nutrition" ? <Image source={images.coach} contentFit="cover" style={styles.image} accessibilityLabel={phrase("copy_2ed91036abed", arabic)} /> : null}
       <Text accessibilityRole="header" style={[ui.title, arabic && ui.rtl]}>{arabic ? slide.ar : slide.en}</Text>
       <Text style={[ui.text, arabic && ui.rtl]}>{arabic ? slide.bodyAr : slide.body}</Text>
     </View>
-    <View accessibilityRole="progressbar" accessibilityLabel={arabic ? "مقدمة بنيان" : "Bonyan introduction"} accessibilityValue={{ min: 1, max: introSlides.length, now: page + 1 }} style={[styles.indicators, arabic && styles.reverse]}>
+    <View accessibilityRole="progressbar" accessibilityLabel={phrase("copy_b8c6cc6c8898", arabic)} accessibilityValue={{ min: 1, max: introSlides.length, now: page + 1 }} style={[styles.indicators, arabic && styles.reverse]}>
       {introSlides.map((_, index) => <View key={index} style={[styles.dot, index === page && styles.current]} />)}
     </View>
     <View style={styles.progressMeta}>
-      {page > 0 ? <Pressable accessibilityRole="button" disabled={saving} onPress={() => setPage(page - 1)} hitSlop={12}><Text style={styles.back}>{arabic ? "رجوع" : "Back"}</Text></Pressable> : <View />}
+      {page > 0 ? <Pressable accessibilityRole="button" disabled={saving} onPress={() => setPage(page - 1)} hitSlop={12}><Text style={styles.back}>{phrase("copy_436170a81a03", arabic)}</Text></Pressable> : <View />}
       <Text style={ui.small}>{page + 1} / {introSlides.length}</Text>
     </View>
-    {error ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذر حفظ اختيارك. جرّب مرة تانية." : "Could not save your choice. Please try again."}</Text> : null}
-    {last ? <AppButton label={arabic ? "ابدأ الآن" : "Get started"} loading={saving} onPress={() => void finish(true)} /> : null}
-    {last ? <AppButton variant="secondary" label={arabic ? "لدي حساب بالفعل" : "I already have an account"} disabled={saving} onPress={() => void finish(false)} /> : null}
+    {error ? <Text accessibilityRole="alert" style={ui.error}>{phrase("copy_b827684047c0", arabic)}</Text> : null}
+    {last ? <AppButton label={phrase("copy_41bee702e4a6", arabic)} loading={saving} onPress={() => void finish(true)} /> : null}
+    {last ? <AppButton variant="secondary" label={phrase("copy_e7748fac7c50", arabic)} disabled={saving} onPress={() => void finish(false)} /> : null}
   </CoachingPage>;
 }
 

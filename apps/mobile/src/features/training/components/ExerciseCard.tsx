@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -50,7 +51,7 @@ export function ExerciseCard({ arabic = false, exercise, index, active = false, 
             {arabic ? `${exercise.sets} مجموعات × ${exercise.reps_min}-${exercise.reps_max} تكرار` : `${exercise.sets} sets × ${exercise.reps_min}-${exercise.reps_max} reps`}
           </Text>
         </View>
-        <Text style={styles.rest}>{Math.round(exercise.rest_seconds / 60)}{arabic ? " د" : "m"}</Text>
+        <Text style={styles.rest}>{Math.round(exercise.rest_seconds / 60)}{phrase("copy_8cc4b52021af", arabic)}</Text>
       </View>
       <View style={styles.tags}>
         {[...exercise.muscles, ...exercise.equipment].slice(0, 4).map((item) => (
