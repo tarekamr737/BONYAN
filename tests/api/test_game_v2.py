@@ -115,6 +115,9 @@ async def _scenario():
             # A repeated upload/scan check-in never receives rank points.
             await service.check_in(owner, "checkin")
             assert (await service.overview(owner))["mission_points"] == 0
+            snapshots = await service.repository.progress_history(owner, 20)
+            assert snapshots and all(row.owner_id == owner for row in snapshots)
+            assert await service.repository.progress_history("wrong-user", 20) == []
             old = SimpleNamespace(
                 id=uuid4(),
                 owner_id=owner,

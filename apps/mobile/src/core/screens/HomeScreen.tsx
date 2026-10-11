@@ -1,103 +1,72 @@
-import { phrase } from "../i18n/copy";
-import Feather from "@expo/vector-icons/Feather";
-import { useQuery } from "@tanstack/react-query";
-import { router, type Href } from "expo-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
+import { router } from "expo-router";
 import { useRef } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
-
-import { CoachingPage, GlassCard, ProgressMeter, ScoreCard, ui } from "../../features/auth/components/CoachingUI";
-import { goalLabel } from "../../features/auth/journey";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { CoachingPage, ProgressMeter, ui } from "../../features/auth/components/CoachingUI";
+import { getGameOverview, getLeague, getProgressHistory } from "../../features/game/api";
 import { getDailyDashboard } from "../../features/nutrition/api";
-import { getWorkoutSessions } from "../../features/training/api/trainingApi";
-import type { WorkoutSession } from "../../features/training/types";
-import { AppButton, AvatarJourneyCard, BrandMark, CinematicHero, MotionReveal, NotificationBell, ProfileAvatar } from "../components";
+import { getWorkoutSessions, startWorkoutSession } from "../../features/training/api/trainingApi";
+import { planNeedsRefresh } from "../../features/training/planIntegrity";
+import { ExerciseMedia } from "../../features/training/components/ExerciseMedia";
+import { AppButton, BrandMark, NotificationBell, ProfileAvatar } from "../components";
 import { DirectionalText as Text } from "../components/DirectionalText";
+import { SurfaceCard } from "../components/SurfaceCard";
+import { useLocale } from "../i18n/LocaleProvider";
+import { formatNumber } from "../i18n/messages";
 import { useAppNotifications } from "../notifications/useAppNotifications";
-import { colors, fonts, radii, spacing } from "../theme/tokens";
+import { colors, fonts, spacing } from "../theme/tokens";
 import { useHomeTour } from "../tour/HomeTour";
-
-const recentDestinations = [
-  { href: "/profile", icon: "user", en: "Profile and assessment history", ar: "الملف وسجل التقييمات" },
-  { href: "/inbody", icon: "file-plus", en: "Add an InBody report", ar: "إضافة تقرير InBody" },
-  { href: "/community", icon: "users", en: "Training community", ar: "مجتمع التدريب" },
-] as const;
+import { nextWorkout, progressChange } from "./todayState";
 
 export function HomeScreen() {
-  const state = useAppNotifications();
-  const { arabic, assessment, avatars, profile } = state;
-  const daily = useQuery({ queryFn: getDailyDashboard, queryKey: ["nutrition", "today"] });
-  const sessions = useQuery({ queryFn: () => getWorkoutSessions(50), queryKey: ["training", "sessions", "home"] });
-  const stats = homeTrainingStats(sessions.data ?? [], profile.data?.available_training_days, profile.data?.coaching?.target_date);
+  const {t, locale, rtl} = useLocale();
+  const state = useAppNotifications(); const {profile, plan, avatars} = state;
+  const client = useQueryClient();
+  const game = useQuery({queryKey: ["game", "overview"], queryFn: getGameOverview});
+  const history = useQuery({queryKey: ["game", "progress-history"], queryFn: getProgressHistory, enabled: Boolean(game.data)});
+  const league = useQuery({queryKey: ["game", "league", "weekly"], queryFn: () => getLeague("weekly"), enabled: Boolean(game.data?.league_opt_in)});
+  const daily = useQuery({queryKey: ["nutrition", "today"], queryFn: getDailyDashboard});
+  const sessions = useQuery({queryKey: ["training", "sessions", "home"], queryFn: () => getWorkoutSessions(50)});
+  const next = nextWorkout(planNeedsRefresh(plan.data) ? null : plan.data, sessions.data ?? []);
   const {registerTarget, setHomeScroller} = useHomeTour();
-  const profileRef = useRef<View>(null);
-  const scoreRef = useRef<View>(null);
-  const planRef = useRef<View>(null);
-  const scoreScrollY = useRef(0);
-  const profileButton = <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={phrase("copy_3527c7677a1e", arabic)} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} onPress={() => router.push("/profile")} photoUpdatedAt={profile.data?.profile_photo_updated_at} size={54} /></View>;
-  const accountTools = <View style={styles.accountTools}><NotificationBell arabic={arabic} count={state.requiresActionCount} onPress={() => router.push("/notifications")} />{profileButton}</View>;
-
-  return <CoachingPage arabic={arabic} onScrollViewRef={setHomeScroller}>
-    <View style={styles.header}>{arabic ? accountTools : <BrandMark />}{arabic ? <BrandMark /> : accountTools}</View>
-    <CinematicHero arabic={arabic} source={require("../../../assets/heroes/home.jpg")} title={profile.data?.display_name ? `${phrase("copy_cb08bc2fde54", arabic)} ${profile.data.display_name}` : phrase("copy_e3c766a8ffc1", arabic)} subtitle={goalLabel(profile.data?.training_goal, arabic)} />
-
-
-    <View ref={scoreRef} onLayout={event => {scoreScrollY.current = event.nativeEvent.layout.y; registerTarget("daily-score", scoreRef.current, scoreScrollY.current); if (planRef.current) registerTarget("today-plan", planRef.current, scoreScrollY.current);}}><MotionReveal><GlassCard>
-      <View style={[styles.scoreHeader, arabic && styles.reverse]}><View style={styles.scoreCopy}><Text style={styles.eyebrow}>{phrase("copy_6aeb5637e2fc", arabic)}</Text><Text style={[styles.scoreTitle, arabic && ui.rtl]}>{daily.data ? phrase("copy_9f0c371b3dab", arabic) : phrase("copy_4396e0b46f79", arabic)}</Text></View>{daily.isPending ? <ActivityIndicator color={colors.bronze} /> : <Text style={styles.scoreValue}>{daily.data?.score ?? "—"}<Text style={styles.scoreMax}>/100</Text></Text>}</View>
-      {daily.data ? <><ProgressMeter label={phrase("copy_3bdfe943754d", arabic)} value={daily.data.score} /><View style={[styles.metrics, arabic && styles.reverse]}><Text style={ui.small}>{arabic ? `${daily.data.completed_workouts} تمرين مكتمل` : `${daily.data.completed_workouts} workout completed`}</Text><Text style={ui.small}>{arabic ? `${daily.data.meals_logged} وجبات مسجلة` : `${daily.data.meals_logged} meals logged`}</Text></View><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? dailyNextAction(daily.data.next_action) : daily.data.next_action}</Text><View ref={planRef} onLayout={() => registerTarget("today-plan", planRef.current, scoreScrollY.current)}><AppButton label={phrase("copy_e03dcdec2b58", arabic)} onPress={() => router.push("/training")} variant="secondary" /></View></> : null}
-      {daily.isError ? <AppButton label={phrase("copy_e7d6fcb350e2", arabic)} onPress={() => void daily.refetch()} variant="secondary" /> : null}
-    </GlassCard></MotionReveal></View>
-
-    <View style={[styles.statCards, arabic && styles.reverse]}>
-      <HomeStat icon="calendar" label={phrase("copy_ccc64f227f7e", arabic)} value={stats.daysLeft == null ? "—" : String(stats.daysLeft)} />
-      <HomeStat icon="zap" label={phrase("copy_c8c5e1c75bb1", arabic)} value={sessions.isPending ? "…" : String(stats.streak)} />
-      <HomeStat icon="bar-chart-2" label={phrase("copy_e0990b3e3a05", arabic)} value={sessions.isPending || stats.weeklyPercent == null ? "—" : `${stats.weeklyPercent}%`} />
-    </View>
-
-    {assessment.data ? <ScoreCard score={assessment.data.score} arabic={arabic} /> : null}
-
-    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{phrase("copy_8648b24fb3c8", arabic)}</Text><Text style={[ui.small, arabic && ui.rtl]}>{phrase("copy_39f37fe0c44b", arabic)}</Text></View>
-    {avatars.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
-    {avatars.isError ? <AppButton label={phrase("copy_8c750146ef1f", arabic)} onPress={() => void avatars.refetch()} variant="secondary" /> : null}
-    {avatars.data ? <MotionReveal delay={60}><AvatarJourneyCard arabic={arabic} avatar={avatars.data.items[0]} hasAssessment={Boolean(assessment.data?.latest)} onPress={() => router.push("/avatar")} /></MotionReveal> : null}</View>
-
-    {state.requiresActionCount > 0 ? <Pressable accessibilityRole="button" onPress={() => router.push("/notifications")} style={({pressed}) => [styles.attention, pressed && styles.pressed]}><Feather color={colors.bronze} name="bell" size={20} /><View style={{flex: 1}}><Text style={[styles.attentionTitle, arabic && ui.rtl]}>{arabic ? `${state.requiresActionCount} خطوات تحتاج انتباهك` : `${state.requiresActionCount} next steps need you`}</Text><Text style={[ui.small, arabic && ui.rtl]}>{phrase("copy_4d0c18da7fef", arabic)}</Text></View><Feather color={colors.bronze} name={arabic ? "chevron-left" : "chevron-right"} size={20} /></Pressable> : null}
-
-    <View><View style={styles.sectionHeading}><Text style={[ui.heading, arabic && ui.rtl]}>{phrase("copy_611edc7e3a61", arabic)}</Text></View>
-    <View style={styles.list}>{recentDestinations.map(item => <Pressable key={item.href} accessibilityRole="button" onPress={() => router.push(item.href as Href)} style={({pressed}) => [styles.listRow, arabic && styles.reverse, pressed && styles.pressed]}><View style={styles.listIcon}><Feather color={colors.bronze} name={item.icon} size={19} /></View><Text style={[styles.listText, arabic && ui.rtl]}>{arabic ? item.ar : item.en}</Text><Feather color={colors.muted} name={arabic ? "chevron-left" : "chevron-right"} size={19} /></Pressable>)}</View></View>
+  const profileRef = useRef<View>(null); const planRef = useRef<View>(null); const scoreRef = useRef<View>(null);
+  const start = useMutation({mutationFn: () => startWorkoutSession(plan.data!.id, next.day!.key), onSuccess: session => {
+    void client.invalidateQueries({queryKey: ["training", "sessions"]});
+    router.push({pathname: "/training/day", params: {sessionId: session.id, dayKey: session.day_key}});
+  }});
+  const avatar = avatars.data?.items.find(item => item.approved) ?? avatars.data?.items[0];
+  const delta = game.data ? progressChange(game.data.progress_score, history.data ?? []) : null;
+  const workoutMission = game.data?.missions.find(item => item.category === "workout");
+  const row = [styles.row, rtl && styles.reverse];
+  const ready = !sessions.isPending && !sessions.isError && !plan.isPending && !plan.isError;
+  return <CoachingPage arabic={rtl} onScrollViewRef={setHomeScroller}>
+    <View style={[styles.header, rtl && styles.reverse]}><BrandMark/><View style={styles.row}>
+      <NotificationBell arabic={rtl} count={state.requiresActionCount} onPress={() => router.push("/notifications")}/>
+      <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={t("profile")} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} photoUpdatedAt={profile.data?.profile_photo_updated_at} onPress={() => router.push("/profile")} size={50}/></View>
+    </View></View>
+    <View style={styles.stack}><Text style={ui.small}>{t("greeting")}{profile.data?.display_name ? `, ${profile.data.display_name}` : ""}</Text><Text accessibilityRole="header" style={ui.title}>{t("today")}</Text><Text style={ui.text}>{t("todaySubtitle")}</Text></View>
+    <View ref={planRef} onLayout={event => registerTarget("today-plan", planRef.current, event.nativeEvent.layout.y)}><SurfaceCard style={styles.stack}>
+      <Text style={styles.eyebrow}>{t("nextMove")}</Text>
+      {next.day ? <View style={row}><ExerciseMedia exerciseId={next.day.prescriptions[0]?.exercise_id ?? ""} name={next.day.prescriptions[0]?.name ?? t("train")} arabic={rtl} compact/><View style={styles.flex}><Text style={ui.heading}>{t("train")} · {formatNumber(next.day.order + 1, locale)}</Text><Text style={ui.small}>{formatNumber(next.day.prescriptions.length, locale)} {t("exercises")} · {formatNumber(next.day.estimated_minutes, locale)} {t("minutes")}</Text></View></View> : <Text style={ui.text}>{t("noReadyWorkout")}</Text>}
+      {!ready && !sessions.isError && !plan.isError ? <ActivityIndicator color={colors.bronze}/> : null}
+      {sessions.isError || plan.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void Promise.all([sessions.refetch(), plan.refetch()])}/> : <AppButton disabled={!ready} loading={start.isPending} label={t(next.active ? "resumeWorkout" : next.day ? "startWorkout" : "prepareWorkout")} onPress={() => next.active ? router.push({pathname: "/training/day", params: {sessionId: next.active.id, dayKey: next.active.day_key}}) : next.day ? start.mutate() : router.push("/training")}/>}
+      {start.error ? <Text accessibilityRole="alert" style={ui.error}>{start.error.message}</Text> : null}
+    </SurfaceCard></View>
+    <SurfaceCard style={styles.stack}><View style={row}><Text style={[ui.heading, styles.flex]}>{t("yourProgress")}</Text>{game.data ? <Text style={ui.small}>{t("level")} {formatNumber(game.data.level, locale)}</Text> : null}</View>
+      {game.isPending ? <ActivityIndicator color={colors.bronze}/> : null}
+      {game.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void game.refetch()}/> : null}
+      {game.data ? <><View style={row}><View style={styles.flex}><Text style={ui.small}>{t("progressScore")}</Text><Text style={styles.score}>{game.data.progress_score.value === null ? "—" : formatNumber(game.data.progress_score.value, locale)}<Text style={ui.small}> / {formatNumber(100, locale)}</Text></Text></View><View style={styles.flex}><Text style={ui.small}>{t("xp")}</Text><Text style={styles.score}>{formatNumber(game.data.xp, locale)}</Text></View></View>
+      <ProgressMeter label={t("xp")} value={game.data.xp % 100}/><Text style={ui.small}>{delta === null ? t("noProgressTrend") : `${t("progressTrend")}: ${delta > 0 ? "+" : ""}${formatNumber(delta, locale)}`}</Text>
+      {!game.data.progress_score.ranked ? <Text style={ui.small}>{t("insufficientCoverage")}</Text> : null}<AppButton label={t("progressScore")} variant="secondary" onPress={() => router.push("/progress-score")}/></> : null}
+    </SurfaceCard>
+    <SurfaceCard style={styles.stack}><View style={row}>
+      <View style={styles.preview}>{avatar?.preview_url ? <Image source={{uri: avatar.preview_url}} cachePolicy="none" contentFit="contain" style={StyleSheet.absoluteFill}/> : <Text style={styles.score}>◇</Text>}</View><View style={styles.flex}><Text style={ui.heading}>{t("yourAvatar")}</Text><Text style={ui.small}>{t(avatar ? avatar.approved ? "illustration" : "avatarPending" : "avatarSetup")}</Text></View>
+    </View><AppButton label={t("viewAvatar")} variant="secondary" onPress={() => router.push("/avatar")}/></SurfaceCard>
+    <SurfaceCard style={styles.stack}><Text style={ui.heading}>{t("weeklyMission")}</Text>{workoutMission ? <><Text style={ui.text}>{formatNumber(workoutMission.completed, locale)} / {formatNumber(workoutMission.target, locale)} · {t("plannedWorkouts")}</Text><ProgressMeter label={t("plannedWorkouts")} value={100 * workoutMission.completed / workoutMission.target}/></> : null}<AppButton label={t("viewMissions")} variant="secondary" onPress={() => router.push("/missions")}/></SurfaceCard>
+    <SurfaceCard style={styles.stack}><Text style={ui.heading}>{t("league")}</Text>{game.data?.league_opt_in ? <Text style={ui.text}>{t("rank")}: {league.data?.personal_rank == null ? t("unranked") : formatNumber(league.data.personal_rank, locale)}</Text> : <Text style={ui.small}>{t("leaguePrivacy")}</Text>}<AppButton label={t(game.data?.league_opt_in ? "league" : "joinLeague")} variant="secondary" onPress={() => router.push("/league")}/></SurfaceCard>
+    <SurfaceCard style={styles.stack}><Text style={ui.heading}>{t("coach")}</Text><Text style={ui.text}>{t("coachTodayHelp")}</Text><AppButton label={t("askCoach")} onPress={() => router.push("/training/coach")}/></SurfaceCard>
+    <View ref={scoreRef} onLayout={event => registerTarget("daily-score", scoreRef.current, event.nativeEvent.layout.y)} style={styles.stack}><Text style={ui.heading}>{t("dailyScore")}: {daily.data ? `${formatNumber(daily.data.score, locale)} / ${formatNumber(100, locale)}` : "—"}</Text><Text style={ui.small}>{t("dailyScoreHelp")}</Text>{daily.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void daily.refetch()}/> : null}</View>
   </CoachingPage>;
 }
-
-function dailyNextAction(value: string): string { if (value.startsWith("Log")) return "سجّل أو حلّل وجبة."; if (value.startsWith("Complete")) return "أكمل تمرين اليوم."; return "أنجزت خطوات اليوم الأساسية."; }
-function HomeStat({icon, label, value}: {icon: "bar-chart-2" | "calendar" | "zap"; label: string; value: string}) { return <View style={styles.statCard}><Feather color={colors.bronze} name={icon} size={18} /><Text style={styles.statValue}>{value}</Text><Text numberOfLines={2} style={styles.statLabel}>{label}</Text></View>; }
-function homeTrainingStats(sessions: WorkoutSession[], plannedDays: number | null | undefined, targetDate: string | null | undefined) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const completed = sessions.filter(item => item.status === "completed");
-  const completedDays = new Set(completed.map(item => new Date(item.completed_at ?? item.started_at).toISOString().slice(0, 10)));
-  let streak = 0;
-  for (let offset = 0; offset < 366; offset += 1) {
-    const date = new Date(today); date.setDate(date.getDate() - offset);
-    if (!completedDays.has(date.toISOString().slice(0, 10))) break;
-    streak += 1;
-  }
-  const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
-  const weeklyCompleted = completed.filter(item => new Date(item.completed_at ?? item.started_at) >= weekStart).length;
-  const weeklyPercent = plannedDays ? Math.min(100, Math.round(weeklyCompleted / plannedDays * 100)) : null;
-  const target = targetDate ? new Date(`${targetDate}T00:00:00`) : null;
-  const rawDays = target && !Number.isNaN(target.getTime()) ? Math.ceil((target.getTime() - today.getTime()) / 86_400_000) : null;
-  return {daysLeft: rawDays == null ? null : Math.max(0, rawDays), streak, weeklyPercent};
-}
-
-const styles = StyleSheet.create({
-  accountTools: { alignItems: "center", flexDirection: "row", gap: spacing.sm }, actionCopy: { flex: 1, gap: spacing.xxs },
-  attention: { alignItems: "center", backgroundColor: colors.bronzeSoft, borderColor: colors.bronzeBorder, borderRadius: radii.control, borderWidth: 1, flexDirection: "row", gap: spacing.md, minHeight: 72, padding: spacing.md }, attentionTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 15 },
-  eyebrow: { color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 10, letterSpacing: 1.4 }, header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
-  heroAction: { alignItems: "center", backgroundColor: colors.bronze, borderRadius: radii.control, flexDirection: "row", gap: spacing.md, minHeight: 76, padding: spacing.md }, heroBody: { color: colors.canvas, fontFamily: fonts.body, fontSize: 12, lineHeight: 18 }, heroIcon: { alignItems: "center", borderColor: "rgba(11,11,11,0.2)", borderRadius: 14, borderWidth: 1, height: 46, justifyContent: "center", width: 46 }, heroTitle: { color: colors.canvas, fontFamily: fonts.displaySemiBold, fontSize: 18 }, intro: { gap: spacing.xs },
-  list: { borderColor: colors.line, borderRadius: radii.card, borderWidth: 1, overflow: "hidden" }, listIcon: { alignItems: "center", backgroundColor: colors.bronzeSoft, borderRadius: 12, height: 40, justifyContent: "center", width: 40 }, listRow: { alignItems: "center", backgroundColor: colors.surface, borderBottomColor: colors.line, borderBottomWidth: 1, flexDirection: "row", gap: spacing.md, minHeight: 68, paddingHorizontal: spacing.md }, listText: { color: colors.text, flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 14 },
-  metrics: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md }, pressed: { opacity: .78 }, primaryActions: { gap: spacing.sm }, reverse: { flexDirection: "row-reverse" }, scoreCopy: { flex: 1, gap: spacing.xs }, scoreHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, scoreMax: { color: colors.muted, fontFamily: fonts.displayMedium, fontSize: 18 }, scoreTitle: { color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 20 }, scoreValue: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 42, fontVariant: ["tabular-nums"], letterSpacing: -1.8 },
-  statCard: { alignItems: "flex-start", backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radii.control, borderWidth: 1, flex: 1, gap: spacing.xxs, minHeight: 112, padding: spacing.sm },
-  statCards: { flexDirection: "row", gap: spacing.xs },
-  statLabel: { color: colors.mutedLight, fontFamily: fonts.bodyMedium, fontSize: 10, lineHeight: 14 },
-  statValue: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 24, fontVariant: ["tabular-nums"] },
-  secondaryActions: { flexDirection: "row", gap: spacing.sm }, sectionHeading: { gap: spacing.xs }, smallAction: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radii.control, borderWidth: 1, flex: 1, gap: spacing.sm, justifyContent: "center", minHeight: 72, padding: spacing.sm }, smallActionText: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14, textAlign: "center" },
-});
+const styles = StyleSheet.create({header: {alignItems: "center", flexDirection: "row", justifyContent: "space-between"}, row: {alignItems: "center", flexDirection: "row", gap: spacing.md}, reverse: {flexDirection: "row-reverse"}, stack: {gap: spacing.md}, flex: {flex: 1, gap: spacing.xs, minWidth: 0}, eyebrow: {color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 12}, score: {color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 32}, preview: {width: 84, height: 112, borderRadius: 16, overflow: "hidden", backgroundColor: colors.surfaceRaised, alignItems: "center", justifyContent: "center"}});

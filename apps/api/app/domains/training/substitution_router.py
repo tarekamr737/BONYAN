@@ -25,6 +25,11 @@ def get_service(training: TrainingServiceDep) -> SessionSubstitutionService:
 Service = Annotated[SessionSubstitutionService, Depends(get_service)]
 
 
+@router.get("/sessions/{session_id}/substitutions", response_model=list[SessionSubstitutionView])
+async def pending(session_id: UUID, user: CurrentUserDep, service: Service):
+    return await service.pending(user.id, session_id)
+
+
 @router.post("/sessions/{session_id}/substitutions/preview", response_model=SessionSubstitutionView)
 async def preview(
     session_id: UUID,

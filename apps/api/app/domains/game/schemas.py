@@ -44,6 +44,12 @@ class CheckInRequest(BaseModel):
     kind: Literal["recovery", "checkin"]
 
 
+class ProgressHistoryView(BaseModel):
+    id: UUID
+    created_at: datetime
+    result: ProgressScore
+
+
 class ActivityView(BaseModel):
     id: UUID
     kind: str

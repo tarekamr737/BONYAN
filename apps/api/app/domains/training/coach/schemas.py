@@ -11,6 +11,8 @@ class CoachToolName(StrEnum):
     GET_LATEST_INBODY = "get_latest_inbody"
     GET_CURRENT_PLAN = "get_current_plan"
     GET_TRAINING_HISTORY = "get_training_history"
+    GET_ACTIVE_SESSION = "get_active_session"
+    PREVIEW_SESSION_SUBSTITUTION = "preview_session_substitution"
     SEARCH_EXERCISES = "search_exercises"
     GET_EXERCISE_DETAILS = "get_exercise_details"
     GENERATE_WORKOUT_PLAN = "generate_workout_plan"

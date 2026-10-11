@@ -13,6 +13,8 @@ from test_provider_and_coach import FakeProvider
 
 from app.core.errors import AppError
 from app.domains.game.lifecycle import delete_game_account_data
+from app.domains.training.coach.schemas import CoachToolCall, CoachToolName
+from app.domains.training.coach.tools import CoachToolExecutor
 from app.domains.training.models import WorkoutPlanRecord, WorkoutSessionRecord
 from app.domains.training.repository import TrainingRepository
 from app.domains.training.schemas import GeneratePlanRequest, LoggedSetInput
@@ -65,9 +67,19 @@ async def _scenario():
             )
             workout = await training.start_session(user_id=owner, plan_id=plan.id, day_key="day-1")
             original = deepcopy(workout.prescription_snapshot)
-            proposal = await substitutions.preview(
-                owner, workout.id, PreviewSessionSubstitution(prescription_index=0)
+            result = await CoachToolExecutor(training, substitution_service=substitutions).execute(
+                user_id=owner,
+                call=CoachToolCall(
+                    name=CoachToolName.PREVIEW_SESSION_SUBSTITUTION,
+                    arguments={"session_id": str(workout.id), "prescription_index": 0},
+                ),
             )
+            assert result.result["requires_approval"] is True
+            pending = await substitutions.pending(owner, workout.id)
+            assert len(pending) == 1
+            proposal = pending[0]
+            with pytest.raises(AppError):
+                await substitutions.pending("wrong-owner", workout.id)
             unchanged = await training.get_session(user_id=owner, session_id=workout.id)
             assert unchanged.prescription_snapshot == original
             assert unchanged.version == 0

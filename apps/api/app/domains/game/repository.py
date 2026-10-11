@@ -193,3 +193,13 @@ class GameRepository:
                 statement.order_by(GameEvent.created_at.desc(), GameEvent.id.desc()).limit(limit)
             )
         )
+
+    async def progress_history(self, owner: str, limit: int):
+        return list(
+            await self.session.scalars(
+                select(ProgressSnapshot)
+                .where(ProgressSnapshot.owner_id == owner)
+                .order_by(ProgressSnapshot.created_at.desc(), ProgressSnapshot.id.desc())
+                .limit(limit)
+            )
+        )

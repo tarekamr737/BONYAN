@@ -24,6 +24,16 @@ class SessionSubstitutionService:
         self.training = training
         self.repository = repository
 
+    async def pending(self, owner: str, session_id: UUID) -> list[SessionSubstitutionView]:
+        session = await self.training._owned_session(user_id=owner, session_id=session_id)
+        if session.status != "active":
+            return []
+        return [
+            self._view(proposal, session)
+            for proposal in await self.repository.pending(owner, session_id)
+            if proposal.expected_version == session.version
+        ]
+
     async def preview(
         self, owner: str, session_id: UUID, request: PreviewSessionSubstitution
     ) -> SessionSubstitutionView:

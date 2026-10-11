@@ -28,7 +28,12 @@ class MockLLMProvider:
                 model=self._model,
             )
         return LLMResponse(
-            text="Mock response: BONYAN processed the validated training context.",
+            text=(
+                "رد تجريبي: BONYAN استقبل بيانات تمرينك. الكوتش الحقيقي مش مفعّل في وضع التجربة."
+                if "only in natural Egyptian Arabic" in request.prompt
+                else "Development response: BONYAN processed your training context. "
+                "A live Coach is not enabled in mock mode."
+            ),
             model=self._model,
         )
 

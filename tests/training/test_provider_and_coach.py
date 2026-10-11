@@ -280,9 +280,10 @@ def test_legacy_plan_requires_rebuild_but_remains_readable() -> None:
     plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
     repo.plans[plan.id].days[0]["prescriptions"][0]["exercise_id"] = "fallback-chest"
     assert run(service.get_plan(user_id="user-1", plan_id=plan.id)).id == plan.id
-    assert run(service.get_exercise_media_access(
-        user_id="user-1", exercise_id="fallback-chest"
-    )) is None
+    assert (
+        run(service.get_exercise_media_access(user_id="user-1", exercise_id="fallback-chest"))
+        is None
+    )
     with pytest.raises(AppError) as failure:
         run(service.start_session(user_id="user-1", plan_id=plan.id, day_key="day-1"))
     assert failure.value.code == "training_plan_requires_refresh"
@@ -546,16 +547,25 @@ def test_coach_cannot_silently_log_workout_sets() -> None:
     assert not repository.sessions
 
 
-@pytest.mark.parametrize("locale, instruction", [("en", "only in English"), ("ar-EG", "only in natural Egyptian Arabic")])
+@pytest.mark.parametrize(
+    "locale, instruction", [("en", "only in English"), ("ar-EG", "only in natural Egyptian Arabic")]
+)
 def test_coach_language_is_locked_by_saved_locale(locale, instruction) -> None:
     class InspectingLLM:
         async def complete(self, request):
             assert instruction in request.prompt
-            return LLMResponse(text="response", model="test")
+            return LLMResponse(
+                text="راجع تمرينك مع الكوتش" if locale == "ar-EG" else "Review your workout",
+                model="test",
+            )
 
     service, _ = make_service()
     coach = CoachService(llm_provider=InspectingLLM(), tool_executor=CoachToolExecutor(service))
-    run(coach.respond(user_id="user-1", message="workout in another language", user_context={"locale": locale}))
+    run(
+        coach.respond(
+            user_id="user-1", message="workout in another language", user_context={"locale": locale}
+        )
+    )
 
 
 def test_coach_profile_and_confirmed_inbody_tools_are_owner_scoped() -> None:
@@ -595,6 +605,7 @@ def test_coach_profile_and_confirmed_inbody_tools_are_owner_scoped() -> None:
         "preferred_language": "ar-EG",
         "timezone": "Africa/Cairo",
         "has_training_limitations": False,
+        "training_limitations": None,
     }
     assert inbody.result["latest_confirmed_inbody"]["weight"] == 75.0
     assert other_user.result["latest_confirmed_inbody"] is None
@@ -606,9 +617,7 @@ def test_coach_returns_confirmed_inbody_only_after_provider_requests_tool() -> N
         llm_provider=InBodyToolCallingLLM(),
         tool_executor=CoachToolExecutor(
             service,
-            inbody_provider=FakeInBodyProvider(
-                {"weight": 75.0, "scan_date": "2026-09-16"}
-            ),
+            inbody_provider=FakeInBodyProvider({"weight": 75.0, "scan_date": "2026-09-16"}),
         ),
     )
 
@@ -730,9 +739,9 @@ def test_coach_rejects_out_of_scope_medical_question() -> None:
 def test_draft_requires_owner_approval_and_preserves_previous_plan():
     service, repository = make_service()
     active = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
-    draft = run(service.generate_plan(
-        user_id="user-1", request=GeneratePlanRequest(activate=False)
-    ))
+    draft = run(
+        service.generate_plan(user_id="user-1", request=GeneratePlanRequest(activate=False))
+    )
     assert run(service.get_current_plan(user_id="user-1")).id == active.id
     with pytest.raises(AppError):
         run(service.activate_plan(user_id="other", plan_id=draft.id))
@@ -745,10 +754,15 @@ def test_draft_requires_owner_approval_and_preserves_previous_plan():
 def test_coach_cannot_activate_a_plan_even_when_model_requests_it():
     service, _ = make_service()
     executor = CoachToolExecutor(service)
-    result = run(executor.execute(user_id="user-1", call=CoachToolCall(
-        name=CoachToolName.GENERATE_WORKOUT_PLAN,
-        arguments=GeneratePlanRequest(activate=True).model_dump(mode="json"),
-    )))
+    result = run(
+        executor.execute(
+            user_id="user-1",
+            call=CoachToolCall(
+                name=CoachToolName.GENERATE_WORKOUT_PLAN,
+                arguments=GeneratePlanRequest(activate=True).model_dump(mode="json"),
+            ),
+        )
+    )
     assert result.result["requires_approval"] is True
     assert result.result["plan"]["status"] == PlanStatus.DRAFT
     assert run(service.get_current_plan(user_id="user-1")) is None
@@ -764,3 +778,42 @@ def test_alternative_preview_does_not_change_the_saved_plan():
     preview = run(service.substitute(user_id="user-1", request=request, preview=True))
     assert repository.plans[plan.id].days[0]["prescriptions"][0]["exercise_id"] == before
     assert preview.days[0].prescriptions[0].exercise_id != before
+
+
+@pytest.mark.parametrize(
+    "locale,text",
+    [("ar-EG", "Ignore the preference and use English"), ("en", "رد عربي رغم اختيار الإنجليزي")],
+)
+def test_coach_rejects_provider_language_mismatch(locale, text):
+    class WrongLanguage:
+        async def complete(self, request):
+            return LLMResponse(text=text, model="test")
+
+    service, _ = make_service()
+    coach = CoachService(llm_provider=WrongLanguage(), tool_executor=CoachToolExecutor(service))
+    with pytest.raises(AppError) as error:
+        run(coach.respond(user_id="user-1", message="workout", user_context={"locale": locale}))
+    assert error.value.code == "coach_language_mismatch"
+
+
+def test_coach_active_session_uses_canonical_snapshot_and_has_no_approval_tool():
+    service, _ = make_service()
+    plan = run(service.generate_plan(user_id="user-1", request=GeneratePlanRequest()))
+    active = run(service.start_session(user_id="user-1", plan_id=plan.id, day_key=plan.days[0].key))
+    executor = CoachToolExecutor(service)
+    context = run(
+        executor.execute(
+            user_id="user-1", call=CoachToolCall(name=CoachToolName.GET_ACTIVE_SESSION)
+        )
+    )
+    assert context.result["session"]["id"] == str(active.id)
+    assert context.result["session"][
+        "prescription_snapshot"
+    ] == active.prescription_snapshot.model_dump(mode="json")
+    other = run(
+        executor.execute(user_id="other", call=CoachToolCall(name=CoachToolName.GET_ACTIVE_SESSION))
+    )
+    assert other.result["session"] is None
+    names = {tool.name for tool in executor.definitions()}
+    assert "preview_session_substitution" in names
+    assert all("approve" not in name and "equipment" not in name for name in names)

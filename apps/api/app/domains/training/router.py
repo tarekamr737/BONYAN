@@ -333,15 +333,22 @@ async def coach_message(
     foods = await nutrition.list_food_between(owner_id=current_user.id, start=start, end=end)
     repository = TrainingRepository(session)
     history = await repository.list_coach_messages(owner_id=current_user.id, limit=12)
+    from app.domains.training.substitution_repository import SubstitutionRepository
+    from app.domains.training.substitution_service import SessionSubstitutionService
+
+    recent_sessions = await service.list_recent_sessions(user_id=current_user.id, limit=20)
+    active_session = next((item for item in recent_sessions if item.status == "active"), None)
     user_context = {
         "locale": profile.preferred_language if profile else "en",
         "goal": profile.training_goal if profile else None,
         "experience": profile.experience_level if profile else None,
         "available_training_days": profile.available_training_days if profile else None,
         "available_equipment": profile.available_equipment if profile else [],
+        "active_session": active_session.model_dump(mode="json") if active_session else None,
         "has_training_limitations": (
             bool((profile.coaching or {}).get("limitations")) if profile else False
         ),
+        "training_limitations": (profile.coaching or {}).get("limitations") if profile else None,
         "today_nutrition": {
             "meals_logged": len(foods),
             "calories": sum(item.calories for item in foods),
@@ -355,6 +362,9 @@ async def coach_message(
             service,
             profile_repository=profile_repository,
             inbody_provider=inbody_provider,
+            substitution_service=SessionSubstitutionService(
+                service, SubstitutionRepository(session)
+            ),
         ),
     )
     response = await coach.respond(

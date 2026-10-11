@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select, text
@@ -43,6 +44,21 @@ class SubstitutionRepository:
     async def save(self, proposal: SessionSubstitutionProposal) -> None:
         self.session.add(proposal)
         await self.session.flush()
+
+    async def pending(self, owner: str, session_id: UUID):
+        return list(
+            await self.session.scalars(
+                select(SessionSubstitutionProposal)
+                .where(
+                    SessionSubstitutionProposal.owner_id == owner,
+                    SessionSubstitutionProposal.session_id == session_id,
+                    SessionSubstitutionProposal.status == "pending",
+                    SessionSubstitutionProposal.expires_at > datetime.now(UTC),
+                )
+                .order_by(SessionSubstitutionProposal.expires_at.desc())
+                .limit(10)
+            )
+        )
 
     async def event(self, **values) -> SessionSubstitutionEvent:
         event = SessionSubstitutionEvent(**values)

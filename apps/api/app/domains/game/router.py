@@ -25,6 +25,7 @@ from app.domains.game.schemas import (
     InvitationReply,
     LeagueView,
     OptInRequest,
+    ProgressHistoryView,
     WalletView,
 )
 from app.domains.game.service import GameService
@@ -37,6 +38,14 @@ Avatar = Annotated[AvatarService, Depends(get_avatar_service)]
 @router.get("/overview", response_model=GameOverview)
 async def overview(user: CurrentUserDep, db: DB):
     return await GameService(GameRepository(db)).overview(user.id)
+
+
+@router.get("/progress/history", response_model=list[ProgressHistoryView])
+async def progress_history(
+    user: CurrentUserDep, db: DB, limit: Annotated[int, Query(ge=1, le=50)] = 20
+):
+    records = await GameRepository(db).progress_history(user.id, limit)
+    return [ProgressHistoryView.model_validate(record, from_attributes=True) for record in records]
 
 
 @router.post("/check-ins", response_model=GameOverview, dependencies=[Depends(limit_coach)])

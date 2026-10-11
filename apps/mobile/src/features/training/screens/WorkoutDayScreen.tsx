@@ -47,6 +47,7 @@ export function WorkoutDayScreen() {
   const [localSession, setSession] = useState<WorkoutSession | null>(null);
   const savedSession = useQuery({queryKey: ["training", "session", sessionId], enabled: Boolean(sessionId), queryFn: () => getWorkoutSession(sessionId!)});
   const session = localSession && (!sessionId || localSession.id === sessionId)
+    && (!savedSession.data || localSession.version > savedSession.data.version)
     ? localSession
     : savedSession.data ?? null;
 

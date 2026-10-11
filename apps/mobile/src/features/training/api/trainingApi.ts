@@ -14,8 +14,11 @@ import type { SessionSubstitution, SubstitutionScope, SubstitutionReason, Substi
 export function previewSessionSubstitution(sessionId: string, request: {prescription_index: number; scope: SubstitutionScope; reason: SubstitutionReason}): Promise<SessionSubstitution> {
   return apiRequest(`/api/v1/training/sessions/${encodeURIComponent(sessionId)}/substitutions/preview`, {method: "POST", body: request});
 }
-export function approveSessionSubstitution(proposal: SessionSubstitution, key: string, acknowledged: boolean): Promise<SubstitutionResult> {
-  return apiRequest(`/api/v1/training/substitution-proposals/${proposal.id}/approve`, {method: "POST", body: {idempotency_key: key, expected_version: proposal.expected_version, acknowledge_logged_sets: acknowledged, confirm_persistent_edit: proposal.scope !== "session"}});
+export function getPendingSessionSubstitutions(sessionId: string): Promise<SessionSubstitution[]> {
+  return apiRequest(`/api/v1/training/sessions/${encodeURIComponent(sessionId)}/substitutions`);
+}
+export function approveSessionSubstitution(proposal: SessionSubstitution, key: string, acknowledged: boolean, confirmPersistentEdit = false): Promise<SubstitutionResult> {
+  return apiRequest(`/api/v1/training/substitution-proposals/${proposal.id}/approve`, {method: "POST", body: {idempotency_key: key, expected_version: proposal.expected_version, acknowledge_logged_sets: acknowledged, confirm_persistent_edit: confirmPersistentEdit}});
 }
 export function rejectSessionSubstitution(id: string): Promise<void> {
   return apiRequest(`/api/v1/training/substitution-proposals/${id}/reject`, {method: "POST"});

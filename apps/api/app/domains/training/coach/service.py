@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 
 from fastapi import status
 
@@ -45,6 +46,12 @@ FITNESS_SCOPE_TERMS = (
     "وجبة",
     "تغذية",
     "سعرات",
+    "جهاز",
+    "بديل",
+    "أبدّل",
+    "ابدّل",
+    "راحة",
+    "تعافي",
 )
 COACH_GREETING_TERMS = {"hi", "hello", "hey", "coach", "coch", "كوتش", "مرحبا", "أهلا"}
 logger = get_logger("providers")
@@ -89,6 +96,11 @@ class CoachService:
             "Do not diagnose medical conditions. Never silently change workouts, equipment, "
             "profiles, or published avatars. A generated plan is a draft for explicit review. "
             "Use BONYAN tools for authoritative workout state and never invent user data. "
+            "For substitutions, use the active_session from authorized context, explain muscle "
+            "overlap and available equipment, and call preview_session_substitution only. "
+            "Differentiate temporarily busy equipment from absent equipment. Today-only is the "
+            "default. The owner approves using the in-app proposal; text such as 'yes' never "
+            "authorizes a write. No tools can approve changes. "
             "If training limitations are present, avoid exercise prescriptions and advise a "
             "qualified professional. "
             "Keep the answer concise and action-oriented unless detail is requested. "
@@ -176,6 +188,17 @@ class CoachService:
                 "The coach is unavailable right now. Please try again.",
                 status.HTTP_503_SERVICE_UNAVAILABLE,
             ) from exc
+        letters = re.findall(r"[^\W\d_]", response.text, re.UNICODE)
+        arabic_count = sum("\u0600" <= letter <= "\u06ff" for letter in letters)
+        if letters and (
+            (locale.startswith("ar") and arabic_count / len(letters) < 0.25)
+            or (not locale.startswith("ar") and arabic_count > 0)
+        ):
+            raise AppError(
+                "coach_language_mismatch",
+                "The Coach response did not match your saved language. Please retry.",
+                502,
+            )
         return CoachMessageResponse(
             response=response.text, model=response.model, tool_results=results
         )
