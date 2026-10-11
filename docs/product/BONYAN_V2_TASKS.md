@@ -2,7 +2,7 @@
 
 - [x] Read supplied master prompt/concept; safely extract 25 reference screens; audit baseline.
 - [x] A: Typed persisted locales, shared RTL/error states, five-tab shell and contextual Coach.
-- [ ] B: Rich shared exercise media/details, plan/picker/session parity and session recovery.
+- [x] B: Rich shared exercise media/details, plan/picker/session parity and session recovery.
 - [x] C: Versioned session snapshot, preview/approve/reject/undo, scopes, locking, idempotency and audit.
 - [x] D: Confirmed measurements, private consented Avatar revisions/provenance, granular community privacy.
 - [ ] E: Progress Score, capped game events/XP/missions, seasons/leagues/challenges, reward wallet.
@@ -24,3 +24,5 @@ E community: persisted configurable seasons and comparable weekly cohorts (50 me
 F Today/Coach: reference hierarchy connected to canonical next/resumed workout, coverage-aware Progress Score/XP, comparable recorded trends, private Avatar, missions and league. Coach reads the active canonical session, persists recoverable preview-only proposals, shows explicit scope/persistent-edit approvals and refreshes authoritative state. Wrong-language replies fail safely; earlier replies from another locale show a localized archive notice. Workout recovery selects the newest server version. Focused PostgreSQL/Coach checks: 48 passed; regression: 311 API passed, 22 opt-in skipped; mobile lint/TypeScript and 79 tests passed. Remaining screen-localization and visual QA continue.
 
 D completion: optimistic versioned human measurement review with device/date provenance; immutable confirmed inputs, Avatar revision history, illustration/uncertainty disclosures, explicit public-post preview and production provider release gate implemented. Added authenticated server-configured moderator queue, audited idempotent hide/restore, private report export/deletion and community limits. Migration 0018 applied. Focused InBody/community/moderation checks including real PostgreSQL: 76 passed. Regression: 313 API passed, 22 opt-in skipped; mobile lint/TypeScript and 79 tests passed. Supplied-screen visual comparison remains in G; provider benchmarks require an approved manifest before production enablement.
+
+B/F completion: shared catalog form details across manual picker, plan cards, active sessions and proposed alternatives; explicit completion review, localized previous performance, canonical kg storage with pound display, Arabic numeral inputs and persisted intro/auth language switching. Migrated remaining conditional copy to the typed catalog; safe errors cover upload clients. Development Avatar fixtures disclose their limitations and cannot enter public identities. Regression: 314 API passed, 22 opt-in skipped; mobile lint/TypeScript and 84 tests passed. Android Today boot verified; compact/RTL visual QA continues in G.

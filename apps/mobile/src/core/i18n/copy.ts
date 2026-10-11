@@ -1,4 +1,5 @@
-// Centralized baseline copy, shared by every existing feature. No cross-locale fallback.
+import {formatNumber} from "./messages";
+// Typed feature catalog. Existing entries are preserved when migrating remaining copy.
 export const featureMessages = {
   "copy_40b1670516c7": [
     "AVATAR JOURNEY",
@@ -2027,7 +2028,308 @@ export const featureMessages = {
   "copy_bd6002495741": [
     "Files",
     "الملفات"
+  ],
+  "copy_b3aaee2fb117": [
+    "Notifications, {p0} need attention",
+    "الإشعارات، {p0} تحتاج انتباهك"
+  ],
+  "copy_317bbd2e92bb": [
+    "Build avatar",
+    "إنشاء الـAvatar"
+  ],
+  "copy_61cd3c6bd9a2": [
+    "Your measurements are ready. Build a private avatar from your latest body data.",
+    "قياساتك جاهزة. أنشئ Avatar خاصًا يعكس أحدث بيانات جسمك."
+  ],
+  "copy_96be8c2bc9c5": [
+    "Your avatar can be built",
+    "الـAvatar جاهز للإنشاء"
+  ],
+  "copy_aa14244c5d73": [
+    "Keep your portrait current",
+    "خلّي صورتك مواكبة لتقدمك"
+  ],
+  "copy_6faece7d005c": [
+    "View avatar",
+    "عرض الـAvatar"
+  ],
+  "copy_74864200e0be": [
+    "Your approved version is saved and can be refreshed after a new assessment.",
+    "نسختك المعتمدة محفوظة بأمان ويمكنك تحديثها بعد قياس جديد."
+  ],
+  "copy_b0101e935c8f": [
+    "Avatar ready",
+    "الـAvatar جاهز"
+  ],
+  "copy_6da641bd68ef": [
+    "Generation stopped before finishing. Your data is still saved.",
+    "توقف الإنشاء قبل الاكتمال. بياناتك ما زالت محفوظة."
+  ],
+  "copy_01ed6de347bd": [
+    "Avatar needs attention",
+    "الـAvatar يحتاج مراجعة"
+  ],
+  "copy_899449f07169": [
+    "View progress",
+    "متابعة التجهيز"
+  ],
+  "copy_7e5d6a43dd54": [
+    "Your photo and measurements are being processed. Follow progress on the avatar screen.",
+    "نعالج الصورة والقياسات الآن. يمكنك متابعة التجهيز من صفحة الـAvatar."
+  ],
+  "copy_79612888d9f3": [
+    "Avatar is being prepared",
+    "جارٍ تجهيز الـAvatar"
+  ],
+  "copy_da2b65ea2065": [
+    "Review avatar",
+    "مراجعة واعتماد"
+  ],
+  "copy_0d59e518ea69": [
+    "A new version is ready for your review before it is approved.",
+    "النسخة الجديدة جاهزة لمراجعتك قبل اعتمادها."
+  ],
+  "copy_c4f309bac199": [
+    "Review your new avatar",
+    "راجع الـAvatar الجديد"
+  ],
+  "copy_e0814f8d5fb6": [
+    "Build another version",
+    "إنشاء نسخة جديدة"
+  ],
+  "copy_262244111fae": [
+    "You can build another version from your latest measurements.",
+    "يمكنك إنشاء نسخة أخرى باستخدام أحدث قياساتك."
+  ],
+  "copy_be1f592878ae": [
+    "Build a better match",
+    "أنشئ نسخة أنسب"
+  ],
+  "copy_ad2291bd25cb": [
+    "Your request is queued and avatar preparation is starting.",
+    "تم استلام طلبك وسيبدأ تجهيز الـAvatar."
+  ],
+  "copy_83832bcc6f87": [
+    "Avatar request received",
+    "طلب الـAvatar وصل"
+  ],
+  "copy_553c5df7b503": [
+    "Complete profile",
+    "إكمال الملف"
+  ],
+  "copy_c254a4bf3c0c": [
+    "Your profile is {p0}% complete. Add useful details to improve your score and plan.",
+    "ملفك مكتمل بنسبة {p0}%. أضف البيانات المفيدة لتحسين التقييم والخطة."
+  ],
+  "copy_dca03c8ee2d4": [
+    "Complete your profile",
+    "أكمل ملفك الشخصي"
+  ],
+  "copy_dd3908eb5385": [
+    "Your custom workout is saved. Prepare a {p0}-day weekly plan when you're ready.",
+    "تم حفظ تمرينك اليدوي. جهّز خطة أسبوعية تناسب {p0} أيام عندما تكون مستعدًا."
+  ],
+  "copy_28e106b36b11": [
+    "We will use your goal, experience and available days to prepare your training system.",
+    "سنستخدم هدفك وخبرتك وأيامك المتاحة لبناء نظام تمرين مناسب."
+  ],
+  "copy_41ea95c0fc73": [
+    "Your weekly plan is not ready yet",
+    "خطتك الأسبوعية لم تُجهّز بعد"
+  ],
+  "copy_b1457ad68656": [
+    "Open training",
+    "فتح التمرين"
+  ],
+  "copy_85b77a52fb6b": [
+    "Your active plan is ready for {p0} days each week.",
+    "خطتك النشطة جاهزة: {p0} أيام أسبوعيًا."
+  ],
+  "copy_f00771b3e364": [
+    "Your training plan is ready",
+    "خطة تمرينك جاهزة"
+  ],
+  "copy_2f3c2d66b883": [
+    "View details",
+    "عرض التفاصيل"
+  ],
+  "copy_454a5f5c1a34": [
+    "Your current coaching score is {p0}/100 and updates with meaningful body and performance data.",
+    "مؤشر تقدمك الحالي {p0}/100 ويُحدّث مع القياسات والأداء المهم."
+  ],
+  "copy_21982b0a8b01": [
+    "Your progress score is up to date",
+    "تقييم تقدمك محدث"
+  ],
+  "copy_8ba5b9bd1bc4": [
+    "Start with body data",
+    "ابدأ بقياسات جسمك"
+  ],
+  "copy_02495666879f": [
+    "Add measurements or an InBody report",
+    "أضف قياسات أو تقرير InBody"
+  ],
+  "copy_2c23a6db9d84": [
+    "Body data ready",
+    "بيانات الجسم جاهزة"
+  ],
+  "copy_00db51742e47": [
+    "Build your first avatar",
+    "أنشئ الـAvatar الأول"
+  ],
+  "copy_8c970188707c": [
+    "Preparing your version",
+    "جارٍ تجهيز نسختك"
+  ],
+  "copy_d42bdbe32489": [
+    "Wait for processing to finish",
+    "انتظر اكتمال المعالجة"
+  ],
+  "copy_4f750d85dbac": [
+    "Version ready to review",
+    "النسخة جاهزة للمراجعة"
+  ],
+  "copy_5eae45ecc5b4": [
+    "Review and approve it",
+    "راجع النسخة واعتمدها"
+  ],
+  "copy_89c27baa7e29": [
+    "Avatar approved",
+    "الأفاتار معتمد"
+  ],
+  "copy_73b55ad51288": [
+    "Refresh it after your next assessment",
+    "حدّثه بعد تقييم جسم جديد"
+  ],
+  "copy_d8965bab897c": [
+    "Version needs another try",
+    "النسخة تحتاج إعادة المحاولة"
+  ],
+  "copy_3596ad3e7fdb": [
+    "Rebuild from your latest data",
+    "أنشئ نسخة من أحدث بياناتك"
+  ],
+  "copy_74198be8b2dd": [
+    "BONYAN tour · {p0}/{p1}",
+    "جولة بنيان · {p0}/{p1}"
+  ],
+  "copy_794d54b22780": [
+    "Body data: {p0}",
+    "بيانات الجسم: {p0}"
+  ],
+  "copy_e9560fa2c965": [
+    "Choose your goal",
+    "اختر هدفك"
+  ],
+  "copy_d070352db617": [
+    "We sent a temporary 6-digit code to {p0}.",
+    "بعتنا كود مؤقت من ٦ أرقام إلى {p0}."
+  ],
+  "copy_33e2826483c8": [
+    "{p0} in {p1}",
+    "{p0} بوحدة {p1}"
+  ],
+  "copy_4f90e6093e31": [
+    "Allow BONYAN to use your {p0}, then try again.",
+    "اسمح لبنيان باستخدام {p0} وبعدين جرّب تاني."
+  ],
+  "copy_833b5eb3e2e3": [
+    "Recorded {p0}",
+    "مسجلة {p0}"
+  ],
+  "copy_9ec399c6ccab": [
+    "{p0} presentation",
+    "عرض {p0}"
+  ],
+  "copy_9eb365dba66f": [
+    "Post by {p0}",
+    "منشور من {p0}"
+  ],
+  "copy_016e4e8f2765": [
+    "{p0}'s approved body avatar",
+    "صورة {p0} المعتمدة"
+  ],
+  "copy_0278e008acde": [
+    "now",
+    "دلوقتي"
+  ],
+  "copy_d640522759b2": [
+    "{p0}m",
+    "منذ {p0} د"
+  ],
+  "copy_a61c7c2ff430": [
+    "{p0}h",
+    "منذ {p0} س"
+  ],
+  "copy_15d7671f73ff": [
+    "{p0}d",
+    "منذ {p0} ي"
+  ],
+  "copy_43276d5b2c84": [
+    "Correct {p0}",
+    "صحّح {p0}"
+  ],
+  "copy_68b7e09b01cf": [
+    "{p0} file{p1} ready",
+    "{p0} ملف جاهز للرفع"
+  ],
+  "copy_3cb181dd8f0c": [
+    "{p0}g P · {p1}g C · {p2}g F",
+    "{p0} جم بروتين · {p1} جم كربوهيدرات · {p2} جم دهون"
+  ],
+  "copy_95df464ca7bc": [
+    "Decrease {p0}",
+    "تقليل {p0}"
+  ],
+  "copy_a7641a66c712": [
+    "Increase {p0}",
+    "زيادة {p0}"
+  ],
+  "copy_558be62e39dc": [
+    "This older plan contains unavailable exercises. Prepare and approve a new plan to continue. Your workout history is preserved.",
+    "الخطة القديمة فيها تمارين مش متاحة. جهّز خطة جديدة واعتمدها عشان تكمل. سجل تمريناتك محفوظ."
+  ],
+  "copy_3881a2b25747": [
+    "No catalog exercises match your equipment. Review your profile equipment or choose exercises manually. Your current plan has not changed.",
+    "مفيش تمارين مناسبة للمعدات دي في الكتالوج دلوقتي. راجع معداتك في ملفك أو اختار التمارين يدويًا. خطتك الحالية ما اتغيرتش."
+  ],
+  "copy_878559103853": [
+    "The exercise catalog is unavailable right now. Wait a moment and retry. Your current plan has not changed.",
+    "كتالوج التمارين مش متاح دلوقتي. استنى شوية وجرّب تاني. خطتك الحالية ما اتغيرتش."
+  ],
+  "copy_8e43548a4426": [
+    "Review workout ({p0})",
+    "مراجعة التمرين ({p0})"
+  ],
+  "copy_5e6fe8ac465b": [
+    "{p0} selected",
+    "{p0} تمارين مختارة"
+  ],
+  "copy_d1ba4abc1a80": [
+    "DAY {p0}",
+    "اليوم {p0}"
+  ],
+  "copy_51f61d186ebf": [
+    "{p0} completed",
+    "{p0} تمرين مكتمل"
+  ],
+  "copy_52a186ee4b3a": [
+    "{p0} kg volume",
+    "{p0} كجم حجم تدريبي"
+  ],
+  "copy_3a39ee812744": [
+    "{p0} exercises",
+    "{p0} تمارين"
+  ],
+  "copy_5db7d8c8f370": [
+    "{p0} sets × {p1}-{p2} reps · {p3} min rest",
+    "{p0} مجموعات × {p1}-{p2} تكرار · راحة {p3} دقائق"
+  ],
+  "copy_4f263cd01d68": [
+    "Log set {p0}",
+    "سجّل المجموعة {p0}"
   ]
 } as const;
 export type FeatureMessageKey = keyof typeof featureMessages;
-export function phrase(key: FeatureMessageKey, arabic: boolean): string { return featureMessages[key][arabic ? 1 : 0]; }
+export function phrase(key: FeatureMessageKey, arabic: boolean): string {return featureMessages[key][arabic ? 1 : 0];}
+export function phraseTemplate(key: FeatureMessageKey, arabic: boolean, values: unknown[]): string {return phrase(key, arabic).replace(/\{p(\d+)\}/g, (_, index: string) => {const value = values[Number(index)]; return typeof value === "number" ? formatNumber(value, arabic ? "ar-EG" : "en") : String(value ?? "");});}

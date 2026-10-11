@@ -1,4 +1,5 @@
-import { phrase } from "../../../core/i18n/copy";
+import { parseLocalizedNumber } from "../../../core/i18n/messages";
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { router } from "expo-router";
 import { AppButton } from "../../../core/components";
@@ -112,7 +113,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
                 <View key={measurement.key} style={styles.editRow}>
                   <MeasurementRow measurement={measurement} />
                   <TextInput
-                    accessibilityLabel={arabic ? `صحّح ${measurementLabel(measurement.key, true)}` : `Correct ${measurementLabel(measurement.key, false)}`}
+                    accessibilityLabel={phraseTemplate("copy_43276d5b2c84", arabic, (arabic) ? [measurementLabel(measurement.key, true)] : [measurementLabel(measurement.key, false)])}
                     keyboardType="decimal-pad"
                     onChangeText={(value) => updateValue(measurement.key, value)}
                     placeholder={phrase("copy_53cdbd5e3c85", arabic)}
@@ -273,7 +274,7 @@ function buildEditedMeasurements(
     }
     return {
       ...measurement,
-      value: draft.trim() ? Number(draft) : null,
+      value: draft.trim() ? parseLocalizedNumber(draft) : null,
       metadata: { ...measurement.metadata, user_edited: true },
     };
   });

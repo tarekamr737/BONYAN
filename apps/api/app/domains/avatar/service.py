@@ -54,6 +54,7 @@ class AvatarService:
         privacy: PrivacyRepository | None = None,
         generation_enabled: bool = True,
         generation_daily_limit: int = 3,
+        development_mock: bool = False,
     ) -> None:
         self._repository = repository
         self._provider = provider
@@ -65,6 +66,7 @@ class AvatarService:
         self._privacy = privacy
         self._generation_enabled = generation_enabled
         self._generation_daily_limit = generation_daily_limit
+        self._development_mock = development_mock
 
     async def create(self, owner_id: str, request: CreateAvatarRequest) -> AvatarView:
         if not self._generation_enabled:
@@ -99,6 +101,7 @@ class AvatarService:
                 "recorded_at": metrics.recorded_at.isoformat(),
                 "source": metrics.source.value,
                 "version": 1,
+                "development_mock": self._development_mock,
             },
             measurements_recorded_at=metrics.recorded_at,
             failure_code=None,
@@ -266,6 +269,8 @@ class AvatarService:
 
     async def set_public_use(self, owner_id: str, avatar_id: UUID, *, enabled: bool) -> AvatarView:
         avatar = await self._require_owned(owner_id, avatar_id)
+        if enabled and self._is_development_mock(avatar):
+            raise AppError("avatar_mock_not_public", "Development fixtures cannot be public.", 409)
         if enabled and avatar.state is not AvatarState.APPROVED:
             raise AppError(
                 code="avatar_not_approved",
@@ -300,6 +305,7 @@ class AvatarService:
         avatar = await self._repository.get_for_owner(avatar_id, owner_id)
         if (
             avatar is None
+            or self._is_development_mock(avatar)
             or avatar.state is not AvatarState.APPROVED
             or not avatar.is_public
             or avatar.generated_object_key is None
@@ -317,6 +323,8 @@ class AvatarService:
         avatars = await self._repository.list_public_for_references(unique_references)
         identities: dict[tuple[str, UUID], AvatarCommunityIdentity] = {}
         for avatar in avatars:
+            if self._is_development_mock(avatar):
+                continue
             if self._privacy and not (await self._privacy.get(avatar.owner_id)).avatar:
                 continue
             if avatar.generated_object_key is None:
@@ -450,6 +458,7 @@ class AvatarService:
                 avatar.generated_object_key, expires_in_seconds=300
             )
         return AvatarView(
+            development_mock=self._is_development_mock(avatar),
             id=avatar.id,
             state=avatar.state,
             style=avatar.style,
@@ -483,6 +492,12 @@ class AvatarService:
     @staticmethod
     def _touch(avatar: AvatarRecord) -> None:
         avatar.updated_at = datetime.now(UTC)
+
+    def _is_development_mock(self, avatar: AvatarRecord) -> bool:
+        snapshot = getattr(avatar, "measurement_snapshot", None) or {}
+        return bool(snapshot.get("development_mock")) or (
+            self._development_mock and avatar.provider_model == "TBD"
+        )
 
     async def _require_body_metrics(self, owner_id: str) -> BodyMetricsSnapshot:
         metrics = await self._body_metrics_reader.latest_confirmed(owner_id)

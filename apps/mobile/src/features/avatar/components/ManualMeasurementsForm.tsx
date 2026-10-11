@@ -1,4 +1,4 @@
-import { phrase } from "../../../core/i18n/copy";
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
@@ -129,7 +129,7 @@ export function ManualMeasurementsForm({ arabic = false, onCancel, onSaved }: Ma
             <Text style={styles.label}>{fieldLabel(field.key, arabic)}</Text>
             <View style={styles.inputShell}>
               <TextInput
-                accessibilityLabel={arabic ? `${fieldLabel(field.key, true)} بوحدة ${field.suffix}` : `${field.label} in ${field.suffix}`}
+                accessibilityLabel={phraseTemplate("copy_33e2826483c8", arabic, (arabic) ? [fieldLabel(field.key, true), field.suffix] : [field.label, field.suffix])}
                 inputMode="decimal"
                 keyboardType="decimal-pad"
                 onChangeText={(value) => updateValue(field.key, value)}

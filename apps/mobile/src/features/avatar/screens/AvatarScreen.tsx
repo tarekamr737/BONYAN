@@ -1,4 +1,4 @@
-import { phrase } from "../../../core/i18n/copy";
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -119,9 +119,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
     if (!permission.granted) {
       Alert.alert(
         phrase("copy_599cebc19378", arabic),
-        arabic
-          ? `اسمح لبنيان باستخدام ${fromCamera ? "الكاميرا" : "مكتبة الصور"} وبعدين جرّب تاني.`
-          : `Allow BONYAN to use your ${fromCamera ? "camera" : "photo library"}, then try again.`,
+        phraseTemplate("copy_4f90e6093e31", arabic, (arabic) ? [fromCamera ? "الكاميرا" : "مكتبة الصور"] : [fromCamera ? "camera" : "photo library"]),
       );
       return;
     }
@@ -408,7 +406,7 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
           ))}
         </View>
         {query.data.recorded_at ? (
-          <Text style={styles.recordedAt}>{arabic ? `مسجلة ${formatDate(query.data.recorded_at, true)}` : `Recorded ${formatDate(query.data.recorded_at, false)}`}</Text>
+          <Text style={styles.recordedAt}>{phraseTemplate("copy_833b5eb3e2e3", arabic, (arabic) ? [formatDate(query.data.recorded_at, true)] : [formatDate(query.data.recorded_at, false)])}</Text>
         ) : null}
         <Text style={styles.sourceRule}>{phrase("copy_9708ccb57d5d", arabic)}</Text>
       </View>
@@ -516,12 +514,13 @@ function AvatarReview({
       </View>
       <Text style={styles.previewCopy}>{t("illustration")}</Text>
       <Text style={styles.previewCopy}>{t("illustrationUncertainty")}</Text>
+      {avatar.development_mock ? <Text accessibilityRole="alert" style={styles.previewCopy}>{t("developmentAvatar")}</Text> : null}
       <Text style={styles.sourceDate}>{t("measurementDate")}: {avatar.measurement_snapshot?.measurement_date ? formatDate(`${avatar.measurement_snapshot.measurement_date}T12:00:00Z`, arabic) : t("unknown")}</Text>
       <Text style={styles.sourceDate}>{t("measurementDevice")}: {avatar.measurement_snapshot?.device_label ?? t("unknown")} · {t("measurementVersion")}: {avatar.measurement_snapshot?.measurement_version ?? "—"}</Text>
       <View style={styles.shapeSummary}>
         <Text style={styles.shapeSummaryLabel}>{phrase("copy_281576819055", arabic)}</Text>
         <Text style={styles.shapeSummaryValue}>{shapeLabel(avatar.shape_profile, arabic)}</Text>
-        <Text style={styles.shapeSummaryMeta}>{arabic ? `عرض ${avatar.presentation === "men" ? "رجالي" : "نسائي"}` : `${titleCase(avatar.presentation)} presentation`}</Text>
+        <Text style={styles.shapeSummaryMeta}>{phraseTemplate("copy_9ec399c6ccab", arabic, (arabic) ? [avatar.presentation === "men" ? "رجالي" : "نسائي"] : [titleCase(avatar.presentation)])}</Text>
       </View>
       <Text style={styles.previewTitle}>{avatarStateTitle(avatar, arabic)}</Text>
       <Text style={styles.previewCopy}>{avatarStateCopy(avatar, arabic)}</Text>

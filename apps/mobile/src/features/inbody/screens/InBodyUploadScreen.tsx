@@ -1,4 +1,4 @@
-import { phrase } from "../../../core/i18n/copy";
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Feather from "@expo/vector-icons/Feather";
@@ -39,7 +39,7 @@ export function InBodyUploadScreen({ selectedFiles, onPickFile, onUploaded }: Pr
     <View style={{gap: 10}}><Text accessibilityRole="header" style={[ui.title, arabic && ui.rtl]}>{phrase("copy_abeee53303ff", arabic)}</Text><Text style={[ui.text, arabic && ui.rtl]}>{phrase("copy_e1b5ee68924a", arabic)}</Text></View>
     <GlassCard>
       <View style={{alignItems: "center", paddingVertical: 18, gap: 16}}><Feather name={hasSelection ? "file-text" : "upload-cloud"} size={36} color={colors.bronze} />
-        <Text style={[ui.heading, {textAlign: "center"}]}>{hasSelection ? arabic ? `${selectedFiles.length} ملف جاهز للرفع` : `${selectedFiles.length} file${selectedFiles.length > 1 ? "s" : ""} ready` : phrase("copy_7b94ba469de9", arabic)}</Text>
+        <Text style={[ui.heading, {textAlign: "center"}]}>{hasSelection ? phraseTemplate("copy_68b7e09b01cf", arabic, (arabic) ? [selectedFiles.length] : [selectedFiles.length, selectedFiles.length > 1 ? "s" : ""]) : phrase("copy_7b94ba469de9", arabic)}</Text>
         <Text style={[ui.text, {textAlign: "center"}]}>{phrase("copy_bb32f9d9622a", arabic)}</Text>
       </View>
       {selectedFiles.map((file, index) => <View key={`${file.uri}-${index}`} style={ui.row}><Feather name="file" size={18} color={colors.muted} /><Text numberOfLines={2} style={[ui.small, {flex: 1}]}>{file.name}</Text></View>)}

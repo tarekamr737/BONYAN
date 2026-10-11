@@ -1,4 +1,4 @@
-import { phrase } from "../../../core/i18n/copy";
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
@@ -19,6 +19,10 @@ import {
 import { ExerciseMedia } from "../components/ExerciseMedia";
 import { WorkoutRecovery } from "../components/WorkoutRecovery";
 import { SessionSubstitutionPanel } from "../components/SessionSubstitutionPanel";
+import {ExerciseDetails} from "../components/ExerciseDetails";
+import {useLocale} from "../../../core/i18n/LocaleProvider";
+import {weightFromKg, weightToKg} from "../../../core/i18n/fitness";
+import {getMyProfile} from "../../auth/api/profileApi";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { SetStepper } from "../components/SetStepper";
 import { TrainingHeader } from "../components/TrainingHeader";
@@ -37,6 +41,10 @@ function displayDayName(value: string | undefined, arabic: boolean): string {
 
 export function WorkoutDayScreen() {
   const arabic = useContext(LanguageDirection);
+  const {t} = useLocale();
+  const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
+  const imperial = profile.data?.preferred_units === "imperial";
+  const [reviewCompletion, setReviewCompletion] = useState(false);
   const queryClient = useQueryClient();
   const params = useLocalSearchParams();
   const dayKey = paramValue(params.dayKey);
@@ -116,7 +124,7 @@ export function WorkoutDayScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TrainingHeader
           title={displayDayName(day?.name, arabic)}
-          subtitle={day ? (arabic ? `${day.prescriptions.length} تمارين` : `${day.prescriptions.length} exercises`) : ""}
+          subtitle={day ? (phraseTemplate("copy_3a39ee812744", arabic, (arabic) ? [day.prescriptions.length] : [day.prescriptions.length])) : ""}
         />
 
         {sessionId && !session && savedSession.isPending ? (
@@ -161,20 +169,21 @@ export function WorkoutDayScreen() {
             <SurfaceCard>
               <Text style={styles.activeName}>{active.name}</Text><Text style={styles.detail}>{activeIndex + 1} / {day.prescriptions.length}</Text>
               <Text style={styles.detail}>
-                {arabic ? `${active.sets} مجموعات × ${active.reps_min}-${active.reps_max} تكرار · راحة ${Math.round(active.rest_seconds / 60)} دقائق` : `${active.sets} sets × ${active.reps_min}-${active.reps_max} reps · ${Math.round(active.rest_seconds / 60)} min rest`}
+                {phraseTemplate("copy_5db7d8c8f370", arabic, (arabic) ? [active.sets, active.reps_min, active.reps_max, Math.round(active.rest_seconds / 60)] : [active.sets, active.reps_min, active.reps_max, Math.round(active.rest_seconds / 60)])}
               </Text>
               <ExerciseMedia exerciseId={active.exercise_id} name={active.name} arabic={arabic}/>
+              <ExerciseDetails exerciseId={active.exercise_id}/>
               <WorkoutRecovery session={session} exercise={active} index={activeIndex}/>
               <View style={styles.stepperRow}>
                 <SetStepper arabic={arabic} label={phrase("copy_85ba154f815e", arabic)} max={50} min={0} onChange={setReps} step={1} value={reps} />
                 <SetStepper
                   arabic={arabic}
-                  label={phrase("copy_2fb6ec488d9a", arabic)}
-                  max={300}
+                  label={`${t("weight")} (${t(imperial ? "pound" : "kilogram")})`}
+                  max={imperial ? 660 : 300}
                   min={0}
-                  onChange={setWeight}
-                  step={2.5}
-                  value={weight}
+                  onChange={value => setWeight(weightToKg(value, imperial))}
+                  step={imperial ? 5 : 2.5}
+                  value={Math.round(weightFromKg(weight, imperial) * 10) / 10}
                 />
               </View>
               {!session ? (
@@ -197,7 +206,7 @@ export function WorkoutDayScreen() {
                   ]}
                 >
                   <Text style={styles.logButtonText}>
-                    {nextSetNumber > active.sets ? (phrase("copy_e3b75f09ab2d", arabic)) : (arabic ? `سجّل المجموعة ${nextSetNumber}` : `Log set ${nextSetNumber}`)}
+                    {nextSetNumber > active.sets ? (phrase("copy_e3b75f09ab2d", arabic)) : (phraseTemplate("copy_4f263cd01d68", arabic, (arabic) ? [nextSetNumber] : [nextSetNumber]))}
                   </Text>
                 </Pressable>
               )}
@@ -222,10 +231,11 @@ export function WorkoutDayScreen() {
               ))}
             </View>
 
+            {reviewCompletion && !sessionComplete ? <SurfaceCard><Text style={styles.stateTitle}>{t("completionReview")}</Text><Text style={styles.detail}>{t("completionHelp")}</Text><Pressable accessibilityRole="button" disabled={completeMutation.isPending || logMutation.isPending} style={styles.completeButton} onPress={() => completeMutation.mutate()}><Text style={styles.completeButtonText}>{t("confirmCompletion")}</Text></Pressable><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => setReviewCompletion(false)}><Text style={styles.completeButtonText}>{t("cancel")}</Text></Pressable></SurfaceCard> : null}
             <Pressable
               accessibilityRole="button"
               disabled={!session || sessionComplete || completeMutation.isPending || logMutation.isPending}
-              onPress={() => completeMutation.mutate()}
+              onPress={() => setReviewCompletion(true)}
               style={[styles.completeButton, (!session || sessionComplete || completeMutation.isPending) && styles.disabledAction]}
             >
               <Text style={styles.completeButtonText}>

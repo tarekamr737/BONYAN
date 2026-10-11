@@ -8,6 +8,7 @@ export type AvatarState =
 
 export type AvatarView = {
   illustration_only?: boolean;
+  development_mock?: boolean;
   measurement_snapshot?: {measurement_date?: string | null; device_label?: string | null; measurement_version?: number; source_record_id?: string | null} | null;
   id: string;
   state: AvatarState;

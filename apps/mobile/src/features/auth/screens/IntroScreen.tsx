@@ -1,4 +1,5 @@
 import { phrase } from "../../../core/i18n/copy";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 import { Image } from "expo-image";
 import { useRef, useState } from "react";
 import { PanResponder, Pressable, StyleSheet, View } from "react-native";
@@ -22,7 +23,7 @@ const images = {
 
 export function IntroScreen({ onComplete }: { onComplete: (register: boolean, arabic: boolean) => void }) {
   const [page, setPage] = useState(0);
-  const [arabic, setArabic] = useState(true);
+  const { rtl: arabic, setLocale } = useLocale();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
   const busy = useRef(false);
@@ -54,7 +55,7 @@ export function IntroScreen({ onComplete }: { onComplete: (register: boolean, ar
         <Text style={styles.topAction}>{phrase("copy_7ac39b7f867c", arabic)}</Text>
       </Pressable>
     </View> : null}
-    <View style={styles.header}><BrandMark /><AppButton variant="secondary" label={arabic ? "English" : "العربية"} disabled={saving} onPress={() => setArabic(!arabic)} /></View>
+    <View style={styles.header}><BrandMark /><AppButton variant="secondary" label={arabic ? "English" : "العربية"} disabled={saving} onPress={() => void setLocale(arabic ? "en" : "ar-EG")} /></View>
     <View {...gesture.panHandlers} style={styles.story}>
       <Image source={images[slide.image]} contentFit="cover" style={styles.image} accessibilityLabel={arabic ? slide.ar : slide.en} />
       {slide.image === "nutrition" ? <Image source={images.coach} contentFit="cover" style={styles.image} accessibilityLabel={phrase("copy_2ed91036abed", arabic)} /> : null}

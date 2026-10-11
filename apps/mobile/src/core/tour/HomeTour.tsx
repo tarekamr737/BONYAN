@@ -1,4 +1,4 @@
-import { phrase } from "../i18n/copy";
+import { phrase, phraseTemplate } from "../i18n/copy";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "expo-router";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
@@ -135,7 +135,7 @@ function HomeTourOverlay({ arabic, busy, onBack, onFinish, onNext, rect, step }:
     <View pointerEvents="none" style={[styles.highlight, holeStyle]} />
     </> : <View style={[styles.blocker, StyleSheet.absoluteFill, { backgroundColor: dim }]} />}
     <View onLayout={event => setTooltipHeight(event.nativeEvent.layout.height)} style={[styles.tooltip, { left: tooltipLeft, top: tooltipTop, width: tooltipWidth }]}>
-      <Text style={[styles.kicker, arabic && styles.rtl]}>{arabic ? `جولة بنيان · ${step + 1}/${steps.length}` : `BONYAN tour · ${step + 1}/${steps.length}`}</Text>
+      <Text style={[styles.kicker, arabic && styles.rtl]}>{phraseTemplate("copy_74198be8b2dd", arabic, (arabic) ? [step + 1, steps.length] : [step + 1, steps.length])}</Text>
       <Text style={[styles.copy, arabic && styles.rtl]}>{arabic ? steps[step]!.ar : steps[step]!.en}</Text>
       {!rect ? <Text style={[styles.copy, arabic && styles.rtl]}>{phrase("copy_d4862460181b", arabic)}</Text> : null}
       <View style={[styles.actions, arabic && styles.reverse]}>

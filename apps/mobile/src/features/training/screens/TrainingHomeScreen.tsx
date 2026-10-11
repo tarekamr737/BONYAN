@@ -1,4 +1,4 @@
-import { phrase } from "../../../core/i18n/copy";
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { getMyProfile } from "../../auth/api/profileApi";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -167,7 +167,7 @@ export function TrainingHomeScreen() {
                         onPress={() => { setSelectedDayKey(day.key); startMutation.reset(); }}
                         style={[styles.dayOption, selected && styles.dayOptionSelected]}
                       >
-                        <Text style={[styles.dayOptionNumber, selected && styles.dayOptionTextSelected]}>{arabic ? `اليوم ${index + 1}` : `DAY ${index + 1}`}</Text>
+                        <Text style={[styles.dayOptionNumber, selected && styles.dayOptionTextSelected]}>{phraseTemplate("copy_d1ba4abc1a80", arabic, (arabic) ? [index + 1] : [index + 1])}</Text>
                         <Text numberOfLines={1} style={[styles.dayOptionName, selected && styles.dayOptionTextSelected]}>{dayName(day.name, arabic)}</Text>
                       </Pressable>
                     );
@@ -223,7 +223,7 @@ export function TrainingHomeScreen() {
           {sessions.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
           {sessions.isError ? <><Text style={styles.stateCopy}>{phrase("copy_07f4bcd08b43", arabic)}</Text><Pressable accessibilityRole="button" onPress={() => sessions.refetch()} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{phrase("copy_bb30cda7c34e", arabic)}</Text></Pressable></> : null}
           {sessions.data?.length === 0 ? <Text style={styles.stateCopy}>{phrase("copy_464fb63049b4", arabic)}</Text> : null}
-          {completedSessions.length > 0 ? <><View style={styles.planStats}><Text style={styles.stat}>{arabic ? `${completedSessions.length} تمرين مكتمل` : `${completedSessions.length} completed`}</Text><Text style={styles.stat}>{arabic ? `${Math.round(totalVolume)} كجم حجم تدريبي` : `${Math.round(totalVolume)} kg volume`}</Text></View>{completedSessions.slice(0, 5).map(session => <Pressable accessibilityRole="button" key={session.id} onPress={() => router.push({pathname: "/training/day", params: {dayKey: session.day_key, sessionId: session.id}})} style={styles.historyRow}><View style={styles.titleWrap}><Text style={styles.historyTitle}>{session.day_key.replaceAll("-", " ")}</Text><Text style={styles.stateCopy}>{new Intl.DateTimeFormat(arabic ? "ar-EG" : "en", {day: "numeric", month: "short", year: "numeric"}).format(new Date(session.completed_at ?? session.started_at))}</Text></View><Text style={styles.historyMeta}>{Number(session.summary.sets ?? session.logged_sets.length)} {phrase("copy_bb2fdf6e13c9", arabic)}</Text></Pressable>)}</> : null}
+          {completedSessions.length > 0 ? <><View style={styles.planStats}><Text style={styles.stat}>{phraseTemplate("copy_51f61d186ebf", arabic, (arabic) ? [completedSessions.length] : [completedSessions.length])}</Text><Text style={styles.stat}>{phraseTemplate("copy_52a186ee4b3a", arabic, (arabic) ? [Math.round(totalVolume)] : [Math.round(totalVolume)])}</Text></View>{completedSessions.slice(0, 5).map(session => <Pressable accessibilityRole="button" key={session.id} onPress={() => router.push({pathname: "/training/day", params: {dayKey: session.day_key, sessionId: session.id}})} style={styles.historyRow}><View style={styles.titleWrap}><Text style={styles.historyTitle}>{session.day_key.replaceAll("-", " ")}</Text><Text style={styles.stateCopy}>{new Intl.DateTimeFormat(arabic ? "ar-EG" : "en", {day: "numeric", month: "short", year: "numeric"}).format(new Date(session.completed_at ?? session.started_at))}</Text></View><Text style={styles.historyMeta}>{Number(session.summary.sets ?? session.logged_sets.length)} {phrase("copy_bb2fdf6e13c9", arabic)}</Text></Pressable>)}</> : null}
         </SurfaceCard>
 
         <View style={styles.actions}>

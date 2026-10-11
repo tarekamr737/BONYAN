@@ -94,6 +94,23 @@ export const messages = {
   postSharingHelp: ["This caption and selected approved Avatar will be public. Private source photos and measurements are never attached. Review your caption before publishing.", "الكلام ده والشخصية اللي وافقت عليها هيتنشروا للكل. صورك الأصلية وقياساتك الخاصة مش بتتضاف. راجع كلامك قبل النشر."],
   moderation: ["Moderation queue", "مراجعة البلاغات"], hidePost: ["Hide reported post", "اخفي المنشور المبلغ عنه"], dismissReport: ["Dismiss report", "اقفل البلاغ"], noReports: ["No pending reports.", "مفيش بلاغات مستنية مراجعة."],
   reportSpam: ["Spam", "إزعاج"], reportHarassment: ["Harassment", "مضايقة"], reportPrivacy: ["Privacy concern", "مشكلة خصوصية"], reportOther: ["Other concern", "مشكلة تانية"],
+  exerciseDetails: ["Exercise details", "تفاصيل التمرين"], formNotes: ["Form notes", "ملاحظات الأداء"],
+  noTranslatedInstructions: ["Detailed guidance is unavailable. Review the correct demonstration or ask a qualified trainer.", "إرشادات تفصيلية بالعربي مش متاحة للحركة دي. راجع عرض الحركة الصح أو اسأل مدرّب مؤهل."],
+  targetMuscles: ["Target muscles", "العضلات المستهدفة"], equipment: ["Equipment", "الأجهزة والأدوات"],
+  otherMuscle: ["Other muscle group", "عضلات تانية"], otherEquipment: ["Other equipment", "أداة تانية"],
+  sets: ["sets", "مجموعات"], reps: ["reps", "عدات"], seconds: ["seconds", "ثانية"], rest: ["Rest", "راحة"],
+  kilogram: ["kg", "كجم"], pound: ["lb", "رطل"], weight: ["Weight", "الوزن"],
+  completionReview: ["Review workout completion", "راجع إنهاء التمرين"],
+  completionHelp: ["Only logged sets are saved. Missing sets stay incomplete; a qualifying workout must meet the published evidence rules to earn XP.", "المجموعات اللي سجّلتها بس هي اللي بتتحفظ. الباقي هيفضل ناقص؛ والتمرين لازم يحقق قواعد البيانات المطلوبة عشان يكسب نقط خبرة."],
+  confirmCompletion: ["Confirm completed workout", "أكد إنهاء التمرين"],
+  developmentAvatar: ["Development illustration fixture. This mock is not your identity or measured appearance and cannot be published.", "صورة تجريبية للتطوير. دي مش هويتك أو شكل جسمك المقاس، ومش ممكن تنشرها."],
+  avatar_mock_not_public: ["Development Avatar fixtures cannot be shared publicly.", "صور الشخصية التجريبية مينفعش تتنشر للكل."],
+  ocr_rate_limited: ["The OCR service has reached its current usage limit.", "خدمة قراءة التقارير وصلت لحدّ الاستخدام دلوقتي. جرّب بعد شوية."],
+  coach_unavailable: ["The Coach is unavailable right now. Your workout is still saved; try again shortly.", "الكوتش مش متاح دلوقتي. تمرينك محفوظ؛ جرّب بعد شوية."],
+  substitution_not_available: ["No compatible alternative is available. Ask your trainer or keep this exercise for later.", "مفيش بديل مناسب متاح. اسأل مدرّبك أو سيب الحركة دي لوقت تاني."],
+  persistent_edit_confirmation: ["Confirm the persistent edit before continuing.", "أكد التغيير المستمر قبل ما تكمّل."],
+  exercise_completed: ["All prescribed sets are logged. Select an exercise with remaining sets.", "كل مجموعات الحركة دي اتسجلت. اختار حركة لسه فيها مجموعات."],
+  training_limitations_require_clearance: ["Your recorded restrictions require professional clearance before prescribing exercises.", "القيود اللي سجّلتها محتاجة موافقة مختص قبل تحديد تمارين ليك."],
 } as const;
 export type MessageKey = keyof typeof messages;
 export type Locale = "en" | "ar-EG";
@@ -111,6 +128,13 @@ export function localizedError(code: string, locale: Locale = currentLocale): st
 export function localeDirection(locale: Locale) { return locale === "ar-EG" ? "rtl" as const : "ltr" as const; }
 export function formatNumber(value: number, locale: Locale, options?: Intl.NumberFormatOptions) {
   return new Intl.NumberFormat(locale, options).format(value);
+}
+export function normalizeNumerals(value: string): string {
+  return value.replace(/[٠-٩۰-۹]/g, digit => String(digit.charCodeAt(0) - (digit >= "۰" ? 0x6f0 : 0x660)))
+    .replaceAll("٫", ".").replaceAll("٬", "");
+}
+export function parseLocalizedNumber(value: string): number {
+  return value.trim() ? Number(normalizeNumerals(value.trim())) : Number.NaN;
 }
 export function formatDate(value: string | Date, locale: Locale, timezone: string) {
   return new Intl.DateTimeFormat(locale, {dateStyle: "medium", timeZone: timezone}).format(new Date(value));

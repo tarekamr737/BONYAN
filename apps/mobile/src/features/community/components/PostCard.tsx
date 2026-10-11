@@ -1,4 +1,4 @@
-import { phrase } from "../../../core/i18n/copy";
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -67,11 +67,11 @@ export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact
   }
 
   return (
-    <View accessibilityLabel={arabic ? `منشور من ${post.author.display_name}` : `Post by ${post.author.display_name}`} style={styles.card}>
+    <View accessibilityLabel={phraseTemplate("copy_9eb365dba66f", arabic, (arabic) ? [post.author.display_name] : [post.author.display_name])} style={styles.card}>
       <View style={styles.authorRow}>
         {post.author.avatar_url ? (
           <Image
-            accessibilityLabel={arabic ? `صورة ${post.author.display_name} المعتمدة` : `${post.author.display_name}'s approved body avatar`}
+            accessibilityLabel={phraseTemplate("copy_016e4e8f2765", arabic, (arabic) ? [post.author.display_name] : [post.author.display_name])}
             source={{ uri: post.author.avatar_url }}
             style={styles.avatar}
           />

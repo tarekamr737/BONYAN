@@ -78,7 +78,7 @@ export function ProfileScreen() {
   if (profile.isPending) {
     return (
       <SafeAreaView style={styles.safeArea}><GlassBackdrop />
-        <ScreenState message="Loading your profile." variant="loading" />
+        <ScreenState message={t("loading")} variant="loading" />
       </SafeAreaView>
     );
   }
@@ -86,10 +86,10 @@ export function ProfileScreen() {
     return (
       <SafeAreaView style={styles.safeArea}><GlassBackdrop />
         <ScreenState
-          actionLabel="Try again"
-          message="Your profile could not be loaded."
+          actionLabel={t("retry")}
+          message={t("request_failed")}
           onAction={() => void profile.refetch()}
-          title="Profile unavailable"
+          title={t("profile")}
           variant="error"
         />
       </SafeAreaView>

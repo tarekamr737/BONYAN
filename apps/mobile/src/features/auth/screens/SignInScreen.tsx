@@ -1,4 +1,6 @@
-import { phrase } from "../../../core/i18n/copy";
+import { phraseTemplate , phrase } from "../../../core/i18n/copy";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
+import { normalizeLocale, normalizeNumerals } from "../../../core/i18n/messages";
 import * as Google from "expo-auth-session/providers/google";
 import { useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -21,7 +23,11 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
   const entry = useContext(AuthEntryPreferences);
   const busy = useRef(false);
   const handledGoogleToken = useRef<string | null>(null);
-  const [arabic, setArabic] = useState((entry?.language ?? params.language ?? initialLanguage) === "ar");
+  const { rtl: arabic, setLocale } = useLocale();
+  const requestedLanguage = entry?.language ?? params.language ?? initialLanguage;
+  useEffect(() => {
+    if (typeof requestedLanguage === "string") void setLocale(normalizeLocale(requestedLanguage));
+  }, [requestedLanguage, setLocale]);
   const { signIn } = useAuthSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -129,7 +135,7 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <View style={styles.intro}>
-              <AppButton variant="secondary" label={arabic ? "English" : "العربية"} onPress={() => setArabic(!arabic)} />
+              <AppButton variant="secondary" label={arabic ? "English" : "العربية"} onPress={() => void setLocale(arabic ? "en" : "ar-EG")} />
               <BrandMark size={176} />
               <Text style={styles.eyebrow}>{phrase("copy_4b2b3b0feb79", arabic)}</Text>
             </View>
@@ -138,8 +144,8 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
                 <Text style={styles.cardLabel}>{challengeId ? (phrase("copy_fc65e09a1eed", arabic)) : creatingAccount ? (phrase("copy_c4a3a32f14e0", arabic)) : (phrase("copy_c0405c957dbb", arabic))}</Text>
                 {challengeId ? (
                   <>
-                    <Text style={styles.hint}>{arabic ? `بعتنا كود مؤقت من ٦ أرقام إلى ${email}.` : `We sent a temporary 6-digit code to ${email}.`}</Text>
-                    <AppTextField autoComplete="one-time-code" keyboardType="number-pad" label={phrase("copy_7a3e8c1110f7", arabic)} maxLength={6} onChangeText={(value) => setCode(value.replace(/\D/g, ""))} textContentType="oneTimeCode" value={code} />
+                    <Text style={styles.hint}>{phraseTemplate("copy_d070352db617", arabic, (arabic) ? [email] : [email])}</Text>
+                    <AppTextField autoComplete="one-time-code" keyboardType="number-pad" label={phrase("copy_7a3e8c1110f7", arabic)} maxLength={6} onChangeText={(value) => setCode(normalizeNumerals(value).replace(/\D/g, ""))} textContentType="oneTimeCode" value={code} />
                     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
                     <AppButton label={phrase("copy_1bebc5335424", arabic)} loading={loading} onPress={() => void confirmCode()} />
                     <AppButton variant="secondary" disabled={loading} label={phrase("copy_6c60f82b45f7", arabic)} onPress={() => void resendCode()} />

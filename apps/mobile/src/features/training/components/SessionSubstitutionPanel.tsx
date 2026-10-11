@@ -9,6 +9,7 @@ import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { approveSessionSubstitution, previewSessionSubstitution, rejectSessionSubstitution, undoSessionSubstitution } from "../api/trainingApi";
 import type { SessionSubstitution, SubstitutionScope, SubstitutionReason, SubstitutionResult, WorkoutSession } from "../types";
 import { ExerciseMedia } from "./ExerciseMedia";
+import {ExerciseDetails} from "./ExerciseDetails";
 
 export function SessionSubstitutionPanel({session, index, initialProposal, onCommitted}: {session: WorkoutSession; index: number; initialProposal?: SessionSubstitution; onCommitted: (session: WorkoutSession) => void}) {
   const {t, rtl} = useLocale();
@@ -41,6 +42,7 @@ export function SessionSubstitutionPanel({session, index, initialProposal, onCom
     {proposal ? <>
       <Text style={styles.title}>{proposal.original.name} → {proposal.candidate.name}</Text>
       <ExerciseMedia exerciseId={proposal.candidate.exercise_id} name={proposal.candidate.name} arabic={rtl}/>
+      <ExerciseDetails exerciseId={proposal.candidate.exercise_id}/>
       <Text style={styles.copy}>{t("substitutionWhy")}</Text>
       <Text style={styles.copy}>{t(proposal.scope === "session" ? "sessionScope" : proposal.scope === "plan" ? "planScope" : "equipmentScope")}</Text>
       {logged ? <Pressable accessibilityRole="checkbox" accessibilityState={{checked: acknowledged}} style={styles.button} onPress={() => setAcknowledged(!acknowledged)} disabled={busy}><Text style={styles.copy}>{acknowledged ? "✓ " : "☐ "}{t("remainingSets")}</Text></Pressable> : null}

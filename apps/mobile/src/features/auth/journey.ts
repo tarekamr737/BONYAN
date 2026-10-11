@@ -1,3 +1,4 @@
+import { phrase } from "../../core/i18n/copy";
 import type { CoachingPreferences, TrainingGoal } from "./types";
 
 export const goalOptions = [
@@ -18,4 +19,4 @@ export function cleanCoaching(goal: TrainingGoal, value: CoachingPreferences): C
  return {...value, ...(goal !== "military_preparation" ? {military_subtype: null, target_date: null, situps: null, situps_target: null, pullups: null, pullups_target: null, limitations: null} : {}), ...(goal !== "fat_loss" ? {target_weight_kg: null} : {})};
 }
 export const dimensionLabel: Record<string, string> = {strength: "Push-up target", endurance: "Running target", pullups: "Pull-up target", consistency: "Weekly consistency", body_goal: "Weight target progress"};
-export function goalLabel(goal: TrainingGoal | null | undefined, arabic = false) { const option = goalOptions.find(item => item.value === goal); return option ? arabic ? option.ar : option.title : arabic ? "اختر هدفك" : "Choose your goal"; }
+export function goalLabel(goal: TrainingGoal | null | undefined, arabic = false) { const option = goalOptions.find(item => item.value === goal); return option ? arabic ? option.ar : option.title : phrase("copy_e9560fa2c965", arabic); }

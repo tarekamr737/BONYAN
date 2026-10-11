@@ -1,3 +1,4 @@
+import { phrase } from "../../core/i18n/copy";
 import type { WorkoutPlan } from "./types";
 
 export function planNeedsRefresh(plan: Pick<WorkoutPlan, "days"> | null | undefined): boolean {
@@ -5,16 +6,10 @@ export function planNeedsRefresh(plan: Pick<WorkoutPlan, "days"> | null | undefi
 }
 
 export function planRefreshMessage(arabic: boolean): string {
-  return arabic
-    ? "الخطة القديمة فيها تمارين مش متاحة. جهّز خطة جديدة واعتمدها عشان تكمل. سجل تمريناتك محفوظ."
-    : "This older plan contains unavailable exercises. Prepare and approve a new plan to continue. Your workout history is preserved.";
+  return phrase("copy_558be62e39dc", arabic);
 }
 
 export function planGenerationError(code: string | undefined, arabic: boolean): string {
-  if (code === "training_catalog_no_match") return arabic
-    ? "مفيش تمارين مناسبة للمعدات دي في الكتالوج دلوقتي. راجع معداتك في ملفك أو اختار التمارين يدويًا. خطتك الحالية ما اتغيرتش."
-    : "No catalog exercises match your equipment. Review your profile equipment or choose exercises manually. Your current plan has not changed.";
-  return arabic
-    ? "كتالوج التمارين مش متاح دلوقتي. استنى شوية وجرّب تاني. خطتك الحالية ما اتغيرتش."
-    : "The exercise catalog is unavailable right now. Wait a moment and retry. Your current plan has not changed.";
+  if (code === "training_catalog_no_match") return phrase("copy_3881a2b25747", arabic);
+  return phrase("copy_878559103853", arabic);
 }

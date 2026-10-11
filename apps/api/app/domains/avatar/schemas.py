@@ -50,6 +50,7 @@ class AvatarView(BaseModel):
     id: UUID
     measurement_snapshot: dict | None = None
     illustration_only: bool = True
+    development_mock: bool = False
     state: AvatarState
     style: str
     presentation: str

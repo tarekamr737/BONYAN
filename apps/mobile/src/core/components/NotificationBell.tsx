@@ -1,3 +1,4 @@
+import { phraseTemplate } from "../i18n/copy";
 import Feather from "@expo/vector-icons/Feather";
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -7,7 +8,7 @@ import { DirectionalText as Text } from "./DirectionalText";
 export function NotificationBell({ arabic, count, onPress }: { arabic: boolean; count: number; onPress: () => void }) {
   return (
     <Pressable
-      accessibilityLabel={arabic ? `الإشعارات، ${count} تحتاج انتباهك` : `Notifications, ${count} need attention`}
+      accessibilityLabel={phraseTemplate("copy_b3aaee2fb117", arabic, (arabic) ? [count] : [count])}
       accessibilityRole="button"
       hitSlop={8}
       onPress={onPress}

@@ -1,3 +1,4 @@
+import { parseLocalizedNumber } from "../../core/i18n/messages";
 import type {
   ExperienceLevel,
   PreferredUnits,
@@ -58,7 +59,7 @@ export function validateProfileDraft(draft: ProfileDraft): string | null {
     return "Choose at least one equipment option. Select bodyweight if you train without equipment.";
   }
   if (draft.heightCm) {
-    const height = Number(draft.heightCm);
+    const height = parseLocalizedNumber(draft.heightCm);
     if (!Number.isFinite(height) || height < 80 || height > 250) {
       return "Height must be between 80 and 250 cm.";
     }

@@ -145,6 +145,7 @@ def make_service(
     provider: AvatarProvider | None = None,
     timeout_seconds: float = 0.1,
     metrics_reader: FakeBodyMetricsReader | None = None,
+    development_mock: bool = False,
 ) -> tuple[
     AvatarService, FakeAvatarRepository, FakePrivateStorage, FakeBodyMetricsReader
 ]:
@@ -158,12 +159,32 @@ def make_service(
         reader,
         manual_metrics_writer=reader,
         provider_timeout_seconds=timeout_seconds,
+        development_mock=development_mock,
     )
     return service, repository, storage, reader
 
 
 def create_request() -> CreateAvatarRequest:
     return CreateAvatarRequest(style=BodyAvatarStyle.CINEMATIC_3D)
+
+
+def test_development_fixture_disclosed_and_cannot_enter_public_identity() -> None:
+    async def scenario() -> None:
+        service, repository, _, _ = make_service(development_mock=True)
+        created = await service.create("user-1", create_request())
+        assert created.development_mock is True
+        assert repository.items[created.id].measurement_snapshot["development_mock"] is True
+        await service.approve("user-1", created.id)
+        with pytest.raises(AppError) as error:
+            await service.set_public_use("user-1", created.id, enabled=True)
+        assert error.value.code == "avatar_mock_not_public"
+        # Legacy or externally tampered flags never bypass the reader's public gate.
+        repository.items[created.id].is_public = True
+        assert await service.get_community_identity("user-1", created.id) is None
+        assert await service.get_community_identities([("user-1", created.id)]) == {}
+        assert (await service.list_owned("user-1")).items[0].development_mock is True
+
+    asyncio.run(scenario())
 
 
 def test_confirmed_metrics_generate_private_result_without_storing_raw_values() -> None:

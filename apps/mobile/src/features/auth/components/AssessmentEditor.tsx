@@ -1,3 +1,4 @@
+import { parseLocalizedNumber } from "../../../core/i18n/messages";
 import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { coachingCopy } from "../coachingCopy";
@@ -35,12 +36,12 @@ export function AssessmentEditor({onSaved, height = "", arabic = false}: {onSave
   const mutation = useMutation({mutationFn: async () => {
     // Deduplication ID only; never used for authentication.
     const id = requestId ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); }); setRequestId(id);
-    return saveAssessment(source === "manual" ? {request_id: id, source, measurements: {height_cm: Number(values.height), weight_kg: Number(values.weight), body_fat_percentage: values.fat ? Number(values.fat) : null}} : {request_id: id, source, inbody_scan_id: scan ?? ""});
+    return saveAssessment(source === "manual" ? {request_id: id, source, measurements: {height_cm: parseLocalizedNumber(values.height), weight_kg: parseLocalizedNumber(values.weight), body_fat_percentage: values.fat ? parseLocalizedNumber(values.fat) : null}} : {request_id: id, source, inbody_scan_id: scan ?? ""});
   }, onSuccess: async () => { await storeCoachingDraft(null, "assessment").catch(() => {}); await Promise.all([client.invalidateQueries({queryKey: ["assessment"]}), client.invalidateQueries({queryKey: ["profile"]}), client.invalidateQueries({queryKey: ["profile-history"]})]); onSaved?.(); }});
   useEffect(() => {
     if (restored && !mutation.isSuccess) void storeCoachingDraft(JSON.stringify({source, values, scan, requestId}), "assessment").catch(() => {});
   }, [restored, source, values, scan, requestId, mutation.isSuccess]);
-  const valid = source === "inbody" ? scan !== null : [values.height, values.weight].every(v => v.trim() && Number.isFinite(Number(v))) && Number(values.height) >= 80 && Number(values.height) <= 250 && Number(values.weight) >= 30 && Number(values.weight) <= 350 && (!values.fat || Number(values.fat) >= 2 && Number(values.fat) <= 70);
+  const valid = source === "inbody" ? scan !== null : [values.height, values.weight].every(v => v.trim() && Number.isFinite(Number(v))) && parseLocalizedNumber(values.height) >= 80 && parseLocalizedNumber(values.height) <= 250 && parseLocalizedNumber(values.weight) >= 30 && parseLocalizedNumber(values.weight) <= 350 && (!values.fat || parseLocalizedNumber(values.fat) >= 2 && parseLocalizedNumber(values.fat) <= 70);
   function field(key: keyof typeof values, label: string) { return <AppTextField label={label} keyboardType="decimal-pad" value={values[key]} onChangeText={v => {setValues({...values, [key]: v.replace(/[\u0660-\u0669]/g, digit => String(digit.charCodeAt(0) - 1632)).replace("\u066b", ".")}); setRequestId(null); mutation.reset();}} editable={!mutation.isPending} />; }
   if (!restored) return <Text style={ui.text}>{phrase("copy_699275b5f819", arabic)}</Text>;
   return <View style={ui.stack}>

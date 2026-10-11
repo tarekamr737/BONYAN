@@ -1,4 +1,4 @@
-import { phrase } from "../../core/i18n/copy";
+import { phrase, phraseTemplate } from "../../core/i18n/copy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -126,7 +126,7 @@ function MealList({ arabic, isError, isPending, items, onRetry, title }: { arabi
     {isPending ? <ActivityIndicator color={colors.bronze} /> : null}
     {isError ? <AppButton label={phrase("copy_bb30cda7c34e", arabic)} onPress={onRetry} variant="secondary" /> : null}
     {!isPending && !isError && items.length === 0 ? <GlassCard><Text style={[ui.text, arabic && ui.rtl]}>{phrase("copy_0c2e371ce4c5", arabic)}</Text></GlassCard> : null}
-    {items.map((item, index) => <MotionReveal delay={index * 35} key={item.id}><GlassCard><View style={[styles.logHeader, arabic && styles.reverse]}><Text style={styles.logTitle}>{labels[item.meal_type][arabic ? 1 : 0]}</Text><Text style={styles.calories}>{item.calories} {phrase("copy_51773b42039e", arabic)}</Text></View><Text style={[ui.text, arabic && ui.rtl]} numberOfLines={3}>{item.description}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? `${item.protein_g} جم بروتين · ${item.carbs_g} جم كربوهيدرات · ${item.fat_g} جم دهون` : `${item.protein_g}g P · ${item.carbs_g}g C · ${item.fat_g}g F`}</Text><Text style={[ui.small, arabic && ui.rtl]}>{item.summary}</Text></GlassCard></MotionReveal>)}
+    {items.map((item, index) => <MotionReveal delay={index * 35} key={item.id}><GlassCard><View style={[styles.logHeader, arabic && styles.reverse]}><Text style={styles.logTitle}>{labels[item.meal_type][arabic ? 1 : 0]}</Text><Text style={styles.calories}>{item.calories} {phrase("copy_51773b42039e", arabic)}</Text></View><Text style={[ui.text, arabic && ui.rtl]} numberOfLines={3}>{item.description}</Text><Text style={[ui.small, arabic && ui.rtl]}>{phraseTemplate("copy_3cb181dd8f0c", arabic, (arabic) ? [item.protein_g, item.carbs_g, item.fat_g] : [item.protein_g, item.carbs_g, item.fat_g])}</Text><Text style={[ui.small, arabic && ui.rtl]}>{item.summary}</Text></GlassCard></MotionReveal>)}
   </View>;
 }
 

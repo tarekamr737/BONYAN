@@ -1,7 +1,10 @@
+import { phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
+import {formatNumber} from "../../../core/i18n/messages";
+import {useLocale} from "../../../core/i18n/LocaleProvider";
 
 type SetStepperProps = {
   arabic?: boolean;
@@ -14,6 +17,7 @@ type SetStepperProps = {
 };
 
 export function SetStepper({ arabic = false, label, value, step, min, max, onChange }: SetStepperProps) {
+  const {locale} = useLocale();
   const decrease = () => onChange(Math.max(min, Number((value - step).toFixed(1))));
   const increase = () => onChange(Math.min(max, Number((value + step).toFixed(1))));
 
@@ -22,16 +26,16 @@ export function SetStepper({ arabic = false, label, value, step, min, max, onCha
       <Text style={styles.label}>{label}</Text>
       <View style={styles.control}>
         <Pressable
-          accessibilityLabel={arabic ? `تقليل ${label}` : `Decrease ${label}`}
+          accessibilityLabel={phraseTemplate("copy_95df464ca7bc", arabic, (arabic) ? [label] : [label])}
           accessibilityRole="button"
           onPress={decrease}
           style={styles.button}
         >
           <Text style={styles.buttonText}>-</Text>
         </Pressable>
-        <Text style={styles.value}>{value}</Text>
+        <Text style={styles.value}>{formatNumber(value, locale, {maximumFractionDigits: 1})}</Text>
         <Pressable
-          accessibilityLabel={arabic ? `زيادة ${label}` : `Increase ${label}`}
+          accessibilityLabel={phraseTemplate("copy_a7641a66c712", arabic, (arabic) ? [label] : [label])}
           accessibilityRole="button"
           onPress={increase}
           style={styles.button}

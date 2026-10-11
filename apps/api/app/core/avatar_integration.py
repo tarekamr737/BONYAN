@@ -317,6 +317,7 @@ def get_avatar_service(
             settings.api_env in {"development", "test"} or settings.avatar_provider_release_approved
         ),
         generation_daily_limit=settings.avatar_generation_daily_limit,
+        development_mock=settings.avatar_provider == "mock",
     )
 
 
