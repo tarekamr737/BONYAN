@@ -113,6 +113,8 @@ export function ProfileScreen() {
           </Text>
         </View>
         <AppButton label={t("privacySettings")} onPress={() => router.push("/privacy")} />
+        <AppButton label={t("weeklyMission")} onPress={() => router.push("/missions")} />
+        <AppButton label={t("progressScore")} onPress={() => router.push("/progress-score")} />
         <View style={styles.profileContent}>
           <ProfilePhotoEditor profile={profile.data} />
           <ProfileOverview profile={profile.data} onEdit={() => setEditing(true)} />

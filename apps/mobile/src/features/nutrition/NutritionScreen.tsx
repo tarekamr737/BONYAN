@@ -54,6 +54,8 @@ export function NutritionScreen() {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["nutrition", "logs"] }),
         client.invalidateQueries({ queryKey: ["nutrition", "today"] }),
+        client.invalidateQueries({ queryKey: ["game"] }),
+        client.invalidateQueries({ queryKey: ["activity"] }),
       ]);
     },
   });

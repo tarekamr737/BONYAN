@@ -1,0 +1,168 @@
+from datetime import date, datetime
+from uuid import UUID, uuid4
+
+from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.domains.game.models import AwardLedger, GameEvent, ProgressSnapshot, WeeklyTargets
+from app.domains.game.rules import RULES_VERSION, week_start
+from app.domains.users.repository import SqlAlchemyProfileRepository
+
+
+class GameRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def lock(self, owner: str):
+        await self.session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+            {"key": f"game:{owner}"},
+        )
+
+    async def targets(self, owner: str, now: datetime) -> WeeklyTargets:
+        week = week_start(now)
+        profile = await SqlAlchemyProfileRepository(self.session).get(owner)
+        values = {
+            "owner_id": owner,
+            "week_start": week,
+            "timezone": profile.timezone if profile else "UTC",
+            "workout_days": max(
+                2, min(6, (profile.available_training_days if profile else None) or 3)
+            ),
+            "experience": (profile.experience_level if profile else None) or "beginner",
+            "goal": (profile.training_goal if profile else None) or "general_fitness",
+            "league_opt_in": False,
+        }
+        await self.session.execute(insert(WeeklyTargets).values(**values).on_conflict_do_nothing())
+        return await self.session.scalar(
+            select(WeeklyTargets)
+            .where(WeeklyTargets.owner_id == owner, WeeklyTargets.week_start == week)
+            .with_for_update()
+        )
+
+    async def source(self, owner: str, source: str) -> GameEvent | None:
+        return await self.session.scalar(
+            select(GameEvent).where(GameEvent.owner_id == owner, GameEvent.source_key == source)
+        )
+
+    async def credited(
+        self, owner: str, kind: str, week: date | None, day: date | None = None
+    ) -> int:
+        statement = (
+            select(func.count())
+            .select_from(GameEvent)
+            .where(
+                GameEvent.owner_id == owner, GameEvent.kind == kind, GameEvent.eligible.is_(True)
+            )
+        )
+        if week:
+            statement = statement.where(GameEvent.week_start == week)
+        if day:
+            statement = statement.where(GameEvent.local_day == day)
+        return (await self.session.scalar(statement)) or 0
+
+    async def append(
+        self,
+        owner: str,
+        source: str,
+        category: str,
+        day: date,
+        targets: WeeklyTargets,
+        eligible: bool,
+        evidence: dict,
+        xp: int,
+        points: int,
+    ) -> GameEvent:
+        event = GameEvent(
+            owner_id=owner,
+            source_key=source,
+            kind=category,
+            local_day=day,
+            week_start=targets.week_start,
+            timezone=targets.timezone,
+            version=RULES_VERSION,
+            evidence=evidence,
+            eligible=eligible,
+        )
+        self.session.add(event)
+        await self.session.flush()
+        if eligible:
+            self.session.add(
+                AwardLedger(
+                    owner_id=owner, event_id=event.id, category=category, xp=xp, points=points
+                )
+            )
+            await self.session.flush()
+        return event
+
+    async def awards(self, owner: str, week: date | None = None) -> list[AwardLedger]:
+        statement = (
+            select(AwardLedger)
+            .join(GameEvent, GameEvent.id == AwardLedger.event_id)
+            .where(AwardLedger.owner_id == owner)
+        )
+        if week:
+            statement = statement.where(GameEvent.week_start == week)
+        return list(
+            await self.session.scalars(statement.order_by(AwardLedger.created_at, AwardLedger.id))
+        )
+
+    async def revoke(self, owner: str, source: str) -> None:
+        await self.lock(owner)
+        original = await self.source(owner, source)
+        if original is None or await self.source(owner, f"revoke:{source}"):
+            return
+        award = await self.session.scalar(
+            select(AwardLedger).where(AwardLedger.event_id == original.id)
+        )
+        if award is None:
+            return
+        event = GameEvent(
+            owner_id=owner,
+            source_key=f"revoke:{source}",
+            kind="revocation",
+            local_day=original.local_day,
+            week_start=original.week_start,
+            timezone=original.timezone,
+            version=RULES_VERSION,
+            evidence={"reverses_event": str(original.id)},
+            eligible=False,
+        )
+        self.session.add(event)
+        await self.session.flush()
+        self.session.add(
+            AwardLedger(
+                owner_id=owner,
+                event_id=event.id,
+                reverses_id=award.id,
+                category=award.category,
+                xp=-award.xp,
+                points=-award.points,
+            )
+        )
+        await self.session.flush()
+
+    async def snapshot(self, owner: str, evidence_hash: str, result: dict):
+        await self.session.execute(
+            insert(ProgressSnapshot)
+            .values(id=uuid4(), owner_id=owner, evidence_hash=evidence_hash, result=result)
+            .on_conflict_do_nothing()
+        )
+
+    async def history(self, owner: str, before: UUID | None, limit: int):
+        statement = select(GameEvent).where(GameEvent.owner_id == owner)
+        if before:
+            previous = await self.session.scalar(
+                select(GameEvent).where(GameEvent.id == before, GameEvent.owner_id == owner)
+            )
+            if previous:
+                statement = statement.where(
+                    (GameEvent.created_at < previous.created_at)
+                    | ((GameEvent.created_at == previous.created_at) & (GameEvent.id < previous.id))
+                )
+        return list(
+            await self.session.scalars(
+                statement.order_by(GameEvent.created_at.desc(), GameEvent.id.desc()).limit(limit)
+            )
+        )

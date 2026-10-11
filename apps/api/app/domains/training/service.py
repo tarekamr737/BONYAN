@@ -307,6 +307,14 @@ class TrainingService:
                 sum(item["reps"] * item["weight_kg"] for item in session.logged_sets), 2
             ),
         }
+        if getattr(self.repository, "session", None) is not None:
+            from app.domains.game.repository import GameRepository
+            from app.domains.game.service import GameService
+
+            await self.repository.session.flush()
+            await GameService(GameRepository(self.repository.session)).workout_completed(
+                user_id, session
+            )
         return self._session_response(session)
 
     async def substitute(

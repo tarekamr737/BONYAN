@@ -1,12 +1,17 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
+from app.core.errors import AppError
+from app.domains.game.repository import GameRepository
 from app.domains.nutrition.image_validation import MAX_FOOD_IMAGE_BYTES, validate_food_image
+from app.domains.nutrition.models import FoodLogRecord
 from app.domains.nutrition.repository import NutritionRepository
 from app.domains.nutrition.schemas import (
     AnalyzeFoodRequest,
@@ -21,6 +26,24 @@ from app.domains.users.repository import SqlAlchemyProfileRepository
 from app.integrations.llm.production import ProductionLLMProvider
 
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
+
+
+@router.delete("/logs/{food_id}", status_code=204)
+async def delete_food(
+    food_id: UUID,
+    current_user: CurrentUserDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    record = await session.scalar(
+        select(FoodLogRecord)
+        .where(FoodLogRecord.id == food_id, FoodLogRecord.owner_id == current_user.id)
+        .with_for_update()
+    )
+    if record is None:
+        raise AppError("food_not_found", "Meal not found.", 404)
+    await GameRepository(session).revoke(current_user.id, f"nutrition:{food_id}")
+    await session.delete(record)
+    await session.commit()
 
 
 def _provider(settings: Settings):

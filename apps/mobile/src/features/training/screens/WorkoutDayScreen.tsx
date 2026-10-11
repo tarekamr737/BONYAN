@@ -105,6 +105,8 @@ export function WorkoutDayScreen() {
       setSession(completedSession);
       queryClient.invalidateQueries({ queryKey: ["training"] });
       queryClient.invalidateQueries({ queryKey: ["nutrition", "today"] });
+      queryClient.invalidateQueries({ queryKey: ["game"] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 

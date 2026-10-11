@@ -13,6 +13,7 @@ from app.core.auth import CurrentUserDep
 from app.core.database import get_db_session
 from app.domains.avatar.models import AvatarRecord, manual_body_metrics
 from app.domains.community.models import CommunityPost
+from app.domains.game.models import AwardLedger, GameEvent, ProgressSnapshot, WeeklyTargets
 from app.domains.inbody.models import InBodyScan
 from app.domains.nutrition.models import FoodLogRecord
 from app.domains.training.models import CoachMessageRecord, WorkoutPlanRecord, WorkoutSessionRecord
@@ -36,6 +37,38 @@ async def export_owned_data(db: AsyncSession, owner: str) -> dict:
         "privacy": (await PrivacyRepository(db).get(owner)).model_dump(),
     }
     collections = {
+        "game_events": (
+            GameEvent,
+            [
+                "id",
+                "source_key",
+                "kind",
+                "local_day",
+                "week_start",
+                "timezone",
+                "version",
+                "evidence",
+                "eligible",
+                "created_at",
+            ],
+        ),
+        "awards": (
+            AwardLedger,
+            ["id", "event_id", "reverses_id", "category", "xp", "points", "created_at"],
+        ),
+        "progress_history": (ProgressSnapshot, ["id", "result", "created_at"]),
+        "weekly_targets": (
+            WeeklyTargets,
+            [
+                "week_start",
+                "timezone",
+                "workout_days",
+                "experience",
+                "goal",
+                "league_opt_in",
+                "joined_at",
+            ],
+        ),
         "profile_history": (ProfileHistoryRecord, ["id", "kind", "snapshot", "created_at"]),
         "confirmed_measurements": (
             InBodyScan,

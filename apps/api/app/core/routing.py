@@ -14,6 +14,7 @@ from app.core.avatar_integration import (
 from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.avatar.router import create_avatar_router
 from app.domains.community.router import create_community_router
+from app.domains.game.router import router as game_router
 from app.domains.inbody.router import router as inbody_router
 from app.domains.nutrition.router import router as nutrition_router
 from app.domains.training.router import router as training_router
@@ -30,6 +31,7 @@ api_v1_router.include_router(substitution_router)
 api_v1_router.include_router(users_router)
 api_v1_router.include_router(privacy_router)
 api_v1_router.include_router(export_router)
+api_v1_router.include_router(game_router)
 api_v1_router.include_router(create_avatar_router(get_avatar_service, get_current_user_id))
 api_v1_router.include_router(create_community_router(get_community_service, get_current_actor))
 

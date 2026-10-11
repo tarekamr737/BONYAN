@@ -104,15 +104,20 @@ class NutritionService:
                 "source": "user_reviewed",
             },
         )
+        if getattr(self.repository, "session", None) is not None:
+            from app.domains.game.repository import GameRepository
+            from app.domains.game.service import GameService
+
+            await GameService(GameRepository(self.repository.session)).nutrition_confirmed(
+                user_id, record
+            )
         return _view(record)
 
     async def today(
         self, *, user_id: str, timezone_name: str = "UTC"
     ) -> tuple[DailyDashboard, list[FoodLogView]]:
         start, end, local_date = local_day_bounds(timezone_name)
-        foods = await self.repository.list_food_between(
-            owner_id=user_id, start=start, end=end
-        )
+        foods = await self.repository.list_food_between(owner_id=user_id, start=start, end=end)
         completed, active = await self.repository.session_counts_between(
             owner_id=user_id, start=start, end=end
         )

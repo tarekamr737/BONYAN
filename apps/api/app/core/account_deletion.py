@@ -9,6 +9,7 @@ from app.core.errors import AppError
 from app.core.storage import PrivateObjectStorage
 from app.domains.avatar.lifecycle import delete_avatar_account_data
 from app.domains.community.lifecycle import delete_community_account_data
+from app.domains.game.lifecycle import delete_game_account_data
 from app.domains.inbody.lifecycle import delete_inbody_account_data
 from app.domains.nutrition.lifecycle import delete_nutrition_account_data
 from app.domains.training.lifecycle import delete_training_account_data
@@ -37,6 +38,7 @@ class AccountDeletionService:
         await delete_community_account_data(self.session, user_id)
         await delete_nutrition_account_data(self.session, user_id)
         await delete_training_account_data(self.session, user_id)
+        await delete_game_account_data(self.session, user_id)
         for model in (PrivacyAudit, PrivacyPreferences):
             await self.session.execute(delete(model).where(model.owner_id == user_id))
         await self.session.execute(

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from test_provider_and_coach import FakeProvider
 
 from app.core.errors import AppError
+from app.domains.game.lifecycle import delete_game_account_data
 from app.domains.training.models import WorkoutPlanRecord, WorkoutSessionRecord
 from app.domains.training.repository import TrainingRepository
 from app.domains.training.schemas import GeneratePlanRequest, LoggedSetInput
@@ -241,6 +242,7 @@ async def _scenario():
                 )
     finally:
         async with factory.begin() as db:
+            await delete_game_account_data(db, owner)
             for model in [
                 SessionSubstitutionEvent,
                 SessionSubstitutionProposal,
