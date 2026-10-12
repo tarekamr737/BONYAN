@@ -6,8 +6,8 @@
 - [x] C: Versioned session snapshot, preview/approve/reject/undo, scopes, locking, idempotency and audit.
 - [x] D: Confirmed measurements, private consented Avatar revisions/provenance, granular community privacy.
 - [x] E: Progress Score, capped game events/XP/missions, seasons/leagues/challenges, reward wallet.
-- [ ] F: Today hierarchy and all existing auth/onboarding/nutrition/community/profile/notification flows.
-- [ ] G: Full locale/security/concurrency/E2E checks, additive migration validation, visual QA and documentation.
+- [x] F: Today hierarchy and existing auth/onboarding/nutrition/community/profile/notification flows.
+- [x] G: Available locale/security/concurrency/E2E checks, additive migration validation, visual QA and documentation. External checks are listed separately below.
 
 ## Check log
 
@@ -27,4 +27,16 @@ D completion: optimistic versioned human measurement review with device/date pro
 
 B/F completion: shared catalog form details across manual picker, plan cards, active sessions and proposed alternatives; explicit completion review, localized previous performance, canonical kg storage with pound display, Arabic numeral inputs and persisted intro/auth language switching. Migrated remaining conditional copy to the typed catalog; safe errors cover upload clients. Development Avatar fixtures disclose their limitations and cannot enter public identities. Regression: 314 API passed, 22 opt-in skipped; mobile lint/TypeScript and 84 tests passed. Android Today boot verified; compact/RTL visual QA continues in G.
 
-E/F/G integration: historical and revocable badge evidence, separately opted-in public badges, idempotent challenge replies, real private invitation notifications, locked nutrition response locale and complete bilingual HTTP journeys implemented. Production catalog licensing is explicitly gated; provider credits and true GIF/video handling are connected. Live QA corrected ExerciseDB's current bodyweight filter and prevented exact-difficulty queries from excluding easier compatible alternatives; deterministic selection rejects harder movements, stretches and conflicting known movement patterns. Fresh PostgreSQL upgrade, metadata comparison, V2 downgrade/re-upgrade passed after matching ORM constraints/index names to migrations. Full configured regression with isolated PostgreSQL and public ExerciseDB live check: 327 passed, 17 opt-in skipped (not passes); mobile lint/TypeScript and 91 tests passed. Arabic browser approval retained original logs, replaced only remaining sets and completed the session with an authoritative refresh. Final visual/release checks continue below.
+E/F/G integration: historical and revocable badge evidence, separately opted-in public badges, idempotent challenge replies, real private invitation notifications, locked nutrition response locale and complete bilingual HTTP journeys implemented. Production catalog licensing is explicitly gated; provider credits and true GIF/video handling are connected. Live QA corrected ExerciseDB's current bodyweight filter and prevented exact-difficulty queries from excluding easier compatible alternatives; deterministic selection rejects harder movements, stretches and conflicting known movement patterns. Fresh PostgreSQL upgrade, metadata comparison, V2 downgrade/re-upgrade passed after matching ORM constraints/index names to migrations. Full configured regression with isolated PostgreSQL and public ExerciseDB live check: 327 passed, 17 opt-in skipped (not passes). Arabic browser approval retained original logs, replaced only remaining sets and completed the session with an authoritative refresh.
+
+F/G completion: centralized remaining profile/measurement/nutrition labels and numeric inputs, consistent persisted global locale/RTL, Expo video playback, canonical rest timers and invitation notifications. Low-coverage internal estimates are hidden from Today, score details and history. Android 360×640 QA caught primary-action clipping; compact Today spacing now keeps Start workout visible, and the Avatar strip preserves room for the private illustration/setup state. Final mobile lint/TypeScript, 92 tests, API Ruff and Android/iOS/web release exports passed. A non-root API container built and passed health/readiness checks with an allowlisted build context excluding secrets/uploads. Two explicitly approved short live SovereignEG Coach checks passed in English/Egyptian Arabic without plan changes; repeated paid calls were avoided. [QA evidence and remaining gates](BONYAN_V2_QA.md).
+
+G approved interaction: synthetic local league opt-in passed in both locales, exposing only anonymous membership and earned points while name/Avatar/Progress Score stayed private. Low coverage correctly retained unranked status. Leaving the league removed the entry, and the test account returned to its initial private state.
+
+## External release checks — not passed
+
+- [ ] Physical iPhone/native iOS validation and native MP4 playback with an approved source fixture.
+- [ ] Approved Avatar/OCR fixtures and provider quality benchmarks; enable the production Avatar flag only after review.
+- [ ] Commercial exercise-media/dataset rights for production/staging before enabling the license flag.
+- [ ] Full existing opt-in provider/staging/local-experience suites (17 skips remain; see QA report).
+- [ ] Verified partner integrations before enabling voice/redemption, plus existing production email-domain setup.

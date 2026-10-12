@@ -24,6 +24,7 @@ Baseline: `5f5e767`. Branch: `feat/bonyan-v2-game-fitness`.
 - Locale is `en` or `ar-EG`; legacy `ar` normalizes to `ar-EG`. Unknown API errors get localized safe copy.
 - Session prescription is captured at start. Approved substitutions replace only unlogged remaining sets; original logged-set attribution remains immutable. Session/plan/equipment approvals are distinct and owner-scoped.
 - Progress Score v1 weights: training 35%, personal goals 25%, recovery 20%, nutrition 20%. Missing evidence is unknown; score requires at least 60% coverage and league eligibility never uses raw body composition.
+- Below the coverage threshold, Today, score details and recorded history show unknown; internal partial estimates and non-comparable trends are never displayed as earned scores.
 - Server time and user timezone determine award windows. Unique event keys, capped daily/weekly awards, immutable ledger and revocation prevent duplicate/backdated claims. No migration backfill awards.
 - Avatar is a private measurement-informed illustration, not a clinical model. Regeneration/publication require separate opt-in. Decorative badges never change physiological inputs.
 - Voice and partner redemption remain explicitly disabled until actual permissioned integrations and release gates are available.
@@ -37,3 +38,5 @@ Baseline: `5f5e767`. Branch: `feat/bonyan-v2-game-fitness`.
 ## Verification
 
 Record each slice's actual checks in BONYAN_V2_TASKS.md. Android emulator QA is available; physical iPhone and licensed partner/provider release gates remain external checks, never inferred passes.
+
+The completed local check results, screenshot evidence and explicit outstanding release gates are in [BONYAN_V2_QA.md](BONYAN_V2_QA.md). API container builds use the root `.dockerignore` allowlist to keep local credentials, uploads and unrelated artifacts out of all build layers.
