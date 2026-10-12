@@ -1,3 +1,6 @@
+import { phraseTemplate , phrase } from "../../../core/i18n/copy";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
+import { normalizeLocale, normalizeNumerals } from "../../../core/i18n/messages";
 import * as Google from "expo-auth-session/providers/google";
 import { useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -20,7 +23,11 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
   const entry = useContext(AuthEntryPreferences);
   const busy = useRef(false);
   const handledGoogleToken = useRef<string | null>(null);
-  const [arabic, setArabic] = useState((entry?.language ?? params.language ?? initialLanguage) === "ar");
+  const { rtl: arabic, setLocale } = useLocale();
+  const requestedLanguage = entry?.language ?? params.language ?? initialLanguage;
+  useEffect(() => {
+    if (typeof requestedLanguage === "string") void setLocale(normalizeLocale(requestedLanguage));
+  }, [requestedLanguage, setLocale]);
   const { signIn } = useAuthSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,9 +66,9 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
   async function submitCredentials() {
     if (busy.current) return;
     setError(null);
-    if (!email.trim()) return setError(arabic ? "اكتب بريدك الإلكتروني." : "Enter your email address.");
-    if (password.length < 12) return setError(arabic ? "كلمة المرور لازم تكون ١٢ حرف على الأقل." : "Password must be at least 12 characters.");
-    if (creatingAccount && password !== passwordConfirmation) return setError(arabic ? "كلمتا المرور غير متطابقتين." : "Passwords do not match.");
+    if (!email.trim()) return setError(phrase("copy_a8a2b0f2a674", arabic));
+    if (password.length < 12) return setError(phrase("copy_592b7a2ea061", arabic));
+    if (creatingAccount && password !== passwordConfirmation) return setError(phrase("copy_bde80520fc66", arabic));
     busy.current = true;
     setLoading(true);
     try {
@@ -83,7 +90,7 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
 
   async function confirmCode() {
     if (!challengeId || busy.current) return;
-    if (!/^\d{6}$/.test(code)) return setError(arabic ? "اكتب الكود المكوّن من ٦ أرقام." : "Enter the 6-digit code.");
+    if (!/^\d{6}$/.test(code)) return setError(phrase("copy_7f0709d7893f", arabic));
     busy.current = true;
     setLoading(true);
     setError(null);
@@ -128,35 +135,35 @@ export function SignInScreen({initialMode, initialLanguage}: {initialMode?: stri
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <View style={styles.intro}>
-              <AppButton variant="secondary" label={arabic ? "English" : "العربية"} onPress={() => setArabic(!arabic)} />
+              <AppButton variant="secondary" label={arabic ? "English" : "العربية"} onPress={() => void setLocale(arabic ? "en" : "ar-EG")} />
               <BrandMark size={176} />
-              <Text style={styles.eyebrow}>{arabic ? "لياقة بدنية وتدريب احترافي" : "PREMIUM FITNESS & TRAINING"}</Text>
+              <Text style={styles.eyebrow}>{phrase("copy_4b2b3b0feb79", arabic)}</Text>
             </View>
             <SurfaceCard>
               <View style={styles.form}>
-                <Text style={styles.cardLabel}>{challengeId ? (arabic ? "تأكيد البريد" : "VERIFY YOUR EMAIL") : creatingAccount ? (arabic ? "إنشاء حسابك" : "CREATE YOUR ACCOUNT") : (arabic ? "أهلًا بعودتك" : "WELCOME BACK")}</Text>
+                <Text style={styles.cardLabel}>{challengeId ? (phrase("copy_fc65e09a1eed", arabic)) : creatingAccount ? (phrase("copy_c4a3a32f14e0", arabic)) : (phrase("copy_c0405c957dbb", arabic))}</Text>
                 {challengeId ? (
                   <>
-                    <Text style={styles.hint}>{arabic ? `بعتنا كود مؤقت من ٦ أرقام إلى ${email}.` : `We sent a temporary 6-digit code to ${email}.`}</Text>
-                    <AppTextField autoComplete="one-time-code" keyboardType="number-pad" label={arabic ? "كود التأكيد" : "Verification code"} maxLength={6} onChangeText={(value) => setCode(value.replace(/\D/g, ""))} textContentType="oneTimeCode" value={code} />
+                    <Text style={styles.hint}>{phraseTemplate("copy_d070352db617", arabic, (arabic) ? [email] : [email])}</Text>
+                    <AppTextField autoComplete="one-time-code" keyboardType="number-pad" label={phrase("copy_7a3e8c1110f7", arabic)} maxLength={6} onChangeText={(value) => setCode(normalizeNumerals(value).replace(/\D/g, ""))} textContentType="oneTimeCode" value={code} />
                     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-                    <AppButton label={arabic ? "تأكيد وإنشاء الحساب" : "Verify and create account"} loading={loading} onPress={() => void confirmCode()} />
-                    <AppButton variant="secondary" disabled={loading} label={arabic ? "إرسال كود جديد" : "Send a new code"} onPress={() => void resendCode()} />
-                    <AppButton variant="secondary" disabled={loading} label={arabic ? "تعديل البريد" : "Change email"} onPress={() => { setChallengeId(null); setCode(""); setError(null); }} />
+                    <AppButton label={phrase("copy_1bebc5335424", arabic)} loading={loading} onPress={() => void confirmCode()} />
+                    <AppButton variant="secondary" disabled={loading} label={phrase("copy_6c60f82b45f7", arabic)} onPress={() => void resendCode()} />
+                    <AppButton variant="secondary" disabled={loading} label={phrase("copy_e1a8be5cca5c", arabic)} onPress={() => { setChallengeId(null); setCode(""); setError(null); }} />
                   </>
                 ) : (
                   <>
-                    {googleConfigured ? <AppButton variant="secondary" disabled={!googleRequest || loading} label={arabic ? "المتابعة باستخدام Google" : "Continue with Google"} onPress={() => void promptGoogle()} /> : null}
-                    {googleConfigured ? <View style={styles.divider}><View style={styles.line} /><Text style={styles.or}>{arabic ? "أو" : "OR"}</Text><View style={styles.line} /></View> : null}
-                    <AppTextField autoCapitalize="none" autoComplete="email" autoCorrect={false} keyboardType="email-address" label={arabic ? "البريد الإلكتروني" : "Email"} onChangeText={setEmail} placeholder="you@example.com" textContentType="emailAddress" value={email} />
-                    <AppTextField autoCapitalize="none" autoComplete={creatingAccount ? "new-password" : "current-password"} label={arabic ? "كلمة المرور" : "Password"} onChangeText={setPassword} placeholder={arabic ? "١٢ حرف على الأقل" : "At least 12 characters"} secureTextEntry textContentType={creatingAccount ? "newPassword" : "password"} value={password} />
-                    {creatingAccount ? <AppTextField autoCapitalize="none" autoComplete="new-password" label={arabic ? "تأكيد كلمة المرور" : "Confirm password"} onChangeText={setPasswordConfirmation} secureTextEntry textContentType="newPassword" value={passwordConfirmation} /> : null}
+                    {googleConfigured ? <AppButton variant="secondary" disabled={!googleRequest || loading} label={phrase("copy_379d88b22bba", arabic)} onPress={() => void promptGoogle()} /> : null}
+                    {googleConfigured ? <View style={styles.divider}><View style={styles.line} /><Text style={styles.or}>{phrase("copy_94d5c07b3788", arabic)}</Text><View style={styles.line} /></View> : null}
+                    <AppTextField autoCapitalize="none" autoComplete="email" autoCorrect={false} keyboardType="email-address" label={phrase("copy_9e03b9237472", arabic)} onChangeText={setEmail} placeholder="you@example.com" textContentType="emailAddress" value={email} />
+                    <AppTextField autoCapitalize="none" autoComplete={creatingAccount ? "new-password" : "current-password"} label={phrase("copy_1081680be018", arabic)} onChangeText={setPassword} placeholder={phrase("copy_9822d0ea9378", arabic)} secureTextEntry textContentType={creatingAccount ? "newPassword" : "password"} value={password} />
+                    {creatingAccount ? <AppTextField autoCapitalize="none" autoComplete="new-password" label={phrase("copy_b86c2d986a21", arabic)} onChangeText={setPasswordConfirmation} secureTextEntry textContentType="newPassword" value={passwordConfirmation} /> : null}
                     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-                    <AppButton label={creatingAccount ? (arabic ? "إرسال كود التأكيد" : "Send verification code") : (arabic ? "تسجيل الدخول" : "Sign in")} loading={loading} onPress={() => void submitCredentials()} />
-                    <AppButton disabled={loading} label={creatingAccount ? (arabic ? "لدي حساب بالفعل" : "I already have an account") : (arabic ? "إنشاء حساب جديد" : "Create an account")} onPress={switchMode} variant="secondary" />
+                    <AppButton label={creatingAccount ? (phrase("copy_630ad0581962", arabic)) : (phrase("copy_471dfaf6bf95", arabic))} loading={loading} onPress={() => void submitCredentials()} />
+                    <AppButton disabled={loading} label={creatingAccount ? (phrase("copy_e7748fac7c50", arabic)) : (phrase("copy_5f1d53d69d68", arabic))} onPress={switchMode} variant="secondary" />
                   </>
                 )}
-                <Text style={styles.hint}>{arabic ? "تمريناتك وقياساتك خاصة بيك." : "Your training and measurements stay private."}</Text>
+                <Text style={styles.hint}>{phrase("copy_9a398f9be570", arabic)}</Text>
               </View>
             </SurfaceCard>
           </ScrollView>
@@ -173,7 +180,7 @@ function messageFor(caught: unknown, arabic: boolean): string {
   if (arabic && code === "verification_expired") return "انتهت صلاحية الكود. اطلب كود جديد.";
   if (arabic && code === "account_exists") return "البريد ده مسجل بالفعل. جرّب تسجيل الدخول.";
   if (arabic && code === "email_unavailable") return "تعذر إرسال الإيميل الآن. حاول مرة تانية.";
-  return arabic ? "حصلت مشكلة. راجع البيانات والاتصال وحاول مرة تانية." : "Something went wrong. Try again.";
+  return phrase("copy_f3fd1f61c4a4", arabic);
 }
 
 const styles = StyleSheet.create({

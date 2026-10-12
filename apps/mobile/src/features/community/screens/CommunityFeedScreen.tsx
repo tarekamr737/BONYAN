@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useContext, useMemo, useRef, useState } from "react";
 import {
@@ -13,6 +14,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CinematicHero } from "../../../core/components/CinematicHero";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
+import { router } from "expo-router";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
+import { Action } from "../../game/GamePage";
 import { PostCard } from "../components/PostCard";
 import { useCommunityFeed, useCommunityMutations } from "../hooks";
 import type { ReactionKind } from "../types";
@@ -23,6 +27,7 @@ type CommunityFeedScreenProps = {
 };
 
 export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScreenProps) {
+  const {t} = useLocale();
   const arabic = useContext(LanguageDirection);
   const feedQuery = useCommunityFeed();
   const mutations = useCommunityMutations();
@@ -43,8 +48,8 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
       await mutations.reactionMutation.mutateAsync({ postId, reaction, remove });
     } catch {
       Alert.alert(
-        arabic ? "ما قدرناش نحفظ التفاعل" : "Reaction was not saved",
-        arabic ? "رجعنا المنشور لحالته السابقة. جرّب تاني لما الاتصال يستقر." : "Your feed has been restored. Try again when you are ready.",
+        phrase("copy_338e55ec3628", arabic),
+        phrase("copy_e05af701eff1", arabic),
       );
     } finally {
       pendingReactionPostIdsRef.current.delete(postId);
@@ -55,10 +60,10 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
   if (feedQuery.isPending) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View accessibilityLabel={arabic ? "تحميل منشورات المجتمع" : "Loading community posts"} style={styles.centerState}>
+        <View accessibilityLabel={phrase("copy_893a208d78bf", arabic)} style={styles.centerState}>
           <ActivityIndicator color={colors.bronze} size="large" />
-          <Text style={styles.stateTitle}>{arabic ? "بنحمّل أحدث التقدم" : "Loading recent progress"}</Text>
-          <Text style={styles.stateCopy}>{arabic ? "المنشورات مرتبة زمنيًا وببساطة." : "The feed stays chronological and calm."}</Text>
+          <Text style={styles.stateTitle}>{phrase("copy_4360c6513981", arabic)}</Text>
+          <Text style={styles.stateCopy}>{phrase("copy_b0745e4a4d51", arabic)}</Text>
         </View>
       </SafeAreaView>
     );
@@ -68,14 +73,14 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
     return (
       <SafeAreaView style={styles.safeArea}>
         <View accessibilityRole="alert" style={styles.centerState}>
-          <Text style={styles.stateTitle}>{arabic ? "ما قدرناش نحمّل المجتمع" : "Community could not load"}</Text>
-          <Text style={styles.stateCopy}>{arabic ? "راجع اتصالك وجرّب تاني." : "Check your connection, then try again."}</Text>
+          <Text style={styles.stateTitle}>{phrase("copy_e9b00e4ea9d3", arabic)}</Text>
+          <Text style={styles.stateCopy}>{phrase("copy_8db1dda12e85", arabic)}</Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => feedQuery.refetch()}
             style={styles.retryButton}
           >
-            <Text style={styles.retryLabel}>{arabic ? "جرّب تاني" : "Try again"}</Text>
+            <Text style={styles.retryLabel}>{phrase("copy_0d7b38c28dab", arabic)}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -90,16 +95,16 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
         keyExtractor={(post) => post.id}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.stateTitle}>{arabic ? "التقدم بيبدأ بخطوة بسيطة" : "Progress starts quietly"}</Text>
+            <Text style={styles.stateTitle}>{phrase("copy_a0561d186b77", arabic)}</Text>
             <Text style={styles.stateCopy}>
-              {arabic ? "شارك محطة مهمة لما تحب. قياساتك عمرها ما بتتضاف تلقائيًا." : "Share a milestone when it feels useful. Measurements are never added automatically."}
+              {phrase("copy_5f89645f8682", arabic)}
             </Text>
             <Pressable
               accessibilityRole="button"
               onPress={onCreatePost}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryLabel}>{arabic ? "أنشئ أول منشور" : "Create the first post"}</Text>
+              <Text style={styles.primaryLabel}>{phrase("copy_4c4bb0fca1d6", arabic)}</Text>
             </Pressable>
           </View>
         }
@@ -108,50 +113,51 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
             <ActivityIndicator color={colors.bronze} style={styles.footerLoader} />
           ) : feedQuery.isFetchNextPageError ? (
             <View accessibilityRole="alert" style={styles.pageError}>
-              <Text style={styles.pageErrorCopy}>{arabic ? "ما قدرناش نحمّل منشورات أكتر." : "More posts could not load."}</Text>
+              <Text style={styles.pageErrorCopy}>{phrase("copy_ebe47885b46b", arabic)}</Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => void feedQuery.fetchNextPage()}
                 style={styles.pageRetry}
               >
-                <Text style={styles.retryLabel}>{arabic ? "جرّب تاني" : "Try again"}</Text>
+                <Text style={styles.retryLabel}>{phrase("copy_0d7b38c28dab", arabic)}</Text>
               </Pressable>
             </View>
           ) : null
         }
         ListHeaderComponent={
           <View style={styles.headerBlock}>
+            <View style={{gap: spacing.sm}}><Action label={t("league")} onPress={() => router.push("/league")}/><Action label={t("inviteFriends")} onPress={() => router.push("/challenges")}/><Action label={t("rewards")} onPress={() => router.push("/rewards")}/></View>
             <View style={styles.topBar}>
               <Pressable
-                accessibilityLabel={arabic ? "رجوع" : "Go back"}
+                accessibilityLabel={phrase("copy_2a52671ad634", arabic)}
                 accessibilityRole="button"
                 onPress={onBack}
                 style={styles.backButton}
               >
-                <Text style={styles.backLabel}>{arabic ? "رجوع" : "Back"}</Text>
+                <Text style={styles.backLabel}>{phrase("copy_436170a81a03", arabic)}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={onCreatePost}
                 style={styles.createButton}
               >
-                <Text style={styles.createLabel}>{arabic ? "منشور جديد" : "Create post"}</Text>
+                <Text style={styles.createLabel}>{phrase("copy_273e439f5c3e", arabic)}</Text>
               </Pressable>
             </View>
-            <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/community.jpg")} title={arabic ? "أقوى مع بعض" : "Stronger together"} subtitle={arabic ? "شارك، اتعلم، واتطور مع مجتمع يحترم خصوصيتك." : "Share, learn and improve with a community that respects your privacy."} />
+            <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/community.jpg")} title={phrase("copy_f57afcb1332b", arabic)} subtitle={phrase("copy_0b062afc5330", arabic)} />
             <View style={styles.feedRule}>
-              <Text style={styles.feedRuleTitle}>{arabic ? "الأحدث أولًا" : "RECENT FIRST"}</Text>
-              <Text style={styles.feedRuleCopy}>{arabic ? "منشورات مرتبة زمنيًا" : "A simple chronological feed"}</Text>
+              <Text style={styles.feedRuleTitle}>{phrase("copy_c7e119ccfb11", arabic)}</Text>
+              <Text style={styles.feedRuleCopy}>{phrase("copy_9270019c83af", arabic)}</Text>
             </View>
             {feedQuery.isRefetchError && !feedQuery.isFetchNextPageError ? (
               <View accessibilityRole="alert" style={styles.refreshError}>
-                <Text style={styles.pageErrorCopy}>{arabic ? "آخر تحديث ما اكتملش." : "The latest refresh did not finish."}</Text>
+                <Text style={styles.pageErrorCopy}>{phrase("copy_5dd2d4604a4b", arabic)}</Text>
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => void feedQuery.refetch()}
                   style={styles.pageRetry}
                 >
-                  <Text style={styles.retryLabel}>{arabic ? "حدّث تاني" : "Retry refresh"}</Text>
+                  <Text style={styles.retryLabel}>{phrase("copy_8d8393f1b0bb", arabic)}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -179,7 +185,7 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
             onDelete={(postId) =>
               mutations.deleteMutation.mutate(postId, {
                 onError: () =>
-                  Alert.alert(arabic ? "ما قدرناش نحذف المنشور" : "Post was not deleted", arabic ? "جرّب تاني لما الاتصال يستقر." : "Try again when your connection is stable."),
+                  Alert.alert(phrase("copy_3ac0a80aa6bb", arabic), phrase("copy_1a646985afd7", arabic)),
               })
             }
             onReact={(postId, reaction, remove) =>
@@ -191,13 +197,13 @@ export function CommunityFeedScreen({ onBack, onCreatePost }: CommunityFeedScree
                 {
                   onError: () =>
                     Alert.alert(
-                      arabic ? "البلاغ ما اتبعتش" : "Report was not sent",
-                      arabic ? "ما اتبعتش أي بيانات. راجع اتصالك وجرّب تاني." : "Nothing was submitted. Check your connection and try again.",
+                      phrase("copy_d91b9d5a8d58", arabic),
+                      phrase("copy_58edf4880a6c", arabic),
                     ),
                   onSuccess: () =>
                     Alert.alert(
-                      arabic ? "استلمنا البلاغ" : "Report received",
-                      arabic ? "شكرًا. البلاغ دخل قائمة المراجعة." : "Thank you. The report is queued for review.",
+                      phrase("copy_c47f233c046b", arabic),
+                      phrase("copy_4e6af40a7720", arabic),
                     ),
                 },
               )

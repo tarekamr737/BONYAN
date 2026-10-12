@@ -1,3 +1,7 @@
+import {useLocale} from "../../core/i18n/LocaleProvider";
+import {formatNumber, normalizeNumerals} from "../../core/i18n/messages";
+import {macroLabel, mealLabel, narrativeMatchesLocale} from "../../core/i18n/nutrition";
+import { phrase, phraseTemplate } from "../../core/i18n/copy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -6,7 +10,6 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 
 import { AppButton, AppTextField, CinematicHero, DirectionalText as Text, MotionReveal } from "../../core/components";
 import { colors, fonts, radii, spacing } from "../../core/theme/tokens";
-import { getMyProfile } from "../auth/api/profileApi";
 import { CoachingPage, GlassCard, ui } from "../auth/components/CoachingUI";
 import {
   confirmFood, getFoodLogs, getTodayFoodLogs, previewFood, previewFoodPhoto,
@@ -15,19 +18,14 @@ import {
 import type { FoodLog, MealType } from "./types";
 
 const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
-const labels = {
-  breakfast: ["Breakfast", "إفطار"], lunch: ["Lunch", "غداء"],
-  dinner: ["Dinner", "عشاء"], snack: ["Snack", "وجبة خفيفة"],
-} as const;
 
 export function NutritionScreen() {
+  const {locale, t, rtl: arabic} = useLocale();
   const client = useQueryClient();
   const busy = useRef(false);
   const [preview, setPreview] = useState<FoodPreview | null>(null);
   const [photo, setPhoto] = useState<LocalFoodPhoto | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
-  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
   const logs = useQuery({ queryFn: getTodayFoodLogs, queryKey: ["nutrition", "logs", "today"] });
   const history = useQuery({ queryFn: () => getFoodLogs(50), queryKey: ["nutrition", "logs", "recent"] });
   const [description, setDescription] = useState("");
@@ -41,7 +39,7 @@ export function NutritionScreen() {
     mutationFn: () => photo ? previewFoodPhoto(photo, description.trim(), mealType) : previewFood(description.trim(), mealType),
     onSuccess: result => {
       setPreview(result);
-      if (photo && description.trim().length < 3) setDescription(arabic ? "صورة وجبة" : "Meal photo");
+      if (photo && description.trim().length < 3) setDescription(phrase("copy_c4d4dead4c85", arabic));
     },
   });
   const confirm = useMutation({
@@ -53,6 +51,8 @@ export function NutritionScreen() {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["nutrition", "logs"] }),
         client.invalidateQueries({ queryKey: ["nutrition", "today"] }),
+        client.invalidateQueries({ queryKey: ["game"] }),
+        client.invalidateQueries({ queryKey: ["activity"] }),
       ]);
     },
   });
@@ -63,7 +63,7 @@ export function NutritionScreen() {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setPhotoError(arabic ? "يلزم السماح بالوصول لاختيار صورة الوجبة." : "Allow access to choose a meal photo.");
+      setPhotoError(phrase("copy_719cbc5de964", arabic));
       return;
     }
     const result = camera
@@ -73,7 +73,7 @@ export function NutritionScreen() {
     if (result.canceled || !asset) return;
     setPhoto({
       uri: asset.uri,
-      name: asset.fileName ?? `meal-${Date.now()}.jpg`,
+      name: asset.fileName ?? "meal.jpg",
       type: asset.mimeType ?? "image/jpeg",
       file: asset.file ?? undefined,
     });
@@ -84,46 +84,47 @@ export function NutritionScreen() {
   const canAnalyze = Boolean(photo) || description.trim().length >= 3;
 
   return <CoachingPage arabic={arabic}>
-    <CinematicHero arabic={arabic} source={require("../../../assets/heroes/nutrition.jpg")} title={arabic ? "غذّي مهمتك" : "Fuel your mission"} subtitle={arabic ? "حلّل وجبتك وراجع كل تقدير قبل الحفظ." : "Analyze your meal and review every estimate before saving."} />
+    <CinematicHero arabic={arabic} source={require("../../../assets/heroes/nutrition.jpg")} title={phrase("copy_632cbaf12d9c", arabic)} subtitle={phrase("copy_a605a39cc398", arabic)} />
     <GlassCard>
-      <View style={[styles.chips, arabic && styles.reverse]}>{mealTypes.map(type => <Pressable key={type} accessibilityRole="radio" accessibilityState={{ selected: mealType === type }} disabled={mutation.isPending || confirm.isPending || Boolean(preview)} onPress={() => setMealType(type)} style={[styles.chip, mealType === type && styles.chipActive]}><Text style={[styles.chipText, mealType === type && styles.chipTextActive]}>{labels[type][arabic ? 1 : 0]}</Text></Pressable>)}</View>
+      <View style={[styles.chips, arabic && styles.reverse]}>{mealTypes.map(type => <Pressable key={type} accessibilityRole="radio" accessibilityState={{ selected: mealType === type }} disabled={mutation.isPending || confirm.isPending || Boolean(preview)} onPress={() => setMealType(type)} style={[styles.chip, mealType === type && styles.chipActive]}><Text style={[styles.chipText, mealType === type && styles.chipTextActive]}>{mealLabel(type, locale)}</Text></Pressable>)}</View>
       <AppTextField
-        label={arabic ? "ماذا أكلت؟" : "What did you eat?"}
+        label={phrase("copy_b866add72ed8", arabic)}
         multiline
         editable={!mutation.isPending && !confirm.isPending && !preview}
         maxLength={1000}
         onChangeText={setDescription}
-        placeholder={arabic ? "مثال: 150 جم دجاج، كوب أرز وسلطة" : "Example: 150g chicken, one cup rice and salad"}
+        placeholder={phrase("copy_e06ec80af9ec", arabic)}
         value={description}
       />
       {!preview ? <View style={[styles.photoActions, arabic && styles.reverse]}>
-        <AppButton label={arabic ? "التقاط صورة" : "Take photo"} onPress={() => void choosePhoto(true)} variant="secondary" />
-        <AppButton label={arabic ? "اختيار صورة" : "Choose photo"} onPress={() => void choosePhoto(false)} variant="secondary" />
+        <AppButton label={phrase("copy_c1eccfdc1398", arabic)} onPress={() => void choosePhoto(true)} variant="secondary" />
+        <AppButton label={phrase("copy_bc69feee80d2", arabic)} onPress={() => void choosePhoto(false)} variant="secondary" />
       </View> : null}
       {photo ? <View style={styles.photoPreview}>
-        <Image accessibilityLabel={arabic ? "صورة الوجبة المختارة" : "Selected meal photo"} contentFit="cover" source={{ uri: photo.uri }} style={styles.photo} />
-        {!preview ? <AppButton label={arabic ? "إزالة الصورة" : "Remove photo"} onPress={() => setPhoto(null)} variant="secondary" /> : null}
+        <Image accessibilityLabel={phrase("copy_c362b239ecc2", arabic)} contentFit="cover" source={{ uri: photo.uri }} style={styles.photo} />
+        {!preview ? <AppButton label={phrase("copy_c49f0f03e483", arabic)} onPress={() => setPhoto(null)} variant="secondary" /> : null}
       </View> : null}
       {photoError ? <Text accessibilityRole="alert" style={[ui.error, arabic && ui.rtl]}>{photoError}</Text> : null}
-      {!preview ? <AppButton disabled={!canAnalyze || mutation.isPending} label={mutation.isPending ? arabic ? "جاري التحليل…" : "Analyzing…" : arabic ? "تحليل الوجبة" : "Analyze meal"} onPress={() => { if (busy.current) return; busy.current = true; void mutation.mutateAsync().catch(() => {}).finally(() => { busy.current = false; }); }} /> : null}
+      {!preview ? <AppButton disabled={!canAnalyze || mutation.isPending} label={mutation.isPending ? phrase("copy_f747b5b1d694", arabic) : phrase("copy_20f1105438de", arabic)} onPress={() => { if (busy.current) return; busy.current = true; void mutation.mutateAsync().catch(() => {}).finally(() => { busy.current = false; }); }} /> : null}
       {mutation.isPending ? <ActivityIndicator color={colors.bronze} /> : null}
-      {mutation.isError ? <Text accessibilityRole="alert" style={[ui.error, arabic && ui.rtl]}>{arabic ? "تعذر تحليل الوجبة. احتفظنا ببياناتك؛ حاول مرة أخرى." : "The meal could not be analyzed. Your input is still here; try again."}</Text> : null}
-      {preview ? <View style={ui.stack}><Text style={ui.heading}>{arabic ? "راجع التقديرات" : "Review estimates"}</Text><Text style={ui.text}>{preview.summary}</Text>{(["calories", "protein_g", "carbs_g", "fat_g"] as const).map((key, index) => <AppTextField key={key} label={(arabic ? ["السعرات الحرارية", "البروتين · جم", "الكربوهيدرات · جم", "الدهون · جم"] : ["Calories", "Protein · g", "Carbohydrates · g", "Fat · g"])[index] ?? key} keyboardType="numeric" editable={!confirm.isPending} value={String(preview[key])} onChangeText={raw => { if (/^\d*(\.\d*)?$/.test(raw)) setPreview({ ...preview, [key]: Number(raw) }); }} />)}<AppButton label={arabic ? "تأكيد وحفظ الوجبة" : "Confirm and save meal"} loading={confirm.isPending} onPress={() => { if (busy.current) return; busy.current = true; void confirm.mutateAsync().catch(() => {}).finally(() => { busy.current = false; }); }} /><AppButton variant="secondary" disabled={confirm.isPending} label={arabic ? "تعديل البيانات أو الإلغاء" : "Edit input or cancel"} onPress={() => { setPreview(null); mutation.reset(); confirm.reset(); }} /></View> : null}
-      {confirm.isError ? <Text accessibilityRole="alert" style={[ui.error, arabic && ui.rtl]}>{arabic ? "تعذر الحفظ. راجع القيم وحاول مرة أخرى." : "Could not save. Check the values and retry."}</Text> : null}
-      {confirm.isSuccess ? <Text style={[ui.success, arabic && ui.rtl]}>{arabic ? "تم حفظ الوجبة وتحديث نتيجة اليوم." : "Meal saved and today's score updated."}</Text> : null}
+      {mutation.isError ? <Text accessibilityRole="alert" style={[ui.error, arabic && ui.rtl]}>{phrase("copy_1d9c60d26ee1", arabic)}</Text> : null}
+      {preview ? <View style={ui.stack}><Text style={ui.heading}>{phrase("copy_db14566c1ba9", arabic)}</Text><Text style={ui.text}>{narrativeMatchesLocale(preview.summary, locale) ? preview.summary : t("estimateUncertainty")}</Text>{(["calories", "protein_g", "carbs_g", "fat_g"] as const).map(key => <AppTextField key={key} label={macroLabel(key, locale)} keyboardType="numeric" editable={!confirm.isPending} value={String(preview[key])} onChangeText={input => { const raw = normalizeNumerals(input); if (/^\d*(\.\d*)?$/.test(raw)) setPreview({ ...preview, [key]: Number(raw) }); }} />)}<AppButton label={phrase("copy_875edf022082", arabic)} loading={confirm.isPending} onPress={() => { if (busy.current) return; busy.current = true; void confirm.mutateAsync().catch(() => {}).finally(() => { busy.current = false; }); }} /><AppButton variant="secondary" disabled={confirm.isPending} label={phrase("copy_ab83d002fd04", arabic)} onPress={() => { setPreview(null); mutation.reset(); confirm.reset(); }} /></View> : null}
+      {confirm.isError ? <Text accessibilityRole="alert" style={[ui.error, arabic && ui.rtl]}>{phrase("copy_c927efa23a67", arabic)}</Text> : null}
+      {confirm.isSuccess ? <Text style={[ui.success, arabic && ui.rtl]}>{phrase("copy_105bebf81d2b", arabic)}</Text> : null}
     </GlassCard>
-    <MealList arabic={arabic} isError={logs.isError} isPending={logs.isPending} items={logs.data ?? []} onRetry={() => void logs.refetch()} title={arabic ? "وجبات اليوم" : "Today's meals"} />
-    {olderLogs.length > 0 || history.isPending || history.isError ? <MealList arabic={arabic} isError={history.isError} isPending={history.isPending} items={olderLogs} onRetry={() => void history.refetch()} title={arabic ? "الوجبات السابقة" : "Earlier meals"} /> : null}
+    <MealList arabic={arabic} isError={logs.isError} isPending={logs.isPending} items={logs.data ?? []} onRetry={() => void logs.refetch()} title={phrase("copy_f09c1ce77f75", arabic)} />
+    {olderLogs.length > 0 || history.isPending || history.isError ? <MealList arabic={arabic} isError={history.isError} isPending={history.isPending} items={olderLogs} onRetry={() => void history.refetch()} title={phrase("copy_57fc5fbe722f", arabic)} /> : null}
   </CoachingPage>;
 }
 
 function MealList({ arabic, isError, isPending, items, onRetry, title }: { arabic: boolean; isError: boolean; isPending: boolean; items: FoodLog[]; onRetry: () => void; title: string }) {
+  const {locale, t} = useLocale();
   return <View style={ui.stack}>
     <Text style={[ui.heading, arabic && ui.rtl]}>{title}</Text>
     {isPending ? <ActivityIndicator color={colors.bronze} /> : null}
-    {isError ? <AppButton label={arabic ? "إعادة المحاولة" : "Retry"} onPress={onRetry} variant="secondary" /> : null}
-    {!isPending && !isError && items.length === 0 ? <GlassCard><Text style={[ui.text, arabic && ui.rtl]}>{arabic ? "لا توجد وجبات في هذه الفترة." : "No meals in this period."}</Text></GlassCard> : null}
-    {items.map((item, index) => <MotionReveal delay={index * 35} key={item.id}><GlassCard><View style={[styles.logHeader, arabic && styles.reverse]}><Text style={styles.logTitle}>{labels[item.meal_type][arabic ? 1 : 0]}</Text><Text style={styles.calories}>{item.calories} {arabic ? "سعر حراري" : "kcal"}</Text></View><Text style={[ui.text, arabic && ui.rtl]} numberOfLines={3}>{item.description}</Text><Text style={[ui.small, arabic && ui.rtl]}>{arabic ? `${item.protein_g} جم بروتين · ${item.carbs_g} جم كربوهيدرات · ${item.fat_g} جم دهون` : `${item.protein_g}g P · ${item.carbs_g}g C · ${item.fat_g}g F`}</Text><Text style={[ui.small, arabic && ui.rtl]}>{item.summary}</Text></GlassCard></MotionReveal>)}
+    {isError ? <AppButton label={phrase("copy_bb30cda7c34e", arabic)} onPress={onRetry} variant="secondary" /> : null}
+    {!isPending && !isError && items.length === 0 ? <GlassCard><Text style={[ui.text, arabic && ui.rtl]}>{phrase("copy_0c2e371ce4c5", arabic)}</Text></GlassCard> : null}
+    {items.map((item, index) => <MotionReveal delay={index * 35} key={item.id}><GlassCard><View style={[styles.logHeader, arabic && styles.reverse]}><Text style={styles.logTitle}>{mealLabel(item.meal_type, locale)}</Text><Text style={styles.calories}>{formatNumber(item.calories, locale)} {phrase("copy_51773b42039e", arabic)}</Text></View><Text style={[ui.text, arabic && ui.rtl]} numberOfLines={3}>{item.description}</Text><Text style={[ui.small, arabic && ui.rtl]}>{phraseTemplate("copy_3cb181dd8f0c", arabic, (arabic) ? [item.protein_g, item.carbs_g, item.fat_g] : [item.protein_g, item.carbs_g, item.fat_g])}</Text><Text style={[ui.small, arabic && ui.rtl]}>{narrativeMatchesLocale(item.summary, locale) ? item.summary : t("estimateUncertainty")}</Text></GlassCard></MotionReveal>)}
   </View>;
 }
 

@@ -2,16 +2,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sqlalchemy import delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import AppError
 from app.core.storage import PrivateObjectStorage
 from app.domains.avatar.lifecycle import delete_avatar_account_data
 from app.domains.community.lifecycle import delete_community_account_data
+from app.domains.game.lifecycle import delete_game_account_data
 from app.domains.inbody.lifecycle import delete_inbody_account_data
 from app.domains.nutrition.lifecycle import delete_nutrition_account_data
 from app.domains.training.lifecycle import delete_training_account_data
 from app.domains.users.lifecycle import delete_user_account_data
+from app.domains.users.privacy import PrivacyAudit, PrivacyPreferences, UserBlock
 from app.domains.users.profile_photo import delete_profile_photo_account_data
 
 
@@ -35,5 +38,13 @@ class AccountDeletionService:
         await delete_community_account_data(self.session, user_id)
         await delete_nutrition_account_data(self.session, user_id)
         await delete_training_account_data(self.session, user_id)
+        await delete_game_account_data(self.session, user_id)
+        for model in (PrivacyAudit, PrivacyPreferences):
+            await self.session.execute(delete(model).where(model.owner_id == user_id))
+        await self.session.execute(
+            delete(UserBlock).where(
+                or_(UserBlock.owner_id == user_id, UserBlock.blocked_id == user_id)
+            )
+        )
         await delete_user_account_data(self.session, user_id)
         await self.session.flush()

@@ -1,21 +1,29 @@
+import { phrase } from "../../../core/i18n/copy";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
-import { AppButton, AppTextField, CinematicHero } from "../../../core/components";
-import { getMyProfile } from "../../auth/api/profileApi";
+import { AppButton, AppTextField } from "../../../core/components";
+import { FeatureHeader } from "../../../core/components/FeatureHeader";
+import { ExerciseMedia } from "../components/ExerciseMedia";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 import { CoachingPage, GlassCard, ui } from "../../auth/components/CoachingUI";
-import { getCoachMessages, sendCoachMessage } from "../api/trainingApi";
-import { readableCoachText } from "../coachText";
+import { getCoachMessages, getPendingSessionSubstitutions, getWorkoutSessions, sendCoachMessage } from "../api/trainingApi";
+import { SessionSubstitutionPanel } from "../components/SessionSubstitutionPanel";
+import { coachMatchesLocale, readableCoachText } from "../coachText";
 
 export function CoachScreen() {
   const client = useQueryClient();
+  const {t, rtl: arabic} = useLocale();
   const busy = useRef(false);
   const [proposals, setProposals] = useState<string[]>([]);
-  const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const sessions = useQuery({queryKey: ["training", "sessions", "coach"], queryFn: () => getWorkoutSessions(20)});
+  const active = sessions.data?.find(item => item.status === "active");
+  const pending = useQuery({queryKey: ["training", "substitutions", active?.id], queryFn: () => getPendingSessionSubstitutions(active!.id), enabled: Boolean(active)});
+  const proposal = pending.data?.find(item => item.prescription_index === selectedIndex);
   const history = useQuery({queryKey: ["coach", "messages"], queryFn: getCoachMessages});
-  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
   const [message, setMessage] = useState("");
   const send = useMutation({mutationFn: (text: string) => sendCoachMessage(text), onSuccess: (response) => {
     setMessage("");
@@ -25,15 +33,18 @@ export function CoachScreen() {
     }));
     void client.invalidateQueries({queryKey: ["coach", "messages"]});
     void client.invalidateQueries({queryKey: ["training"]});
+    const toolProposal = response.tool_results.find(tool => tool.name === "preview_session_substitution")?.result as {proposal?: {prescription_index?: number}} | undefined;
+    if (typeof toolProposal?.proposal?.prescription_index === "number") setSelectedIndex(toolProposal.proposal.prescription_index);
   }});
-  return <CoachingPage arabic={arabic} footer={<View style={{gap: 8}}><AppTextField label={arabic ? "رسالتك لبنيان" : "Your message to Bonyan"} multiline value={message} editable={!send.isPending} onChangeText={setMessage} maxLength={1000} placeholder={arabic ? "اسأل عن تدريبك…" : "Ask about your training…"} /><AppButton label={arabic ? "إرسال" : "Send"} loading={send.isPending} disabled={!message.trim()} onPress={() => { if (busy.current) return; busy.current = true; void send.mutateAsync(message.trim()).catch(() => {}).finally(() => {busy.current = false;}); }} /></View>}>
-    <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/coach.jpg")} title={arabic ? "الكوتش بنيان" : "Bonyan Coach"} subtitle={arabic ? "توجيه ذكي مبني على خطتك وتقدمك الحقيقي." : "Intelligent guidance grounded in your real plan and progress."} />
-    {history.isPending ? <Text accessibilityLiveRegion="polite" style={ui.small}>{arabic ? "جارٍ تحميل المحادثة…" : "Loading conversation…"}</Text> : null}
-    {history.isError ? <GlassCard><Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذر تحميل محادثتك المحفوظة." : "Couldn't load your saved conversation."}</Text><AppButton label={arabic ? "إعادة المحاولة" : "Retry"} variant="secondary" onPress={() => void history.refetch()} /></GlassCard> : null}
-    {history.data?.length === 0 ? <GlassCard><Text style={ui.heading}>{arabic ? "نبدأ منين؟" : "Where shall we start?"}</Text>{(arabic ? ["اشرح لي خطة التمرين", "ساعدني ألاقي بديل لتمرين"] : ["Explain my training plan", "Help me find an exercise alternative"]).map(prompt => <AppButton key={prompt} label={prompt} variant="secondary" onPress={() => setMessage(prompt)} />)}</GlassCard> : null}
-    {history.data?.map(entry => <GlassCard key={entry.id}><Text style={ui.small}>{entry.role === "coach" ? arabic ? "بنيان" : "Bonyan" : arabic ? "أنت" : "You"}</Text><Text selectable style={ui.text}>{entry.role === "coach" ? readableCoachText(entry.content) : entry.content}</Text></GlassCard>)}
-    {proposals.map(id => <GlassCard key={id}><Text style={ui.text}>{arabic ? "الكوتش اقترح خطة. راجعها واعتمدها قبل أي تغيير." : "Coach proposed a draft plan. Review and approve before anything changes."}</Text><AppButton label={arabic ? "مراجعة الخطة المقترحة" : "Review proposed plan"} onPress={() => router.push({pathname: "/training/review", params: {planId: id}})} /><AppButton variant="secondary" label={arabic ? "رفض الاقتراح" : "Reject proposal"} onPress={() => setProposals(current => current.filter(value => value !== id))} /></GlassCard>)}
-    {send.isPending ? <Text accessibilityLiveRegion="polite" style={ui.small}>{arabic ? "بنيان بيجهّز الرد…" : "Bonyan is preparing a reply…"}</Text> : null}
-    {send.isError ? <Text accessibilityRole="alert" style={ui.error}>{arabic ? "تعذّر إرسال الرسالة. كلامك موجود؛ حاول تاني." : "Couldn't send your message. Your text is still here; please retry."}</Text> : null}
+  return <CoachingPage arabic={arabic} footer={<View style={{gap: 8}}><AppTextField label={phrase("copy_8c13351960ef", arabic)} multiline value={message} editable={!send.isPending} onChangeText={setMessage} maxLength={1000} placeholder={phrase("copy_1ccb29fb7c6d", arabic)} /><AppButton label={phrase("copy_d59535eb5fda", arabic)} loading={send.isPending} disabled={!message.trim()} onPress={() => { if (busy.current) return; busy.current = true; void send.mutateAsync(message.trim()).catch(() => {}).finally(() => {busy.current = false;}); }} /></View>}>
+    <FeatureHeader title={t("coach")} subtitle={t("coachTodayHelp")}/>
+    {history.isPending ? <Text accessibilityLiveRegion="polite" style={ui.small}>{phrase("copy_73eb4ca28b61", arabic)}</Text> : null}
+    {history.isError ? <GlassCard><Text accessibilityRole="alert" style={ui.error}>{phrase("copy_b520a5937de7", arabic)}</Text><AppButton label={phrase("copy_bb30cda7c34e", arabic)} variant="secondary" onPress={() => void history.refetch()} /></GlassCard> : null}
+    {history.data?.length === 0 ? <GlassCard><Text style={ui.heading}>{phrase("copy_23fbb36c98b1", arabic)}</Text>{[t("coachExplainPrompt"), t("coachAlternativePrompt")].map(prompt => <AppButton key={prompt} label={prompt} variant="secondary" onPress={() => setMessage(prompt)} />)}</GlassCard> : null}
+    {history.data?.map(entry => <View key={entry.id} style={{width: entry.role === "user" ? "88%" : "100%", alignSelf: entry.role === "user" ? arabic ? "flex-start" : "flex-end" : "stretch"}}><GlassCard><Text style={ui.small}>{entry.role === "coach" ? t("coach") : t("you")}</Text><Text selectable style={ui.text}>{entry.role === "coach" ? coachMatchesLocale(entry.content, arabic) ? readableCoachText(entry.content) : t("archivedCoachLocale") : entry.content}</Text></GlassCard></View>)}
+    {active?.prescription_snapshot ? <><Text style={ui.heading}>{t("chooseExercise")}</Text>{active.prescription_snapshot.prescriptions.map((exercise, index) => <View key={`${exercise.exercise_id}-${index}`} style={[ui.glass, {flexDirection: arabic ? "row-reverse" : "row", alignItems: "center"}]}><ExerciseMedia exerciseId={exercise.exercise_id} name={exercise.name} arabic={arabic} compact/><Pressable accessibilityRole="radio" accessibilityState={{selected: selectedIndex === index}} onPress={() => setSelectedIndex(index)} style={{flex: 1, minHeight: 50, justifyContent: "center"}}><Text style={ui.text}>{index === selectedIndex ? "✓ " : ""}{exercise.name}</Text></Pressable></View>)}<SessionSubstitutionPanel key={`${active.id}-${selectedIndex}`} session={active} index={selectedIndex} initialProposal={proposal} onCommitted={() => void sessions.refetch()}/></> : null}
+    {proposals.map(id => <GlassCard key={id}><Text style={ui.text}>{phrase("copy_beaef73c4923", arabic)}</Text><AppButton label={phrase("copy_7d0bd5ba6d61", arabic)} onPress={() => router.push({pathname: "/training/review", params: {planId: id}})} /><AppButton variant="secondary" label={phrase("copy_86d2ffbd6fc6", arabic)} onPress={() => setProposals(current => current.filter(value => value !== id))} /></GlassCard>)}
+    {send.isPending ? <Text accessibilityLiveRegion="polite" style={ui.small}>{phrase("copy_63fef97c2a01", arabic)}</Text> : null}
+    {send.isError ? <Text accessibilityRole="alert" style={ui.error}>{phrase("copy_5ceb8a7442b8", arabic)}</Text> : null}
   </CoachingPage>;
 }

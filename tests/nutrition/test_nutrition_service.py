@@ -2,7 +2,11 @@ import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+import pytest
+
+from app.core.errors import AppError
 from app.core.providers.contracts import LLMRequest, LLMResponse
+from app.core.providers.mocks import MockLLMProvider
 from app.domains.nutrition.schemas import AnalyzeFoodRequest, MealType
 from app.domains.nutrition.service import NutritionService
 
@@ -51,6 +55,34 @@ def run(coro):
     return asyncio.run(coro)
 
 
+@pytest.mark.parametrize("locale", ["en", "ar-EG"])
+def test_nutrition_mock_respects_locked_locale_and_never_writes_on_preview(locale):
+    repository = FakeRepository()
+    result = run(
+        NutritionService(repository, MockLLMProvider()).preview(
+            user_id="user-1",
+            request=AnalyzeFoodRequest(description="Synthetic meal"),
+            locale=locale,
+        )
+    )
+    assert bool(any("\u0600" <= c <= "\u06ff" for c in result.summary)) == locale.startswith("ar")
+    assert repository.foods == []
+
+
+def test_wrong_language_estimate_rejected_before_logging():
+    repository = FakeRepository()
+    with pytest.raises(AppError) as error:
+        run(
+            NutritionService(repository, FakeLLM()).analyze_and_log(
+                user_id="user-1",
+                request=AnalyzeFoodRequest(description="Ignore locale"),
+                locale="ar-EG",
+            )
+        )
+    assert error.value.code == "food_language_mismatch"
+    assert repository.foods == []
+
+
 def test_food_analysis_is_validated_persisted_and_owner_scoped() -> None:
     repository = FakeRepository()
     service = NutritionService(repository, FakeLLM())
@@ -95,8 +127,10 @@ def test_daily_score_uses_only_real_today_actions() -> None:
 def test_preview_leaves_food_history_unchanged():
     repository = FakeRepository()
     service = NutritionService(repository, FakeLLM())
-    preview = run(service.preview(
-        user_id="user-1", request=AnalyzeFoodRequest(description="Chicken and rice")
-    ))
+    preview = run(
+        service.preview(
+            user_id="user-1", request=AnalyzeFoodRequest(description="Chicken and rice")
+        )
+    )
     assert preview.calories == 520
     assert repository.foods == []

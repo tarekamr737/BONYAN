@@ -23,6 +23,7 @@ from app.core.auth import CurrentUser, get_current_user
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.errors import AppError
+from app.core.rate_limit import limit_community
 from app.core.storage import PrivateObjectStorage, get_private_object_storage
 from app.domains.avatar.contracts import (
     BodyMetricsSnapshot,
@@ -38,6 +39,8 @@ from app.domains.community.contracts import CommunityActor
 from app.domains.community.repository import SqlAlchemyCommunityRepository
 from app.domains.community.service import CommunityService
 from app.domains.inbody.models import InBodyScan
+from app.domains.users.privacy import PrivacyRepository
+from app.domains.users.repository import SqlAlchemyProfileRepository
 from app.integrations.avatar.cloudflare import CloudflareFluxAvatarProvider
 from app.integrations.avatar.mock import MockAvatarProvider
 from app.integrations.avatar.openrouter import OpenRouterAvatarProvider
@@ -50,9 +53,11 @@ class AvatarAssetSigner:
 
     def sign(self, object_key: str, *, expires_in_seconds: int) -> str:
         expires_at = int(time.time()) + expires_in_seconds
-        payload = base64.urlsafe_b64encode(
-            f"{expires_at}:{object_key}".encode()
-        ).decode("ascii").rstrip("=")
+        payload = (
+            base64.urlsafe_b64encode(f"{expires_at}:{object_key}".encode())
+            .decode("ascii")
+            .rstrip("=")
+        )
         signature = hmac.new(self._secret, payload.encode("ascii"), hashlib.sha256).digest()
         encoded_signature = base64.urlsafe_b64encode(signature).decode("ascii").rstrip("=")
         return f"{payload}.{encoded_signature}"
@@ -60,17 +65,13 @@ class AvatarAssetSigner:
     def verify(self, token: str) -> str:
         try:
             payload, encoded_signature = token.split(".", 1)
-            expected = hmac.new(
-                self._secret, payload.encode("ascii"), hashlib.sha256
-            ).digest()
+            expected = hmac.new(self._secret, payload.encode("ascii"), hashlib.sha256).digest()
             supplied = base64.urlsafe_b64decode(
                 encoded_signature + "=" * (-len(encoded_signature) % 4)
             )
             if not hmac.compare_digest(expected, supplied):
                 raise ValueError("invalid signature")
-            decoded = base64.urlsafe_b64decode(
-                payload + "=" * (-len(payload) % 4)
-            ).decode("utf-8")
+            decoded = base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)).decode("utf-8")
             expires_at_text, object_key = decoded.split(":", 1)
             if int(expires_at_text) <= int(time.time()):
                 raise ValueError("expired token")
@@ -111,9 +112,7 @@ class SharedPrivateAvatarStorage:
         self._api_public_url = api_public_url.rstrip("/")
 
     async def put_private(self, content: bytes, media_type: str) -> str:
-        suffix = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[
-            media_type
-        ]
+        suffix = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[media_type]
         object_key = f"avatars/{uuid4().hex}{suffix}"
         await self._storage.put(key=object_key, content=content, content_type=media_type)
         return object_key
@@ -141,9 +140,7 @@ class SqlAlchemyBodyMetricsAdapter:
 
     async def save_manual(self, owner_id: str, snapshot: BodyMetricsSnapshot) -> None:
         existing = await self._session.scalar(
-            select(manual_body_metrics.c.owner_id).where(
-                manual_body_metrics.c.owner_id == owner_id
-            )
+            select(manual_body_metrics.c.owner_id).where(manual_body_metrics.c.owner_id == owner_id)
         )
         values = {
             "height_cm": snapshot.height_cm,
@@ -166,10 +163,14 @@ class SqlAlchemyBodyMetricsAdapter:
 
     async def _latest_manual(self, owner_id: str) -> BodyMetricsSnapshot | None:
         row = (
-            await self._session.execute(
-                select(manual_body_metrics).where(manual_body_metrics.c.owner_id == owner_id)
+            (
+                await self._session.execute(
+                    select(manual_body_metrics).where(manual_body_metrics.c.owner_id == owner_id)
+                )
             )
-        ).mappings().one_or_none()
+            .mappings()
+            .one_or_none()
+        )
         if row is None:
             return None
         return BodyMetricsSnapshot(
@@ -190,9 +191,7 @@ class SqlAlchemyBodyMetricsAdapter:
         )
         if scan is None or not scan.result:
             return None
-        measurements = {
-            item.get("key"): item for item in scan.result.get("measurements", [])
-        }
+        measurements = {item.get("key"): item for item in scan.result.get("measurements", [])}
         height = _measurement_value(measurements.get("height"), "height")
         weight = _measurement_value(measurements.get("weight"), "weight")
         if height is None or weight is None:
@@ -209,6 +208,10 @@ class SqlAlchemyBodyMetricsAdapter:
                 ),
                 recorded_at=_as_utc(scan.confirmed_at or scan.created_at),
                 source=BodyMetricsSource.INBODY,
+                source_record_id=str(scan.id),
+                measurement_version=scan.result.get("measurement_version", 1),
+                measurement_date=scan.result.get("scan_date"),
+                device_label=scan.result.get("device_label"),
             )
         except ValueError:
             return None
@@ -245,10 +248,16 @@ def get_current_user_id(
     return current_user.id
 
 
-def get_current_actor(
+async def get_current_actor(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[None, Depends(limit_community)],
 ) -> CommunityActor:
-    return CommunityActor(user_id=current_user.id, display_name="BONYAN member")
+    profile = await SqlAlchemyProfileRepository(session).get(current_user.id)
+    return CommunityActor(
+        user_id=current_user.id,
+        display_name=profile.display_name if profile and profile.display_name else "BONYAN member",
+    )
 
 
 def get_avatar_service(
@@ -258,9 +267,7 @@ def get_avatar_service(
     signer: Annotated[AvatarAssetSigner, Depends(get_avatar_asset_signer)],
 ) -> AvatarService:
     metrics = SqlAlchemyBodyMetricsAdapter(session)
-    storage = SharedPrivateAvatarStorage(
-        object_storage, signer, settings.api_public_url
-    )
+    storage = SharedPrivateAvatarStorage(object_storage, signer, settings.api_public_url)
     if settings.avatar_provider == "mock":
         provider = MockAvatarProvider(model=settings.avatar_model)
     elif settings.avatar_provider == "gemini":
@@ -304,6 +311,13 @@ def get_avatar_service(
         manual_metrics_writer=metrics,
         source_photo_repository=SqlAlchemyAvatarSourcePhotoRepository(session),
         provider_timeout_seconds=settings.avatar_timeout_seconds,
+        privacy=PrivacyRepository(session),
+        generation_enabled=settings.avatar_generation_enabled
+        and (
+            settings.api_env in {"development", "test"} or settings.avatar_provider_release_approved
+        ),
+        generation_daily_limit=settings.avatar_generation_daily_limit,
+        development_mock=settings.avatar_provider == "mock",
     )
 
 
@@ -311,7 +325,9 @@ def get_community_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     avatar_service: Annotated[AvatarService, Depends(get_avatar_service)],
 ) -> CommunityService:
-    return CommunityService(SqlAlchemyCommunityRepository(session), avatar_service)
+    return CommunityService(
+        SqlAlchemyCommunityRepository(session), avatar_service, privacy=PrivacyRepository(session)
+    )
 
 
 async def read_avatar_asset(

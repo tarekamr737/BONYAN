@@ -4,8 +4,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
+from uuid import UUID
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API_DIRECTORY = Path(__file__).resolve().parents[2]
@@ -28,6 +29,7 @@ class Settings(BaseSettings):
     chat_timeout_seconds: float = 20
     exercise_provider: Literal["exercisedb", "musclewiki"] = "exercisedb"
     exercisedb_base_url: str = "https://oss.exercisedb.dev/api/v1"
+    exercise_catalog_license_approved: bool = False
     avatar_provider: Literal["mock", "gemini", "cloudflare", "openrouter"] = "mock"
     avatar_model: str = "TBD"
     avatar_api_key: SecretStr | None = None
@@ -36,6 +38,11 @@ class Settings(BaseSettings):
     cloudflare_account_id: str | None = None
     cloudflare_api_token: SecretStr | None = None
     avatar_timeout_seconds: float = 45
+    avatar_generation_enabled: bool = True
+    avatar_provider_release_approved: bool = False
+    avatar_generation_daily_limit: int = Field(default=3, ge=0, le=20)
+    game_season_days: int = Field(default=28, ge=7, le=90)
+    moderator_user_ids: str = Field(default="", max_length=8000)
     mistral_api_key: SecretStr | None = None
     mistral_timeout_seconds: float = 45
     musclewiki_api_key: SecretStr | None = None
@@ -58,6 +65,15 @@ class Settings(BaseSettings):
     rate_limit_coach_per_minute: int = 30
     rate_limit_avatar_per_minute: int = 6
     rate_limit_media_token_per_minute: int = 60
+    rate_limit_community_per_minute: int = Field(default=60, ge=1, le=1000)
+
+    @field_validator("moderator_user_ids")
+    @classmethod
+    def validate_moderators(cls, value: str) -> str:
+        ids = [str(UUID(item.strip())) for item in value.split(",") if item.strip()]
+        if len(ids) > 100:
+            raise ValueError("At most 100 moderator IDs are supported")
+        return ",".join(sorted(set(ids)))
 
     @field_validator("database_url")
     @classmethod

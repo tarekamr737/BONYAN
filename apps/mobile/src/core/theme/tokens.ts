@@ -10,6 +10,9 @@ export const colors = {
   bronzeSoft: "#2B251A",
   bronzeBorder: "#4B402B",
   positive: "#6FCF97",
+  green: "#6FCF97",
+  greenSoft: "#17261E",
+  greenBorder: "#345A43",
   error: "#EB5757",
 } as const;
 

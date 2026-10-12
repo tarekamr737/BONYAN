@@ -1,5 +1,5 @@
 import { apiRequest } from "../../../core/api/client";
-import type {
+import type { SessionSubstitution, SubstitutionScope, SubstitutionReason, SubstitutionResult ,
   CoachMessageResponse,
   CoachMessage,
   ExerciseMediaAccess,
@@ -11,8 +11,31 @@ import type {
   ManualPlanRequest,
 } from "../types";
 
-export function searchExercises(query: string): Promise<ExerciseSearchResponse> {
-  return apiRequest(`/api/v1/training/exercises?query=${encodeURIComponent(query)}&page_size=20`);
+export function previewSessionSubstitution(sessionId: string, request: {prescription_index: number; scope: SubstitutionScope; reason: SubstitutionReason}): Promise<SessionSubstitution> {
+  return apiRequest(`/api/v1/training/sessions/${encodeURIComponent(sessionId)}/substitutions/preview`, {method: "POST", body: request});
+}
+export function getPendingSessionSubstitutions(sessionId: string): Promise<SessionSubstitution[]> {
+  return apiRequest(`/api/v1/training/sessions/${encodeURIComponent(sessionId)}/substitutions`);
+}
+export function approveSessionSubstitution(proposal: SessionSubstitution, key: string, acknowledged: boolean, confirmPersistentEdit = false): Promise<SubstitutionResult> {
+  return apiRequest(`/api/v1/training/substitution-proposals/${proposal.id}/approve`, {method: "POST", body: {idempotency_key: key, expected_version: proposal.expected_version, acknowledge_logged_sets: acknowledged, confirm_persistent_edit: confirmPersistentEdit}});
+}
+export function rejectSessionSubstitution(id: string): Promise<void> {
+  return apiRequest(`/api/v1/training/substitution-proposals/${id}/reject`, {method: "POST"});
+}
+export function undoSessionSubstitution(id: string): Promise<SubstitutionResult> {
+  return apiRequest(`/api/v1/training/substitution-proposals/${id}/undo`, {method: "POST"});
+}
+
+export function searchExercises(query: string, page = 1, bodyPart?: string): Promise<ExerciseSearchResponse> {
+  const params = new URLSearchParams({page: String(page), page_size: "12"});
+  if (query.trim()) params.set("query", query.trim());
+  if (bodyPart) params.set("body_part", bodyPart);
+  return apiRequest(`/api/v1/training/exercises?${params}`);
+}
+
+export function getExerciseDetails(exerciseId: string): Promise<import("../types").ExerciseSearchItem> {
+  return apiRequest(`/api/v1/training/exercises/${encodeURIComponent(exerciseId)}`);
 }
 
 export function createManualWorkoutPlan(request: ManualPlanRequest): Promise<WorkoutPlan> {
@@ -23,6 +46,10 @@ export function getExerciseMediaAccess(exerciseId: string): Promise<ExerciseMedi
   return apiRequest<ExerciseMediaAccess | null>(
     `/api/v1/training/exercises/${encodeURIComponent(exerciseId)}/media`,
   );
+}
+
+export function getExerciseCatalog(): Promise<{available: boolean; source_name: string}> {
+  return apiRequest("/api/v1/training/catalog");
 }
 
 export function generateWorkoutPlan(request: GeneratePlanRequest): Promise<WorkoutPlan> {

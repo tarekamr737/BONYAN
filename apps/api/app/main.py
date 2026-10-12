@@ -45,7 +45,7 @@ def create_app() -> FastAPI:
         allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Accept", "Authorization", "Content-Type", "Range"],
-        expose_headers=["Content-Range", "X-Request-ID"],
+        expose_headers=["Content-Range", "X-Request-ID", "Date"],
     )
     application.add_middleware(CorrelationIdMiddleware)
     register_error_handlers(application)

@@ -1,8 +1,10 @@
 import { Platform } from "react-native";
 
 import { ApiError, parseApiErrorPayload } from "./errors";
+import {recordServerTime} from "./serverClock";
 import { resolveApiBaseUrl } from "./baseUrl";
 import { clearSession, getAccessToken } from "../auth/session";
+import { localizedError } from "../i18n/messages";
 
 export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -60,13 +62,14 @@ export async function apiRequest<T>(
   const response = await fetch(`${getApiBaseUrl()}${normalizePath(path)}`, {
     ...requestOptions, body, headers, signal: controller.signal,
   });
+  recordServerTime(response.headers.get("Date"));
 
   if (!response.ok) {
     const details = parseApiErrorPayload(await readPayload(response));
     if (response.status === 401 && accessToken && getAccessToken() === accessToken) {
       void clearSession();
     }
-    throw new ApiError(response.status, details.code, details.message);
+    throw new ApiError(response.status, details.code, localizedError(details.code));
   }
 
   if (response.status === 204) {
@@ -75,9 +78,9 @@ export async function apiRequest<T>(
 
   return (await response.json()) as T;
   } catch (error) {
-    if (timedOut) throw new ApiError(408, "request_timeout", "The request took too long. Check your connection and try again.");
+    if (timedOut) throw new ApiError(408, "request_timeout", localizedError("request_timeout"));
     if (error instanceof TypeError) {
-      throw new ApiError(0, "network_unavailable", "Could not reach the server. Check your connection and try again.");
+      throw new ApiError(0, "network_unavailable", localizedError("network_unavailable"));
     }
     throw error;
   } finally {

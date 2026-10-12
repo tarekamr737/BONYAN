@@ -3,6 +3,7 @@ export type ReactionKind = "support" | "strong" | "inspired";
 export type ReportReason = "spam" | "harassment" | "privacy" | "other";
 
 export type PostAuthorView = {
+  user_id?: string | null;
   display_name: string;
   avatar_url: string | null;
 };

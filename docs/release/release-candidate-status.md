@@ -1,5 +1,10 @@
 # BONYAN Release Candidate Status
 
+> Historical provider/release assessment from September 2026. The current V2
+> shared development baseline and its remaining production gates are recorded in
+> [v2-development-baseline.md](v2-development-baseline.md) and
+> [BONYAN_V2_QA.md](../product/BONYAN_V2_QA.md).
+
 Date: 2026-09-13
 Branch: `feat/release-candidate`
 Starting main SHA: `2b379fa568479505583b25eba4e3e94e1af8cce9`

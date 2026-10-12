@@ -11,6 +11,8 @@ from app.domains.inbody.contracts import LatestInBodyProvider
 from app.domains.training.coach.schemas import CoachToolCall, CoachToolName, CoachToolResult
 from app.domains.training.schemas import GeneratePlanRequest, LoggedSetInput
 from app.domains.training.service import TrainingService
+from app.domains.training.substitution_schemas import PreviewSessionSubstitution
+from app.domains.training.substitution_service import SessionSubstitutionService
 from app.domains.users.repository import ProfileRepository
 from app.integrations.exercises.provider import ExerciseSearchFilters
 
@@ -29,6 +31,10 @@ class LogWorkoutArgs(LoggedSetInput):
     session_id: UUID
 
 
+class PreviewSubstitutionArgs(PreviewSessionSubstitution):
+    session_id: UUID
+
+
 class CoachToolExecutor:
     def __init__(
         self,
@@ -36,10 +42,12 @@ class CoachToolExecutor:
         *,
         profile_repository: ProfileRepository | None = None,
         inbody_provider: LatestInBodyProvider | None = None,
+        substitution_service: SessionSubstitutionService | None = None,
     ) -> None:
         self.training_service = training_service
         self.profile_repository = profile_repository
         self.inbody_provider = inbody_provider
+        self.substitution_service = substitution_service
 
     @staticmethod
     def definitions() -> tuple[LLMToolDefinition, ...]:
@@ -65,6 +73,16 @@ class CoachToolExecutor:
                 "Read the user's five most recent workout sessions.",
                 empty_parameters,
             ),
+            CoachToolName.GET_ACTIVE_SESSION: (
+                "Read the owner's active canonical workout and logged sets. Never guess an ID.",
+                empty_parameters,
+            ),
+            CoachToolName.PREVIEW_SESSION_SUBSTITUTION: (
+                "Preview a safe alternative for an authorized active session exercise. "
+                "Busy today means session scope; missing gym equipment needs separate "
+                "explicit persistent approval. Never approves or changes the workout.",
+                PreviewSubstitutionArgs.model_json_schema(),
+            ),
             CoachToolName.SEARCH_EXERCISES: (
                 "Search exercises by optional query, muscle, and equipment filters.",
                 SearchExercisesArgs.model_json_schema(),
@@ -76,10 +94,6 @@ class CoachToolExecutor:
             CoachToolName.GENERATE_WORKOUT_PLAN: (
                 "Generate a deterministic BONYAN workout plan from validated preferences.",
                 GeneratePlanRequest.model_json_schema(),
-            ),
-            CoachToolName.LOG_WORKOUT: (
-                "Log one set in an active workout session.",
-                LogWorkoutArgs.model_json_schema(),
             ),
         }
         return tuple(
@@ -123,6 +137,21 @@ class CoachToolExecutor:
         if call.name == CoachToolName.GET_TRAINING_HISTORY:
             sessions = await self.training_service.list_recent_sessions(user_id=user_id, limit=5)
             return {"sessions": [_session_summary(item) for item in sessions]}
+        if call.name == CoachToolName.GET_ACTIVE_SESSION:
+            sessions = await self.training_service.list_recent_sessions(user_id=user_id, limit=20)
+            active = next((item for item in sessions if item.status == "active"), None)
+            return {"session": active.model_dump(mode="json") if active else None}
+        if call.name == CoachToolName.PREVIEW_SESSION_SUBSTITUTION:
+            if self.substitution_service is None:
+                raise AppError(
+                    "substitution_not_available", "Alternative previews are unavailable.", 503
+                )
+            args = PreviewSubstitutionArgs.model_validate(call.arguments)
+            request = PreviewSessionSubstitution.model_validate(
+                args.model_dump(exclude={"session_id"})
+            )
+            proposal = await self.substitution_service.preview(user_id, args.session_id, request)
+            return {"proposal": proposal.model_dump(mode="json"), "requires_approval": True}
         if call.name == CoachToolName.SEARCH_EXERCISES:
             args = SearchExercisesArgs.model_validate(call.arguments)
             page = await self.training_service.search_exercises(
@@ -146,13 +175,9 @@ class CoachToolExecutor:
             plan = await self.training_service.generate_plan(user_id=user_id, request=args)
             return {"plan": _plan_summary(plan), "requires_approval": True}
         if call.name == CoachToolName.LOG_WORKOUT:
-            args = LogWorkoutArgs.model_validate(call.arguments)
-            session = await self.training_service.log_set(
-                user_id=user_id,
-                session_id=args.session_id,
-                logged_set=LoggedSetInput.model_validate(args),
+            raise AppError(
+                "coach_approval_required", "Log your actual sets using the workout controls.", 409
             )
-            return {"session": _session_summary(session)}
         raise AppError(
             "invalid_coach_tool_call", "Coach tool is not supported.", status.HTTP_400_BAD_REQUEST
         )
@@ -188,6 +213,7 @@ def _profile_summary(profile) -> dict[str, object]:
         "has_training_limitations": bool(
             (getattr(profile, "coaching", None) or {}).get("limitations")
         ),
+        "training_limitations": (getattr(profile, "coaching", None) or {}).get("limitations"),
     }
 
 

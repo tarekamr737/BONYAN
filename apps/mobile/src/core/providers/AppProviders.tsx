@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthSessionProvider, useAuthSession } from "../auth/session";
+import { LocaleProvider } from "../i18n/LocaleProvider";
 
 const queryDefaults = {
   queries: {
@@ -24,7 +25,7 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <SafeAreaProvider>
       <AuthSessionProvider>
-        <SessionQueries>{children}</SessionQueries>
+        <LocaleProvider><SessionQueries>{children}</SessionQueries></LocaleProvider>
       </AuthSessionProvider>
     </SafeAreaProvider>
   );

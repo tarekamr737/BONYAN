@@ -1,3 +1,4 @@
+import { phrase, phraseTemplate } from "../i18n/copy";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "expo-router";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
@@ -20,7 +21,7 @@ const steps: { target: HomeTourTarget; en: string; ar: string }[] = [
   { target: "training-tab", en: "Your training plan, exercise library and workout history live here.", ar: "هنا خطتك التدريبية ومكتبة التمارين وسجل تدريباتك." },
   { target: "nutrition-tab", en: "Log meals and follow your nutrition targets here.", ar: "سجّل وجباتك وتابع أهداف التغذية من هنا." },
   { target: "coach-tab", en: "Ask BONYAN Coach for guidance based on your plan and progress.", ar: "اسأل كوتش بنيان عن خطتك وتقدمك." },
-  { target: "community-tab", en: "Train with the BONYAN community and follow shared challenges.", ar: "تدرّب مع مجتمع بنيان وتابع التحديات المشتركة." },
+  { target: "community-tab", en: "Earn Mission Points, join your League and challenge friends.", ar: "اكسب نقط المهام، انضم لدوريك واتحدى صحابك." },
   { target: "profile", en: "Your profile stores settings, history and the option to replay this tour.", ar: "ملفك يحفظ الإعدادات والسجل وخيار إعادة الجولة." },
 ];
 
@@ -130,17 +131,17 @@ function HomeTourOverlay({ arabic, busy, onBack, onFinish, onNext, rect, step }:
     <View style={[styles.blocker, { backgroundColor: dim, left: 0, top: hole.y, width: hole.x, height: hole.height }]} />
     <View style={[styles.blocker, { backgroundColor: dim, left: hole.x + hole.width, right: 0, top: hole.y, height: hole.height }]} />
     <View style={[styles.blocker, { backgroundColor: dim, left: 0, right: 0, top: hole.y + hole.height, bottom: 0 }]} />
-    <Pressable accessibilityLabel={arabic ? "العنصر المحدد" : "Highlighted item"} style={[styles.holeBlocker, holeStyle]} />
+    <Pressable accessibilityLabel={phrase("copy_3a41988932ea", arabic)} style={[styles.holeBlocker, holeStyle]} />
     <View pointerEvents="none" style={[styles.highlight, holeStyle]} />
     </> : <View style={[styles.blocker, StyleSheet.absoluteFill, { backgroundColor: dim }]} />}
     <View onLayout={event => setTooltipHeight(event.nativeEvent.layout.height)} style={[styles.tooltip, { left: tooltipLeft, top: tooltipTop, width: tooltipWidth }]}>
-      <Text style={[styles.kicker, arabic && styles.rtl]}>{arabic ? `جولة بنيان · ${step + 1}/${steps.length}` : `BONYAN tour · ${step + 1}/${steps.length}`}</Text>
+      <Text style={[styles.kicker, arabic && styles.rtl]}>{phraseTemplate("copy_74198be8b2dd", arabic, (arabic) ? [step + 1, steps.length] : [step + 1, steps.length])}</Text>
       <Text style={[styles.copy, arabic && styles.rtl]}>{arabic ? steps[step]!.ar : steps[step]!.en}</Text>
-      {!rect ? <Text style={[styles.copy, arabic && styles.rtl]}>{arabic ? "هذا العنصر غير متاح الآن. يمكنك المتابعة أو تخطي الجولة." : "This item isn't available yet. Continue or skip the tour."}</Text> : null}
+      {!rect ? <Text style={[styles.copy, arabic && styles.rtl]}>{phrase("copy_d4862460181b", arabic)}</Text> : null}
       <View style={[styles.actions, arabic && styles.reverse]}>
-        <AppButton disabled={step === 0 || busy} label={arabic ? "السابق" : "Back"} onPress={onBack} variant="secondary" />
-        <AppButton loading={busy} label={step === steps.length - 1 ? arabic ? "إنهاء" : "Finish" : arabic ? "التالي" : "Next"} onPress={onNext} />
-        <Pressable disabled={busy} hitSlop={10} onPress={onFinish}><Text style={styles.skip}>{arabic ? "تخطي" : "Skip"}</Text></Pressable>
+        <AppButton disabled={step === 0 || busy} label={phrase("copy_b8a04f348bf0", arabic)} onPress={onBack} variant="secondary" />
+        <AppButton loading={busy} label={step === steps.length - 1 ? phrase("copy_1fad37295472", arabic) : phrase("copy_bdd4a0458cf0", arabic)} onPress={onNext} />
+        <Pressable disabled={busy} hitSlop={10} onPress={onFinish}><Text style={styles.skip}>{phrase("copy_a6137d22b64e", arabic)}</Text></Pressable>
       </View>
     </View>
   </Animated.View>;

@@ -22,6 +22,7 @@ from app.domains.community.schemas import (
     ReactionSummaryView,
     ReportPostRequest,
 )
+from app.domains.users.privacy import PrivacyRepository
 
 
 class CommunityService:
@@ -29,14 +30,20 @@ class CommunityService:
         self,
         repository: CommunityRepository,
         avatar_reader: AvatarIdentityReader,
+        *,
+        privacy: PrivacyRepository | None = None,
     ) -> None:
         self._repository = repository
         self._avatar_reader = avatar_reader
+        self._privacy = privacy
 
     async def create_post(
         self, actor: CommunityActor, request: CreatePostRequest
     ) -> CommunityPostView:
         avatar_url = None
+        if self._privacy:
+            # The owner's explicit publish action authorizes this post; revocation hides all.
+            await self._privacy.update(actor.user_id, {"posts": True})
         if request.avatar_id is not None:
             identity = await self._avatar_reader.get_community_identity(
                 actor.user_id, request.avatar_id
@@ -56,6 +63,7 @@ class CommunityService:
             author_display_name=actor.display_name,
             post_type=request.post_type,
             caption=request.caption,
+            sharing_confirmed=True,
             avatar_id=request.avatar_id,
             created_at=now,
             updated_at=now,
@@ -76,6 +84,7 @@ class CommunityService:
             before_created_at=before_created_at,
             before_id=before_id,
             limit=limit + 1,
+            **({"viewer_id": actor.user_id} if self._privacy else {}),
         )
         has_more = len(posts) > limit
         visible_posts = posts[:limit]
@@ -83,24 +92,26 @@ class CommunityService:
             [post.id for post in visible_posts], actor.user_id
         )
         avatar_references = [
-            (post.owner_id, post.avatar_id)
-            for post in visible_posts
-            if post.avatar_id is not None
+            (post.owner_id, post.avatar_id) for post in visible_posts if post.avatar_id is not None
         ]
         identities = await self._avatar_reader.get_community_identities(avatar_references)
+        public_names = {}
+        if self._privacy:
+            for owner in {post.owner_id for post in visible_posts}:
+                public_names[owner] = (await self._privacy.get(owner)).display_name
         items = [
             self._to_view(
                 post,
                 actor.user_id,
-                summaries.get(
-                    post.id, ReactionSummary(counts={}, viewer_reaction=None)
-                ),
+                summaries.get(post.id, ReactionSummary(counts={}, viewer_reaction=None)),
                 avatar_url=(
                     identities[(post.owner_id, post.avatar_id)].image_url
-                    if post.avatar_id is not None
-                    and (post.owner_id, post.avatar_id) in identities
+                    if post.avatar_id is not None and (post.owner_id, post.avatar_id) in identities
                     else None
                 ),
+                author_name="BONYAN member"
+                if self._privacy and not public_names.get(post.owner_id)
+                else None,
             )
             for post in visible_posts
         ]
@@ -123,7 +134,7 @@ class CommunityService:
     async def set_reaction(
         self, actor: CommunityActor, post_id: UUID, reaction: ReactionKind
     ) -> ReactionSummaryView:
-        await self._require_post(post_id)
+        await self._require_post(post_id, actor.user_id)
         now = datetime.now(UTC)
         await self._repository.set_reaction(
             PostReaction(
@@ -137,17 +148,15 @@ class CommunityService:
         )
         return await self._reaction_view(post_id, actor.user_id)
 
-    async def remove_reaction(
-        self, actor: CommunityActor, post_id: UUID
-    ) -> ReactionSummaryView:
-        await self._require_post(post_id)
+    async def remove_reaction(self, actor: CommunityActor, post_id: UUID) -> ReactionSummaryView:
+        await self._require_post(post_id, actor.user_id)
         await self._repository.remove_reaction(post_id, actor.user_id)
         return await self._reaction_view(post_id, actor.user_id)
 
     async def report_post(
         self, actor: CommunityActor, post_id: UUID, request: ReportPostRequest
     ) -> None:
-        await self._require_post(post_id)
+        await self._require_post(post_id, actor.user_id)
         await self._repository.add_report(
             PostReport(
                 id=uuid4(),
@@ -161,16 +170,22 @@ class CommunityService:
         )
 
     async def _reaction_view(self, post_id: UUID, viewer_id: str) -> ReactionSummaryView:
-        summary = (
-            await self._repository.reaction_summaries([post_id], viewer_id)
-        ).get(post_id, ReactionSummary(counts={}, viewer_reaction=None))
+        summary = (await self._repository.reaction_summaries([post_id], viewer_id)).get(
+            post_id, ReactionSummary(counts={}, viewer_reaction=None)
+        )
         return ReactionSummaryView(
             counts=summary.counts,
             viewer_reaction=summary.viewer_reaction,
         )
 
-    async def _require_post(self, post_id: UUID) -> CommunityPost:
+    async def _require_post(self, post_id: UUID, viewer: str | None = None) -> CommunityPost:
         post = await self._repository.get_post(post_id)
+        if post and viewer and getattr(post, "moderation_hidden", False):
+            post = None
+        if post and viewer and self._privacy:
+            permission = await self._privacy.get(post.owner_id)
+            if not permission.posts or await self._privacy.blocked(viewer, post.owner_id):
+                post = None
         if post is None:
             raise AppError(
                 code="community_post_not_found",
@@ -186,13 +201,15 @@ class CommunityService:
         reactions: ReactionSummary,
         *,
         avatar_url: str | None,
+        author_name: str | None = None,
     ) -> CommunityPostView:
         return CommunityPostView(
             id=post.id,
             post_type=post.post_type,
             caption=post.caption,
             author=PostAuthorView(
-                display_name=post.author_display_name,
+                user_id=post.owner_id,
+                display_name=author_name or post.author_display_name,
                 avatar_url=avatar_url,
             ),
             reactions=ReactionSummaryView(

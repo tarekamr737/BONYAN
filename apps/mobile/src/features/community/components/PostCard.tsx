@@ -1,5 +1,9 @@
+import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "../../../core/api/client";
+import { useLocale } from "../../../core/i18n/LocaleProvider";
 import { Alert, Image, Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
@@ -44,14 +48,17 @@ type PostCardProps = {
 };
 
 export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact, onReport }: PostCardProps) {
+  const {t} = useLocale();
+  const client = useQueryClient();
+  const block = useMutation({mutationFn: () => apiRequest(`/api/v1/users/me/privacy/blocks/${encodeURIComponent(post.author.user_id!)}`, {method: "PUT"}), onSuccess: () => {void client.invalidateQueries({queryKey: ["community"]}); void client.invalidateQueries({queryKey: ["privacy", "blocks"]});}});
   const [reportOpen, setReportOpen] = useState(false);
   const [renderedAt] = useState(() => Date.now());
   const initials = initialsFor(post.author.display_name);
 
   function confirmDelete() {
-    Alert.alert(arabic ? "تحذف المنشور؟" : "Delete post?", arabic ? "ده هيحذف منشورك وكل تفاعلاته." : "This removes your post and its reactions.", [
-      { text: arabic ? "إلغاء" : "Cancel", style: "cancel" },
-      { text: arabic ? "حذف" : "Delete", style: "destructive", onPress: () => onDelete(post.id) },
+    Alert.alert(phrase("copy_534238ec3e0a", arabic), phrase("copy_cc5e081494ce", arabic), [
+      { text: phrase("copy_428808b5e23b", arabic), style: "cancel" },
+      { text: phrase("copy_0104911cfea6", arabic), style: "destructive", onPress: () => onDelete(post.id) },
     ]);
   }
 
@@ -60,11 +67,11 @@ export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact
   }
 
   return (
-    <View accessibilityLabel={arabic ? `منشور من ${post.author.display_name}` : `Post by ${post.author.display_name}`} style={styles.card}>
+    <View accessibilityLabel={phraseTemplate("copy_9eb365dba66f", arabic, (arabic) ? [post.author.display_name] : [post.author.display_name])} style={styles.card}>
       <View style={styles.authorRow}>
         {post.author.avatar_url ? (
           <Image
-            accessibilityLabel={arabic ? `صورة ${post.author.display_name} المعتمدة` : `${post.author.display_name}'s approved body avatar`}
+            accessibilityLabel={phraseTemplate("copy_016e4e8f2765", arabic, (arabic) ? [post.author.display_name] : [post.author.display_name])}
             source={{ uri: post.author.avatar_url }}
             style={styles.avatar}
           />
@@ -76,23 +83,25 @@ export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact
         <View style={styles.authorCopy}>
           <Text style={styles.authorName}>{post.author.display_name}</Text>
           <Text style={styles.metadata}>
-            {post.post_type === "milestone" ? (arabic ? "محطة مهمة" : "Milestone") : (arabic ? "تقدم" : "Progress")} · {relativeTime(post.created_at, renderedAt, arabic)}
+            {post.post_type === "milestone" ? (phrase("copy_5730d05e9c20", arabic)) : (phrase("copy_8a83a730c268", arabic))} · {relativeTime(post.created_at, renderedAt, arabic)}
           </Text>
         </View>
         <Pressable
-          accessibilityLabel={post.can_delete ? (arabic ? "حذف المنشور" : "Delete post") : (arabic ? "الإبلاغ عن المنشور" : "Report post")}
+          accessibilityLabel={post.can_delete ? (phrase("copy_389aa72255f4", arabic)) : (phrase("copy_3eed7192235a", arabic))}
           accessibilityRole="button"
           hitSlop={8}
           onPress={post.can_delete ? confirmDelete : chooseReportReason}
           style={styles.textAction}
         >
-          <Text style={styles.textActionLabel}>{post.can_delete ? (arabic ? "حذف" : "Delete") : (arabic ? "إبلاغ" : "Report")}</Text>
+          <Text style={styles.textActionLabel}>{post.can_delete ? (phrase("copy_0104911cfea6", arabic)) : (phrase("copy_4c745f64fa6f", arabic))}</Text>
         </Pressable>
       </View>
 
       <Text style={styles.caption}>{post.caption}</Text>
+      {!post.can_delete && post.author.user_id ? <Pressable accessibilityRole="button" style={[styles.textAction, {minHeight: 50}]} disabled={block.isPending} onPress={() => block.mutate()}><Text style={styles.textActionLabel}>{t("block")}</Text></Pressable> : null}
+      {block.error ? <Text accessibilityRole="alert" style={styles.caption}>{block.error.message}</Text> : null}
 
-      <View accessibilityLabel={arabic ? "تفاعلات المنشور" : "Post reactions"} style={styles.reactionRow}>
+      <View accessibilityLabel={phrase("copy_71a935974f6a", arabic)} style={styles.reactionRow}>
         {(Object.keys(reactionLabels) as ReactionKind[]).map((reaction) => {
           const selected = post.reactions.viewer_reaction === reaction;
           const count = post.reactions.counts[reaction] ?? 0;
@@ -128,10 +137,10 @@ export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact
         <View style={styles.modalBackdrop}>
           <View accessibilityViewIsModal style={styles.reportSheet}>
             <Text accessibilityRole="header" style={styles.reportTitle}>
-              {arabic ? "الإبلاغ عن المنشور" : "Report post"}
+              {phrase("copy_3eed7192235a", arabic)}
             </Text>
             <Text style={styles.reportCopy}>
-              {arabic ? "اختار السبب الأنسب لحماية المجتمع." : "Choose the reason that best protects the community."}
+              {phrase("copy_78b7d06149c4", arabic)}
             </Text>
             {(Object.keys(reportLabels) as ReportReason[]).map((reason) => (
               <Pressable
@@ -151,7 +160,7 @@ export function PostCard({ arabic = false, post, reactionBusy, onDelete, onReact
               onPress={() => setReportOpen(false)}
               style={({ pressed }) => [styles.reportCancel, pressed && styles.pressed]}
             >
-              <Text style={styles.reportCancelLabel}>{arabic ? "إلغاء" : "Cancel"}</Text>
+              <Text style={styles.reportCancelLabel}>{phrase("copy_428808b5e23b", arabic)}</Text>
             </Pressable>
           </View>
         </View>

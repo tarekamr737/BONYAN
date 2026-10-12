@@ -1,3 +1,4 @@
+import { phrase, phraseTemplate } from "../../core/i18n/copy";
 import type { ReactionKind, ReactionSummaryView } from "./types";
 
 export function optimisticReaction(
@@ -21,10 +22,10 @@ export function relativeTime(value: string, now = Date.now(), arabic = false): s
     0,
     Math.floor((now - new Date(value).getTime()) / 60_000),
   );
-  if (differenceMinutes < 1) return arabic ? "دلوقتي" : "now";
-  if (differenceMinutes < 60) return arabic ? `منذ ${differenceMinutes} د` : `${differenceMinutes}m`;
+  if (differenceMinutes < 1) return phrase("copy_0278e008acde", arabic);
+  if (differenceMinutes < 60) return phraseTemplate("copy_d640522759b2", arabic, (arabic) ? [differenceMinutes] : [differenceMinutes]);
   const differenceHours = Math.floor(differenceMinutes / 60);
-  if (differenceHours < 24) return arabic ? `منذ ${differenceHours} س` : `${differenceHours}h`;
+  if (differenceHours < 24) return phraseTemplate("copy_a61c7c2ff430", arabic, (arabic) ? [differenceHours] : [differenceHours]);
   const days = Math.floor(differenceHours / 24);
-  return arabic ? `منذ ${days} ي` : `${days}d`;
+  return phraseTemplate("copy_15d7671f73ff", arabic, (arabic) ? [days] : [days]);
 }

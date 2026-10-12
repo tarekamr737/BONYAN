@@ -1,3 +1,4 @@
+import {localizedError} from "../i18n/messages";
 export const fallbackApiError = {
   code: "request_failed",
   message: "Something went wrong. Please try again.",
@@ -12,9 +13,9 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
-    message: string,
+    _message: string,
   ) {
-    super(message);
+    super(localizedError(code));
     this.name = "ApiError";
   }
 }

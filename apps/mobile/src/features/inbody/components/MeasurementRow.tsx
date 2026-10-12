@@ -1,3 +1,6 @@
+import {measurementLabel, measurementUnit, reviewFlag} from "../../../core/i18n/measurements";
+import {formatNumber} from "../../../core/i18n/messages";
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useContext } from "react";
 import { StyleSheet, View } from "react-native";
@@ -5,54 +8,15 @@ import { StyleSheet, View } from "react-native";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import type { InBodyMeasurement } from "../types";
 
-const labels: Record<string, string> = {
-  height: "Height",
-  weight: "Weight",
-  skeletal_muscle_mass: "Skeletal muscle",
-  body_fat_mass: "Body fat mass",
-  body_fat_percentage: "Body fat",
-  bmi: "BMI",
-  total_body_water: "Total body water",
-  visceral_fat_level: "Visceral fat",
-  inbody_score: "InBody score",
-};
-
-const labelsArabic: Record<string, string> = {
-  height: "الطول",
-  weight: "الوزن",
-  skeletal_muscle_mass: "الكتلة العضلية",
-  body_fat_mass: "كتلة الدهون",
-  body_fat_percentage: "نسبة الدهون",
-  bmi: "مؤشر كتلة الجسم",
-  total_body_water: "مياه الجسم",
-  visceral_fat_level: "الدهون الحشوية",
-  inbody_score: "نتيجة InBody",
-};
-
-export function measurementLabel(key: string, arabic: boolean): string {
-  return (arabic ? labelsArabic : labels)[key] ?? key;
-}
-
-function reviewFlag(flag: string, arabic: boolean): string {
-  if (!arabic) return flag.replaceAll("_", " ");
-  return ({
-    derived: "محسوب من قياسات أخرى",
-    implausible_value: "قيمة غير منطقية",
-    low_confidence: "ثقة القراءة منخفضة",
-    missing: "غير موجود",
-    negative_value: "قيمة سالبة",
-    unknown_unit: "وحدة غير معروفة",
-  } as Record<string, string>)[flag] ?? flag.replaceAll("_", " ");
-}
-
+export {measurementLabel} from "../../../core/i18n/measurements";
 export function MeasurementRow({ measurement }: { measurement: InBodyMeasurement }) {
   const arabic = useContext(LanguageDirection);
   const flags = measurement.metadata.flags;
   const needsReview = flags.length > 0;
   const value =
     measurement.value === null
-      ? arabic ? "غير موجود" : "Missing"
-      : `${measurement.value.toFixed(1)}${measurement.unit ? ` ${arabic && measurement.unit === "score" ? "نقطة" : measurement.unit}` : ""}`;
+      ? phrase("copy_8b935eb10782", arabic)
+      : `${formatNumber(measurement.value, arabic ? "ar-EG" : "en", {maximumFractionDigits: 1})}${measurement.unit ? ` ${measurementUnit(measurement.unit, arabic ? "ar-EG" : "en")}` : ""}`;
 
   return (
     <View style={styles.row}>

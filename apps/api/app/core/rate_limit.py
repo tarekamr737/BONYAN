@@ -13,7 +13,9 @@ from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 
-RateLimitCategory = Literal["register", "login", "ocr", "coach", "avatar", "media_token"]
+RateLimitCategory = Literal[
+    "register", "login", "ocr", "coach", "avatar", "media_token", "community"
+]
 
 
 class FixedWindowRateLimiter:
@@ -85,6 +87,9 @@ limit_login = public_rate_limit_dependency("login", "rate_limit_login_per_minute
 limit_ocr = authenticated_rate_limit_dependency("ocr", "rate_limit_ocr_per_minute")
 limit_coach = authenticated_rate_limit_dependency("coach", "rate_limit_coach_per_minute")
 limit_avatar = authenticated_rate_limit_dependency("avatar", "rate_limit_avatar_per_minute")
+limit_community = authenticated_rate_limit_dependency(
+    "community", "rate_limit_community_per_minute"
+)
 limit_media_token = authenticated_rate_limit_dependency(
     "media_token", "rate_limit_media_token_per_minute"
 )

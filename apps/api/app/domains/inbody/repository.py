@@ -49,7 +49,9 @@ class InBodyRepository:
 
     async def get_owned(self, *, owner_id: str, scan_id: UUID) -> InBodyScan | None:
         result = await self.session.execute(
-            select(InBodyScan).where(InBodyScan.owner_id == owner_id, InBodyScan.id == scan_id)
+            select(InBodyScan)
+            .where(InBodyScan.owner_id == owner_id, InBodyScan.id == scan_id)
+            .with_for_update()
         )
         return result.scalar_one_or_none()
 

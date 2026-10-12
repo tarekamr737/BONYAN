@@ -48,6 +48,9 @@ class AvatarView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    measurement_snapshot: dict | None = None
+    illustration_only: bool = True
+    development_mock: bool = False
     state: AvatarState
     style: str
     presentation: str
@@ -67,6 +70,7 @@ class AvatarListView(BaseModel):
 
 
 class AvatarMeasurementStatusView(BaseModel):
+    generation_enabled: bool = True
     available: bool
     source: str | None
     recorded_at: datetime | None

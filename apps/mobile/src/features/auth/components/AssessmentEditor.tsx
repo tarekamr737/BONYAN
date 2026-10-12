@@ -1,3 +1,7 @@
+import { formatDate, formatNumber, parseLocalizedNumber } from "../../../core/i18n/messages";
+import {measurementLabel, measurementUnit} from "../../../core/i18n/measurements";
+import {useLocale} from "../../../core/i18n/LocaleProvider";
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { coachingCopy } from "../coachingCopy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +16,7 @@ import { saveAssessment } from "../api/profileApi";
 import { GlassCard, SelectableCard, ui } from "./CoachingUI";
 
 export function AssessmentEditor({onSaved, height = "", arabic = false}: {onSaved?: () => void; height?: string; arabic?: boolean}) {
+  const {t, locale} = useLocale();
   const client = useQueryClient();
   const busy = useRef(false);
   const [source, setSource] = useState<"manual" | "inbody">("manual");
@@ -34,26 +39,26 @@ export function AssessmentEditor({onSaved, height = "", arabic = false}: {onSave
   const mutation = useMutation({mutationFn: async () => {
     // Deduplication ID only; never used for authentication.
     const id = requestId ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const n = Math.floor(Math.random() * 16); return (c === "x" ? n : (n & 3) | 8).toString(16); }); setRequestId(id);
-    return saveAssessment(source === "manual" ? {request_id: id, source, measurements: {height_cm: Number(values.height), weight_kg: Number(values.weight), body_fat_percentage: values.fat ? Number(values.fat) : null}} : {request_id: id, source, inbody_scan_id: scan ?? ""});
+    return saveAssessment(source === "manual" ? {request_id: id, source, measurements: {height_cm: parseLocalizedNumber(values.height), weight_kg: parseLocalizedNumber(values.weight), body_fat_percentage: values.fat ? parseLocalizedNumber(values.fat) : null}} : {request_id: id, source, inbody_scan_id: scan ?? ""});
   }, onSuccess: async () => { await storeCoachingDraft(null, "assessment").catch(() => {}); await Promise.all([client.invalidateQueries({queryKey: ["assessment"]}), client.invalidateQueries({queryKey: ["profile"]}), client.invalidateQueries({queryKey: ["profile-history"]})]); onSaved?.(); }});
   useEffect(() => {
     if (restored && !mutation.isSuccess) void storeCoachingDraft(JSON.stringify({source, values, scan, requestId}), "assessment").catch(() => {});
   }, [restored, source, values, scan, requestId, mutation.isSuccess]);
-  const valid = source === "inbody" ? scan !== null : [values.height, values.weight].every(v => v.trim() && Number.isFinite(Number(v))) && Number(values.height) >= 80 && Number(values.height) <= 250 && Number(values.weight) >= 30 && Number(values.weight) <= 350 && (!values.fat || Number(values.fat) >= 2 && Number(values.fat) <= 70);
+  const valid = source === "inbody" ? scan !== null : [values.height, values.weight].every(v => v.trim() && Number.isFinite(Number(v))) && parseLocalizedNumber(values.height) >= 80 && parseLocalizedNumber(values.height) <= 250 && parseLocalizedNumber(values.weight) >= 30 && parseLocalizedNumber(values.weight) <= 350 && (!values.fat || parseLocalizedNumber(values.fat) >= 2 && parseLocalizedNumber(values.fat) <= 70);
   function field(key: keyof typeof values, label: string) { return <AppTextField label={label} keyboardType="decimal-pad" value={values[key]} onChangeText={v => {setValues({...values, [key]: v.replace(/[\u0660-\u0669]/g, digit => String(digit.charCodeAt(0) - 1632)).replace("\u066b", ".")}); setRequestId(null); mutation.reset();}} editable={!mutation.isPending} />; }
-  if (!restored) return <Text style={ui.text}>{arabic ? "جاري استعادة القياسات…" : "Loading your measurements…"}</Text>;
+  if (!restored) return <Text style={ui.text}>{phrase("copy_699275b5f819", arabic)}</Text>;
   return <View style={ui.stack}>
-    <Text style={ui.heading}>{arabic ? "كيف تضيف قياسات جسمك؟" : "How would you like to add your body data?"}</Text>
-    <View style={ui.stack}>{(["manual", "inbody"] as const).map(value => <SelectableCard key={value} selected={source === value} disabled={mutation.isPending} onPress={() => {setSource(value); setRequestId(null); mutation.reset();}} title={value === "manual" ? arabic ? "إدخال يدوي" : "Enter measurements" : "InBody"} arabic={arabic} description={value === "manual" ? arabic ? "سجّل الطول والوزن. نسبة الدهون اختيارية." : "Add height and weight. Body fat is optional." : arabic ? "ارفع تقرير واضح وراجع القيم قبل تأكيدها." : "Use a real report you have reviewed and confirmed."} />)}</View>
-    {source === "manual" ? <GlassCard>{field("height", arabic ? "الطول (سم)" : "Height · cm")}{field("weight", arabic ? "الوزن الحالي (كجم)" : "Current weight · kg")}{field("fat", arabic ? "نسبة الدهون — اختياري" : "Body fat · % · optional")}<Text style={ui.small}>{coachingCopy("Height 80\u2013250 cm \u00b7 Weight 30\u2013350 kg \u00b7 Body fat 2\u201370% when known.", arabic)}</Text></GlassCard> : <View style={ui.stack}>
+    <Text style={ui.heading}>{phrase("copy_662b0f06157e", arabic)}</Text>
+    <View style={ui.stack}>{(["manual", "inbody"] as const).map(value => <SelectableCard key={value} selected={source === value} disabled={mutation.isPending} onPress={() => {setSource(value); setRequestId(null); mutation.reset();}} title={value === "manual" ? phrase("copy_6cdd1c602a28", arabic) : "InBody"} arabic={arabic} description={value === "manual" ? phrase("copy_74381ddd68b6", arabic) : phrase("copy_59cdd06f2ea2", arabic)} />)}</View>
+    {source === "manual" ? <GlassCard>{field("height", phrase("copy_1ad2e9e7d00f", arabic))}{field("weight", phrase("copy_0d109d4f0f15", arabic))}{field("fat", phrase("copy_b9ff59c246da", arabic))}<Text style={ui.small}>{coachingCopy("Height 80\u2013250 cm \u00b7 Weight 30\u2013350 kg \u00b7 Body fat 2\u201370% when known.", arabic)}</Text></GlassCard> : <View style={ui.stack}>
       {history.isPending ? <Text style={ui.text}>{coachingCopy("Loading your confirmed reports\u2026", arabic)}</Text> : null}
       {history.isError ? <AppButton label={coachingCopy("Retry loading reports", arabic)} onPress={() => void history.refetch()} variant="secondary" /> : null}
-      {history.data?.scans.map((item, index) => <SelectableCard key={item.id} disabled={mutation.isPending} selected={scan === item.id} title={`${index === 0 ? "Latest · " : ""}${new Date(item.confirmed_at ?? item.created_at).toLocaleDateString()}`} description={item.result?.measurements.filter(m => m.value !== null && ["weight", "body_fat_percentage"].includes(m.key)).map(m => `${m.key.replaceAll("_", " ")}: ${m.value} ${m.unit ?? ""}`).join(" · ")} onPress={() => {setScan(item.id); setRequestId(null); mutation.reset();}} />)}
+      {history.data?.scans.map((item, index) => <SelectableCard key={item.id} disabled={mutation.isPending} selected={scan === item.id} title={`${index === 0 ? `${t("latest")} · ` : ""}${formatDate(item.confirmed_at ?? item.created_at, locale, Intl.DateTimeFormat().resolvedOptions().timeZone)}`} description={item.result?.measurements.filter(m => m.value !== null && ["weight", "body_fat_percentage"].includes(m.key)).map(m => `${measurementLabel(m.key, arabic)}: ${formatNumber(m.value!, locale)} ${measurementUnit(m.unit, locale)}`).join(" · ")} onPress={() => {setScan(item.id); setRequestId(null); mutation.reset();}} />)}
       {history.data?.scans.length === 0 ? <Text style={ui.text}>{coachingCopy("No confirmed report yet. Upload one, review its values, then return here. You can also use manual entry.", arabic)}</Text> : null}
-      <AppButton label={arabic ? "رفع تقرير InBody" : "Upload an InBody report"} onPress={() => router.push("/inbody")} variant="secondary" />
+      <AppButton label={phrase("copy_1d7d157b7bd7", arabic)} onPress={() => router.push("/inbody")} variant="secondary" />
     </View>}
     {mutation.isError ? <Text accessibilityRole="alert" style={ui.error}>{coachingCopy("Couldn\u2019t save this assessment. Your entries are still here. Check the values and try again.", arabic)}</Text> : null}
     {mutation.isSuccess ? <Text accessibilityLiveRegion="polite" style={ui.success}>{coachingCopy("Assessment saved to your profile and history.", arabic)}</Text> : null}
-    <AppButton label={arabic ? "حفظ التقييم" : "Save assessment"} disabled={!valid} loading={mutation.isPending} onPress={() => {if (busy.current) return; busy.current = true; void mutation.mutateAsync().catch(() => {}).finally(() => {busy.current = false;}); }} />
+    <AppButton label={phrase("copy_1a05f895fa3b", arabic)} disabled={!valid} loading={mutation.isPending} onPress={() => {if (busy.current) return; busy.current = true; void mutation.mutateAsync().catch(() => {}).finally(() => {busy.current = false;}); }} />
   </View>;
 }

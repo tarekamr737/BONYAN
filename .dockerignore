@@ -1,0 +1,22 @@
+# API builds use an explicit allowlist so local secrets, uploads and mobile assets
+# cannot enter a Docker build context or intermediate image layer.
+**
+!apps/
+!apps/api/
+!apps/api/pyproject.toml
+!apps/api/app/
+!apps/api/app/**
+!apps/api/alembic/
+!apps/api/alembic/**
+!apps/api/alembic.ini
+!deployment/
+!deployment/api.Dockerfile
+**/__pycache__/**
+**/*.pyc
+**/.env
+**/.env.*
+**/.private-storage/**
+**/.private-storage
+**/.pytest_cache
+**/__pycache__
+**/node_modules

@@ -61,6 +61,15 @@ jobs:
       - run: python -m pytest -c apps/api/pyproject.toml
       - run: python -m alembic -c apps/api/alembic.ini upgrade head
       - run: python -m alembic -c apps/api/alembic.ini check
+      - name: V2 PostgreSQL authorization, concurrency and bilingual journeys
+        env:
+          BONYAN_V2_TEST_DATABASE_URL: postgresql+asyncpg://bonyan:bonyan@127.0.0.1:5432/bonyan
+        run: python -m pytest -c apps/api/pyproject.toml tests/api/test_game_v2.py tests/api/test_game_community_v2.py tests/api/test_v2_journey.py tests/training/test_session_substitutions.py tests/community/test_privacy_v2.py
+      - name: Reversible V2 migrations on disposable CI database
+        run: |
+          python -m alembic -c apps/api/alembic.ini downgrade 20260921_0013
+          python -m alembic -c apps/api/alembic.ini upgrade head
+          python -m alembic -c apps/api/alembic.ini check
       - run: python deployment/smoke_check.py --help
 
   release-container:

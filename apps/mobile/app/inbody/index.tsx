@@ -1,3 +1,4 @@
+import { phrase } from "../../src/core/i18n/copy";
 import * as DocumentPicker from "expo-document-picker";
 import { File as ExpoFile } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
@@ -22,16 +23,16 @@ export default function InBodyUploadRoute() {
   function selectDocumentFiles(files: LocalReportFile[]) {
     if (files.length > 3) {
       Alert.alert(
-        arabic ? "اختار لحد ٣ صور" : "Choose up to 3 images",
-        arabic ? "اختار بحد أقصى ٣ صفحات من نفس التقرير." : "Select no more than three report pages.",
+        phrase("copy_e1ce3d3077ab", arabic),
+        phrase("copy_c895bd0c8d0a", arabic),
       );
       return;
     }
     const pdfs = files.filter((file) => file.type === "application/pdf");
     if (pdfs.length > 0 && files.length > 1) {
       Alert.alert(
-        arabic ? "اختار PDF واحد أو صور" : "Choose one PDF or images",
-        arabic ? "ملف PDF فيه صفحاته بالفعل. اختار PDF واحد، أو لحد ٣ صور." : "A PDF already contains its pages. Select one PDF, or up to three images.",
+        phrase("copy_7cfa9b91eeec", arabic),
+        phrase("copy_e544bc5a6960", arabic),
       );
       return;
     }
@@ -96,8 +97,8 @@ export default function InBodyUploadRoute() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
-        arabic ? "محتاجين إذن الكاميرا" : "Camera permission needed",
-        arabic ? "اسمح لبنيان باستخدام الكاميرا وبعدين جرّب تاني." : "Allow BONYAN to use the camera, then try again.",
+        phrase("copy_4824086162b8", arabic),
+        phrase("copy_f98b0b1d841d", arabic),
       );
       return;
     }
@@ -125,7 +126,7 @@ export default function InBodyUploadRoute() {
         {
           cancelButtonIndex: 3,
           options: arabic ? ["مكتبة الصور", "الكاميرا", "الملفات", "إلغاء"] : ["Photo Library", "Camera", "Files", "Cancel"],
-          title: arabic ? "اختار تقرير InBody" : "Choose an InBody report",
+          title: phrase("copy_472e8714b248", arabic),
         },
         (buttonIndex) => {
           if (buttonIndex === 0) void pickFromGallery();
@@ -136,10 +137,10 @@ export default function InBodyUploadRoute() {
       return;
     }
 
-    Alert.alert(arabic ? "اختار تقرير InBody" : "Choose an InBody report", arabic ? "اختار مصدر التقرير." : "Select where to get the report.", [
-      { text: arabic ? "مكتبة الصور" : "Photo Library", onPress: () => void pickFromGallery() },
-      { text: arabic ? "الكاميرا" : "Camera", onPress: () => void takePhoto() },
-      { text: arabic ? "الملفات" : "Files", onPress: () => void pickFromFiles() },
+    Alert.alert(phrase("copy_472e8714b248", arabic), phrase("copy_35a5c607dbfe", arabic), [
+      { text: phrase("copy_af2db264a698", arabic), onPress: () => void pickFromGallery() },
+      { text: phrase("copy_a4191117a6e8", arabic), onPress: () => void takePhoto() },
+      { text: phrase("copy_bd6002495741", arabic), onPress: () => void pickFromFiles() },
     ], { cancelable: true });
   }
 

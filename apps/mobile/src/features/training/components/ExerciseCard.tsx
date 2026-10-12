@@ -1,150 +1,29 @@
-import { DirectionalText as Text } from "../../../core/components/DirectionalText";
-import { Pressable, StyleSheet, View } from "react-native";
+import {useState} from "react";
+import {Pressable, StyleSheet, View} from "react-native";
+import {DirectionalText as Text} from "../../../core/components/DirectionalText";
+import {SurfaceCard} from "../../../core/components/SurfaceCard";
+import {useLocale} from "../../../core/i18n/LocaleProvider";
+import {fitnessLabel} from "../../../core/i18n/fitness";
+import {formatNumber} from "../../../core/i18n/messages";
+import {colors, fonts, spacing} from "../../../core/theme/tokens";
+import type {ExercisePrescription} from "../types";
+import {ExerciseDetails} from "./ExerciseDetails";
+import {ExerciseMedia} from "./ExerciseMedia";
 
-import { SurfaceCard } from "../../../core/components/SurfaceCard";
-import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
-import type { ExercisePrescription } from "../types";
-
-type ExerciseCardProps = {
-  arabic?: boolean;
-  exercise: ExercisePrescription;
-  index: number;
-  active?: boolean;
-  onPress?: () => void;
-};
-
-const arabicTags: Record<string, string> = {
-  barbell: "بار",
-  bodyweight: "وزن الجسم",
-  dumbbell: "دامبل",
-  weighted: "بوزن إضافي",
-  quads: "عضلات الفخذ الأمامية",
-  quadriceps: "عضلات الفخذ الأمامية",
-  core: "عضلات البطن",
-  abs: "عضلات البطن",
-  machine: "جهاز",
-  cable: "كابل",
-  pectorals: "الصدر",
-  lats: "الظهر",
-  delts: "الكتف",
-  hamstrings: "عضلات الفخذ الخلفية",
-  glutes: "عضلات المؤخرة",
-  chest: "الصدر",
-  back: "الظهر",
-  shoulders: "الكتف",
-  biceps: "البايسبس",
-  triceps: "الترايسبس",
-  calves: "السمانة",
-};
-
-export function ExerciseCard({ arabic = false, exercise, index, active = false, onPress }: ExerciseCardProps) {
-  const card = (
-    <SurfaceCard>
-      <View style={styles.row}>
-        <View style={[styles.index, active && styles.activeIndex]}>
-          <Text style={[styles.indexText, active && styles.activeIndexText]}>{index + 1}</Text>
-        </View>
-        <View style={styles.content}>
-          <Text style={styles.name}>{exercise.name}</Text>
-          <Text style={styles.meta}>
-            {arabic ? `${exercise.sets} مجموعات × ${exercise.reps_min}-${exercise.reps_max} تكرار` : `${exercise.sets} sets × ${exercise.reps_min}-${exercise.reps_max} reps`}
-          </Text>
-        </View>
-        <Text style={styles.rest}>{Math.round(exercise.rest_seconds / 60)}{arabic ? " د" : "m"}</Text>
-      </View>
-      <View style={styles.tags}>
-        {[...exercise.muscles, ...exercise.equipment].slice(0, 4).map((item) => (
-          <View key={item} style={styles.tag}>
-            <Text style={styles.tagText}>{arabic ? (arabicTags[item.toLowerCase()] ?? item) : item.toUpperCase()}</Text>
-          </View>
-        ))}
-      </View>
-    </SurfaceCard>
-  );
-
-  if (!onPress) {
-    return card;
-  }
-
-  return (
-    <Pressable
-      accessibilityLabel={arabic ? `${exercise.name}، ${exercise.sets} مجموعات من ${exercise.reps_min} إلى ${exercise.reps_max} تكرار` : `${exercise.name}, ${exercise.sets} sets of ${exercise.reps_min} to ${exercise.reps_max} reps`}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={({ pressed }) => [pressed && styles.pressed]}
-    >
-      {card}
-    </Pressable>
-  );
+type Props = {arabic?: boolean; exercise: ExercisePrescription; index: number; active?: boolean; onPress?: () => void};
+export function ExerciseCard({exercise, index, active = false, onPress}: Props) {
+  const {t, locale, rtl} = useLocale(); const [expanded, setExpanded] = useState(false);
+  const prescription = `${formatNumber(exercise.sets, locale)} ${t("sets")} × ${formatNumber(exercise.reps_min, locale)}–${formatNumber(exercise.reps_max, locale)} ${t("reps")}`;
+  const content = <SurfaceCard style={[styles.card, active && {borderColor: colors.bronze}]}>
+    <View style={[styles.row, rtl && {flexDirection: "row-reverse"}]}><ExerciseMedia exerciseId={exercise.exercise_id} name={exercise.name} arabic={rtl} compact previewSize={112}/><Pressable disabled={!onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={`${exercise.name}, ${prescription}`} accessibilityState={{selected: active}} onPress={onPress} style={styles.content}>
+      <Text style={styles.name}>{formatNumber(index + 1, locale)} · {exercise.name}</Text><Text style={styles.meta}>{prescription}</Text><Text style={styles.meta}>{t("rest")}: {formatNumber(exercise.rest_seconds, locale)} {t("seconds")}</Text>
+    </Pressable></View>
+    <Text style={styles.meta}>{exercise.muscles.map(value => fitnessLabel(value, locale)).join(" · ")}</Text>
+    <Text style={styles.meta}>{exercise.equipment.map(value => fitnessLabel(value, locale, "equipment")).join(" · ")}</Text>
+    {exercise.notes && (!rtl || /[\u0600-\u06ff]/u.test(exercise.notes)) ? <Text style={styles.meta}>{exercise.notes}</Text> : null}
+    <Pressable accessibilityRole="button" accessibilityState={{expanded}} onPress={event => {event.stopPropagation(); setExpanded(!expanded);}} style={styles.details}><Text style={styles.label}>{t("exerciseDetails")}{expanded ? " −" : " +"}</Text></Pressable>
+    {expanded ? <ExerciseDetails exerciseId={exercise.exercise_id}/> : null}
+  </SurfaceCard>;
+  return content;
 }
-
-const styles = StyleSheet.create({
-  activeIndex: {
-    backgroundColor: colors.bronze,
-  },
-  activeIndexText: {
-    color: colors.canvas,
-  },
-  content: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  index: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radii.control,
-    height: 42,
-    justifyContent: "center",
-    width: 42,
-  },
-  indexText: {
-    color: colors.bronze,
-    fontFamily: fonts.displaySemiBold,
-    fontSize: 16,
-  },
-  meta: {
-    color: colors.mutedLight,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-  },
-  name: {
-    color: colors.text,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  pressed: {
-    opacity: 0.78,
-  },
-  rest: {
-    color: colors.bronze,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-  },
-  row: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  tag: {
-    backgroundColor: colors.bronzeSoft,
-    borderColor: colors.bronzeBorder,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs,
-  },
-  tags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-    marginTop: spacing.md,
-  },
-  tagText: {
-    color: colors.bronze,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
-    letterSpacing: 0.9,
-  },
-});
+const styles = StyleSheet.create({card: {gap: spacing.sm}, row: {alignItems: "center", flexDirection: "row", gap: spacing.sm}, content: {flex: 1, minWidth: 0, gap: spacing.xs}, name: {color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 16, lineHeight: 22}, meta: {color: colors.mutedLight, fontFamily: fonts.body, fontSize: 13, lineHeight: 20}, details: {minHeight: 50, justifyContent: "center"}, label: {color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 14}});

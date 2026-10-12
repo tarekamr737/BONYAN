@@ -47,6 +47,8 @@ class WorkoutSessionRecord(Base):
     day_key: Mapped[str] = mapped_column(String(80), nullable=False)
     status: Mapped[str] = mapped_column(String(40), nullable=False)
     logged_sets: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
+    version: Mapped[int] = mapped_column(nullable=False, default=0, server_default="0")
+    prescription_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     summary: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

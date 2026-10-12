@@ -45,6 +45,8 @@ class ExerciseSearchPage:
 class MediaAccess:
     url: str
     expires_at: datetime | None = None
+    media_type: str | None = None
+    source_name: str | None = None
 
 
 class ExerciseProvider(Protocol):

@@ -20,6 +20,7 @@ from app.domains.training.schemas import (
     PlanningContext,
     PlanStatus,
     SubstituteExerciseRequest,
+    WorkoutDay,
     WorkoutPlan,
     WorkoutSessionResponse,
     WorkoutSessionStatus,
@@ -187,12 +188,13 @@ class TrainingService:
                 "training_day_not_found", "Workout day not found.", status.HTTP_404_NOT_FOUND
             )
         self._require_catalog_plan(plan.days)
-        await self.repository.lock_session_start(
+        await self.repository.lock_session_start(owner_id=user_id, plan_id=plan_id, day_key=day_key)
+        session = await self.repository.create_session(
             owner_id=user_id, plan_id=plan_id, day_key=day_key
         )
-        return self._session_response(
-            await self.repository.create_session(owner_id=user_id, plan_id=plan_id, day_key=day_key)
-        )
+        if not getattr(session, "prescription_snapshot", None):
+            session.prescription_snapshot = next(day for day in plan.days if day["key"] == day_key)
+        return self._session_response(session)
 
     @staticmethod
     def _require_catalog_plan(days: list[dict]) -> None:
@@ -223,14 +225,14 @@ class TrainingService:
                 status.HTTP_409_CONFLICT,
             )
 
-
     async def log_set(
         self, *, user_id: str, session_id: UUID, logged_set: LoggedSetInput
     ) -> WorkoutSessionResponse:
         session = await self._owned_session(user_id=user_id, session_id=session_id)
         self._ensure_active_session(session)
+        day = await self._session_day(user_id=user_id, session=session)
         self._validate_set_target(
-            await self._session_day(user_id=user_id, session=session),
+            day,
             prescription_index=logged_set.prescription_index,
             set_number=logged_set.set_number,
         )
@@ -243,10 +245,31 @@ class TrainingService:
                 and item["set_number"] == logged_set.set_number
             )
         ]
-        sets.append(logged_set.model_dump(mode="json"))
+        prior = next(
+            (
+                item
+                for item in session.logged_sets
+                if item["prescription_index"] == logged_set.prescription_index
+                and item["set_number"] == logged_set.set_number
+            ),
+            None,
+        )
+        prescription = day.prescriptions[logged_set.prescription_index]
+        entry = logged_set.model_dump(mode="json")
+        entry["logged_at"] = prior.get("logged_at") if prior else datetime.now(UTC).isoformat()
+        entry["exercise_id"] = (
+            prior.get("exercise_id", prescription.exercise_id)
+            if prior
+            else prescription.exercise_id
+        )
+        entry["exercise_name"] = (
+            prior.get("exercise_name", prescription.name) if prior else prescription.name
+        )
+        sets.append(entry)
         session.logged_sets = sorted(
             sets, key=lambda item: (item["prescription_index"], item["set_number"])
         )
+        session.version = (getattr(session, "version", None) or 0) + 1
         return self._session_response(session)
 
     async def remove_set(
@@ -267,19 +290,31 @@ class TrainingService:
                 and item["set_number"] == set_number
             )
         ]
+        session.version = (getattr(session, "version", None) or 0) + 1
         return self._session_response(session)
 
     async def complete_session(self, *, user_id: str, session_id: UUID) -> WorkoutSessionResponse:
         session = await self._owned_session(user_id=user_id, session_id=session_id)
+        if session.status == WorkoutSessionStatus.COMPLETED:
+            return self._session_response(session)
         self._ensure_active_session(session)
         session.status = WorkoutSessionStatus.COMPLETED
         session.completed_at = datetime.now(UTC)
+        session.version = (getattr(session, "version", None) or 0) + 1
         session.summary = {
             "sets": len(session.logged_sets),
             "volume_kg": round(
                 sum(item["reps"] * item["weight_kg"] for item in session.logged_sets), 2
             ),
         }
+        if getattr(self.repository, "session", None) is not None:
+            from app.domains.game.repository import GameRepository
+            from app.domains.game.service import GameService
+
+            await self.repository.session.flush()
+            await GameService(GameRepository(self.repository.session)).workout_completed(
+                user_id, session
+            )
         return self._session_response(session)
 
     async def substitute(
@@ -324,6 +359,9 @@ class TrainingService:
         return self._plan_response(plan)
 
     async def _session_day(self, *, user_id: str, session):
+        snapshot = getattr(session, "prescription_snapshot", None)
+        if snapshot:
+            return WorkoutDay.model_validate(snapshot)
         plan = await self._owned_plan(user_id=user_id, plan_id=session.plan_id)
         plan_schema = self._plan_response(plan)
         day = next((item for item in plan_schema.days if item.key == session.day_key), None)
@@ -395,6 +433,8 @@ class TrainingService:
             completed_at=record.completed_at,
             logged_sets=[LoggedSet.model_validate(item) for item in record.logged_sets],
             summary=record.summary,
+            version=getattr(record, "version", None) or 0,
+            prescription_snapshot=getattr(record, "prescription_snapshot", None),
         )
 
 

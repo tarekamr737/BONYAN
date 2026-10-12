@@ -25,6 +25,8 @@ export type ExercisePrescription = {
 };
 
 export type ExerciseMediaAccess = {
+  media_type?: string | null;
+  source_name?: string | null;
   url: string;
   expires_at: string | null;
 };
@@ -70,12 +72,16 @@ export type LoggedSetInput = {
 };
 
 export type LoggedSet = LoggedSetInput & {
+  logged_at?: string | null;
   id?: string | null;
+  exercise_id?: string | null;
   exercise_name?: string | null;
 };
 
 export type WorkoutSession = {
   id: string;
+  version: number;
+  prescription_snapshot: WorkoutDay | null;
   plan_id: string;
   day_key: string;
   status: WorkoutSessionStatus;
@@ -83,6 +89,18 @@ export type WorkoutSession = {
   completed_at: string | null;
   logged_sets: LoggedSet[];
   summary: Record<string, unknown>;
+};
+
+export type SubstitutionScope = "session" | "plan" | "equipment";
+export type SubstitutionReason = "busy_today" | "not_available";
+export type SessionSubstitution = {
+  id: string; session_id: string; prescription_index: number; expected_version: number;
+  scope: SubstitutionScope; reason: SubstitutionReason; status: string;
+  original: ExercisePrescription; candidate: ExercisePrescription; expires_at: string;
+  media_available: boolean; remaining_sets: number;
+};
+export type SubstitutionResult = {
+  session: WorkoutSession; event_id: string; plan_revision_id: string | null; equipment_changed: boolean;
 };
 
 export type CoachMessageResponse = {
@@ -116,6 +134,9 @@ export type ExerciseSearchItem = {
   muscles: string[];
   equipment: string[];
   difficulty: string;
+  instructions?: string[];
+  translated_name?: string | null;
+  translated_instructions?: string[];
 };
 
 export type ExerciseSearchResponse = {

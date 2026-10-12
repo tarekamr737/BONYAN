@@ -1,3 +1,4 @@
+import { normalizeLocale, normalizeNumerals, parseLocalizedNumber, translate } from "../../core/i18n/messages";
 import type {
   ExperienceLevel,
   PreferredUnits,
@@ -47,31 +48,33 @@ export function profileToDraft(profile?: UserProfile): ProfileDraft {
 }
 
 export function validateProfileDraft(draft: ProfileDraft): string | null {
+  const locale = normalizeLocale(draft.preferredLanguage);
   const normalizedName = draft.displayName.trim().replace(/\s+/g, " ");
   if (!normalizedName) {
-    return "Enter the name you want BONYAN to use.";
+    return translate("profileNameRequired", locale);
   }
   if (normalizedName.length > 120) {
-    return "Display name must be 120 characters or fewer.";
+    return translate("profileNameLength", locale);
   }
   if (draft.availableEquipment.length === 0) {
-    return "Choose at least one equipment option. Select bodyweight if you train without equipment.";
+    return translate("profileEquipmentRequired", locale);
   }
   if (draft.heightCm) {
-    const height = Number(draft.heightCm);
+    const height = parseLocalizedNumber(draft.heightCm);
     if (!Number.isFinite(height) || height < 80 || height > 250) {
-      return "Height must be between 80 and 250 cm.";
+      return translate("profileHeightRange", locale);
     }
   }
   if (draft.dateOfBirth) {
-    const dateOfBirth = new Date(`${draft.dateOfBirth}T00:00:00Z`);
+    const normalizedDate = normalizeNumerals(draft.dateOfBirth);
+    const dateOfBirth = new Date(`${normalizedDate}T00:00:00Z`);
     if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(draft.dateOfBirth) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate) ||
       Number.isNaN(dateOfBirth.getTime()) ||
-      dateOfBirth.toISOString().slice(0, 10) !== draft.dateOfBirth ||
+      dateOfBirth.toISOString().slice(0, 10) !== normalizedDate ||
       dateOfBirth > new Date()
     ) {
-      return "Enter a valid date of birth in YYYY-MM-DD format.";
+      return translate("profileBirthDate", locale);
     }
   }
   return null;
@@ -84,10 +87,10 @@ export function profileDraftToUpdate(
   return {
     available_equipment: [...new Set(draft.availableEquipment)].sort(),
     available_training_days: draft.availableTrainingDays,
-    date_of_birth: draft.dateOfBirth || null,
+    date_of_birth: normalizeNumerals(draft.dateOfBirth) || null,
     display_name: draft.displayName.trim().replace(/\s+/g, " "),
     experience_level: draft.experienceLevel,
-    height_cm: draft.heightCm || null,
+    height_cm: draft.heightCm ? normalizeNumerals(draft.heightCm.trim()) : null,
     onboarding_completed: onboardingCompleted,
     preferred_language: draft.preferredLanguage,
     preferred_units: draft.preferredUnits,

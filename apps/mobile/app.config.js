@@ -5,5 +5,5 @@ module.exports = ({ config }) => {
   if (process.env.BONYAN_RELEASE_BUILD === "1" || releaseProfile) {
     requireReleaseApiUrl();
   }
-  return config;
+  return {...config, plugins: [...(config.plugins ?? []), "expo-video"]};
 };

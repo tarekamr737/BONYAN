@@ -2,8 +2,16 @@
 
 BONYAN is a mobile-first fitness app built with Expo, React Native, and FastAPI.
 It brings a member's profile, InBody report review, training, AI Coach,
-image-based Avatar, nutrition, and privacy-aware Community into one experience.
+image-based Avatar, nutrition, and opt-in League into one experience.
 The app supports English and Egyptian Arabic.
+
+BONYAN V2 provides the shared development baseline, introduced through
+`feat/bonyan-v2-game-fitness` and a checked PR into `main`. It adds the five-tab
+experience, transactional Coach changes, private
+Avatar provenance and separate Progress Score/XP/missions/leagues. See the
+[V2 contract](docs/product/BONYAN_V2.md), [completed slices](docs/product/BONYAN_V2_TASKS.md)
+and [QA evidence and release gates](docs/product/BONYAN_V2_QA.md). Start parallel work
+with the [V2 team handoff](docs/release/v2-development-baseline.md).
 
 > **Project status:** `main` is the shared development baseline for team testing,
 > not a store-ready release. The previous Android staging build is older than

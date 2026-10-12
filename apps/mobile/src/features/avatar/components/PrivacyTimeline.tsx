@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { StyleSheet, View } from "react-native";
 
@@ -7,20 +8,20 @@ const privacySteps = [
   ["Source", "Private photo and confirmed measurements"],
   ["Shape", "Skinny, Slim, Normal, Fit, Strong or Full"],
   ["Review", "Your avatar stays private until approval"],
-  ["Community", "Off until you enable it"],
+  ["League", "Off until you enable it"],
 ] as const;
 
 const privacyStepsArabic = [
   ["المصدر", "صورة خاصة وقياسات مؤكدة"],
   ["الشكل", "تقدير حسب قياسات جسمك الحالية"],
   ["المراجعة", "صورتك تفضل خاصة لحد ما تعتمدها"],
-  ["المجتمع", "مقفولة لحد ما تفعّلها بنفسك"],
+  ["الدوري", "مقفولة لحد ما تفعّلها بنفسك"],
 ] as const;
 
 export function PrivacyTimeline({ arabic = false }: { arabic?: boolean }) {
   const steps = arabic ? privacyStepsArabic : privacySteps;
   return (
-    <View accessibilityLabel={arabic ? "مراحل خصوصية الصورة" : "Body avatar privacy stages"} style={styles.container}>
+    <View accessibilityLabel={phrase("copy_7d8f64da231e", arabic)} style={styles.container}>
       {steps.map(([title, detail], index) => (
         <View key={title} style={styles.step}>
           <View style={styles.markerColumn}>

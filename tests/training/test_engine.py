@@ -46,14 +46,14 @@ class FakeExerciseProvider:
                     name=f"{muscle.title()} Alpha",
                     muscles=(muscle,),
                     equipment=(equipment[0],),
-                    difficulty=filters.difficulty or "intermediate",
+                    difficulty="beginner",
                 ),
                 ExerciseDetails(
                     id=f"{muscle}-2",
                     name=f"{muscle.title()} Beta",
                     muscles=(muscle,),
                     equipment=(equipment[0],),
-                    difficulty=filters.difficulty or "intermediate",
+                    difficulty="beginner",
                 ),
             ),
             page=page,
@@ -136,6 +136,27 @@ def test_provider_outage_never_creates_invented_exercises() -> None:
         )
 
 
+def test_planner_selects_easier_compatible_exercise_and_rejects_harder_one() -> None:
+    class MixedDifficultyProvider(FakeExerciseProvider):
+        async def search_exercises(self, filters, *, page=1, page_size=20):
+            assert filters.difficulty is None  # Exact upstream filters exclude easier movements.
+            result = await super().search_exercises(filters, page=page, page_size=page_size)
+            return replace(
+                result,
+                items=(
+                    replace(result.items[0], difficulty="advanced"),
+                    replace(result.items[1], difficulty="beginner"),
+                ),
+            )
+
+    plan = run(
+        WorkoutPlanner(MixedDifficultyProvider()).generate(
+            PlanningContext(experience=ExperienceLevel.BEGINNER, days_per_week=2)
+        )
+    )
+    assert all(item.exercise_id.endswith("-2") for day in plan.days for item in day.prescriptions)
+
+
 def test_six_day_plan_reuses_catalog_without_duplicates_within_a_day() -> None:
     provider = FakeExerciseProvider()
     plan = run(WorkoutPlanner(provider).generate(PlanningContext(days_per_week=6)))
@@ -144,9 +165,7 @@ def test_six_day_plan_reuses_catalog_without_duplicates_within_a_day() -> None:
         ids = [item.exercise_id for item in day.prescriptions]
         assert len(ids) == len(set(ids))
         assert not any(item.startswith("fallback-") for item in ids)
-    assert plan.days[0].prescriptions[0].exercise_id == (
-        plan.days[3].prescriptions[1].exercise_id
-    )
+    assert plan.days[0].prescriptions[0].exercise_id == (plan.days[3].prescriptions[1].exercise_id)
 
 
 def test_empty_catalog_reports_no_match_instead_of_placeholder() -> None:
@@ -163,9 +182,9 @@ def test_repetition_plan_does_not_prescribe_stretches_as_loaded_sets() -> None:
     class StretchProvider(FakeExerciseProvider):
         async def search_exercises(self, filters, *, page=1, page_size=20):
             result = await super().search_exercises(filters, page=page, page_size=page_size)
-            return replace(result, items=(
-                replace(result.items[0], name="A stretch"), result.items[1]
-            ))
+            return replace(
+                result, items=(replace(result.items[0], name="A stretch"), result.items[1])
+            )
 
     plan = run(WorkoutPlanner(StretchProvider()).generate(PlanningContext(days_per_week=2)))
     assert all(item.name.endswith("Beta") for day in plan.days for item in day.prescriptions)
@@ -175,18 +194,23 @@ def test_plan_skips_catalog_exercises_with_missing_media() -> None:
     class BrokenMediaProvider(FakeExerciseProvider):
         async def search_exercises(self, filters, *, page=1, page_size=20):
             result = await super().search_exercises(filters, page=page, page_size=page_size)
-            return replace(result, items=tuple(
-                replace(item, media_url=f"https://media.example/{item.id}.gif")
-                for item in result.items
-            ))
+            return replace(
+                result,
+                items=tuple(
+                    replace(item, media_url=f"https://media.example/{item.id}.gif")
+                    for item in result.items
+                ),
+            )
 
         async def get_media_access(self, exercise_id, *, user_id):
             assert user_id == "test-owner"
             return None if exercise_id.endswith("-1") else "https://media.example/valid.gif"
 
-    plan = run(WorkoutPlanner(BrokenMediaProvider()).generate(
-        PlanningContext(days_per_week=2), user_id="test-owner"
-    ))
+    plan = run(
+        WorkoutPlanner(BrokenMediaProvider()).generate(
+            PlanningContext(days_per_week=2), user_id="test-owner"
+        )
+    )
     assert all(item.exercise_id.endswith("-2") for day in plan.days for item in day.prescriptions)
 
 
@@ -239,6 +263,20 @@ def test_substitution_respects_equipment_and_muscle_overlap() -> None:
     replacement = choose_substitution(
         original,
         [
+            ExerciseDetails(
+                id="unsafe-stretch",
+                name="A chest stretch",
+                muscles=("chest",),
+                equipment=("bodyweight",),
+                difficulty="beginner",
+            ),
+            ExerciseDetails(
+                id="different-movement",
+                name="A chest fly",
+                muscles=("chest",),
+                equipment=("bodyweight",),
+                difficulty="beginner",
+            ),
             ExerciseDetails(
                 id="bad-equipment",
                 name="Cable Press",

@@ -386,3 +386,57 @@ def test_unconfirmed_scan_is_not_latest_until_confirmed() -> None:
     assert run(service.get_latest_confirmed("user-1")).scan is None
     run(service.confirm_scan(user_id="user-1", scan_id=created.scan.id))
     assert run(service.get_latest_confirmed("user-1")).scan is not None
+
+
+def test_confirmed_measurement_versions_preserve_device_date_and_reject_stale_edits():
+    from datetime import date, timedelta
+
+    from app.domains.inbody.schemas import ReviewUpdate
+
+    service, _, _ = service_with(InBodyResult(measurements=[]))
+    created = run(
+        service.upload_scan(
+            user_id="user-1",
+            filename="scan.pdf",
+            content_type="application/pdf",
+            content=valid_pdf(),
+        )
+    )
+    reviewed = run(
+        service.update_review(
+            user_id="user-1",
+            scan_id=created.scan.id,
+            review=ReviewUpdate(
+                expected_version=1, scan_date=date(2026, 9, 26), device_label="InBody 270"
+            ),
+        )
+    )
+    assert reviewed.result.measurement_version == 2 and reviewed.result.device_label == "InBody 270"
+    with pytest.raises(AppError) as error:
+        run(
+            service.update_review(
+                user_id="user-1", scan_id=created.scan.id, review=ReviewUpdate(expected_version=1)
+            )
+        )
+    assert error.value.code == "measurement_stale"
+    with pytest.raises(AppError) as error:
+        run(
+            service.update_review(
+                user_id="user-1",
+                scan_id=created.scan.id,
+                review=ReviewUpdate(
+                    expected_version=2, scan_date=datetime.now(UTC).date() + timedelta(days=1)
+                ),
+            )
+        )
+    assert error.value.code == "invalid_measurement_date"
+    confirmed = run(service.confirm_scan(user_id="user-1", scan_id=created.scan.id))
+    assert confirmed.result.measurement_version == 2 and confirmed.result.scan_date == date(
+        2026, 9, 26
+    )
+    with pytest.raises(AppError):
+        run(
+            service.update_review(
+                user_id="user-1", scan_id=created.scan.id, review=ReviewUpdate(expected_version=2)
+            )
+        )

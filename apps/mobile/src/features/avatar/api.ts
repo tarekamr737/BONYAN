@@ -1,6 +1,7 @@
 import { ApiError, parseApiErrorPayload } from "../../core/api/errors";
 import { apiRequest, getApiBaseUrl } from "../../core/api/client";
 import { getAccessToken } from "../../core/auth/session";
+import { localizedError } from "../../core/i18n/messages";
 import { createSourcePhotoFile } from "./sourcePhotoFile";
 import { sourcePhotoFetch } from "./sourcePhotoFetch";
 import type {
@@ -46,6 +47,7 @@ export async function uploadAvatarSourcePhoto(
 ): Promise<AvatarSourcePhotoView> {
   const form = new FormData();
   form.append("photo", createSourcePhotoFile(photo), photo.name);
+  form.append("processing_consent", "true");
   const headers = new Headers({ Accept: "application/json" });
   const accessToken = getAccessToken();
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
@@ -61,7 +63,7 @@ export async function uploadAvatarSourcePhoto(
       ? await response.json().catch(() => undefined)
       : undefined;
     const details = parseApiErrorPayload(payload);
-    throw new ApiError(response.status, details.code, details.message);
+    throw new ApiError(response.status, details.code, localizedError(details.code));
   }
   return (await response.json()) as AvatarSourcePhotoView;
 }

@@ -1,3 +1,4 @@
+import { phrase } from "../../../core/i18n/copy";
 import { router } from "expo-router";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useQuery } from "@tanstack/react-query";
@@ -30,49 +31,49 @@ export function InBodyProgressScreen({
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text accessibilityRole="header" style={styles.title}>
-          {arabic ? "تقدم InBody" : "InBody Progress"}
+          {phrase("copy_4013f058de0b", arabic)}
         </Text>
-        <Text style={styles.subtitle}>{arabic ? "سجل قياسات الجسم المؤكدة فقط." : "Confirmed body-composition history only."}</Text>
+        <Text style={styles.subtitle}>{phrase("copy_b50090b89146", arabic)}</Text>
 
         <SurfaceCard>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardLabel}>{arabic ? "التقدم" : "PROGRESS"}</Text>
+            <Text style={styles.cardLabel}>{phrase("copy_d9d4473ac585", arabic)}</Text>
             <Text style={styles.count}>{scans.length}</Text>
           </View>
-          {isLoading ? <Text style={styles.stateText}>{arabic ? "بنحمّل التقارير المؤكدة…" : "Loading confirmed scans..."}</Text> : null}
+          {isLoading ? <Text style={styles.stateText}>{phrase("copy_f38e404bccf3", arabic)}</Text> : null}
           {isError ? (
             <Pressable accessibilityRole="button" onPress={() => void refetch()} style={styles.button}>
-              <Text style={styles.buttonText}>{arabic ? "جرّب تاني" : "Retry"}</Text>
+              <Text style={styles.buttonText}>{phrase("copy_0aef5de01d6c", arabic)}</Text>
             </Pressable>
           ) : null}
           {!isLoading && scans.length === 0 ? (
-            <Text style={styles.stateText}>{arabic ? "ارفع وأكّد تقرير InBody علشان تشوف الاتجاهات." : "Upload and confirm an InBody report to see trends."}</Text>
+            <Text style={styles.stateText}>{phrase("copy_ad0ec407ed2e", arabic)}</Text>
           ) : null}
           {!isLoading && scans.length === 1 ? (
             <Text style={styles.stateText}>
-              {arabic ? "أول تقرير مؤكد هو نقطة البداية. ضيف تقرير تاني بعدين علشان تتابع تغير كل قياس مع الوقت." : "Your first confirmed report is your baseline. Add another report later to see how each measurement changes over time."}
+              {phrase("copy_58f16e0b5afa", arabic)}
             </Text>
           ) : null}
           {scans.length > 0 && !isError ? <View style={styles.trends}>
-            <MetricTrend label={arabic ? "الوزن" : "Weight"} metric="weight" scans={scans} />
-            <MetricTrend label={arabic ? "الكتلة العضلية" : "Skeletal Muscle"} metric="skeletal_muscle_mass" scans={scans} />
-            <MetricTrend label={arabic ? "نسبة الدهون" : "Body Fat %"} metric="body_fat_percentage" scans={scans} />
-            <MetricTrend label={arabic ? "كتلة الدهون" : "Body Fat Mass"} metric="body_fat_mass" scans={scans} />
+            <MetricTrend label={phrase("copy_f2d1e4db833a", arabic)} metric="weight" scans={scans} />
+            <MetricTrend label={phrase("copy_7c3fc5c12d19", arabic)} metric="skeletal_muscle_mass" scans={scans} />
+            <MetricTrend label={phrase("copy_1fda7d11adcd", arabic)} metric="body_fat_percentage" scans={scans} />
+            <MetricTrend label={phrase("copy_4a346a19a48d", arabic)} metric="body_fat_mass" scans={scans} />
           </View> : null}
         </SurfaceCard>
 
         {!isLoading && !isError ? (
           <View style={styles.nextActions}>
-            <Text style={styles.nextTitle}>{arabic ? "تحب تعمل إيه بعد كده؟" : "What would you like to do next?"}</Text>
+            <Text style={styles.nextTitle}>{phrase("copy_b16e79c58dff", arabic)}</Text>
             <Pressable
               accessibilityRole="button"
               onPress={onUploadAnother}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryButtonText}>{arabic ? "ارفع تقرير تاني" : "Upload Another Report"}</Text>
+              <Text style={styles.primaryButtonText}>{phrase("copy_7ee5f6961003", arabic)}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onDone} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>{arabic ? "ارجع لرئيسية بنيان" : "Back to BONYAN Home"}</Text>
+              <Text style={styles.secondaryButtonText}>{phrase("copy_121beeaff490", arabic)}</Text>
             </Pressable>
           </View>
         ) : null}

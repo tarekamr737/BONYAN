@@ -31,6 +31,8 @@ export type InBodyMeasurement = {
 };
 
 export type InBodyResult = {
+  measurement_version?: number;
+  device_label?: string | null;
   scan_date: string | null;
   measurements: InBodyMeasurement[];
   review_flags: string[];

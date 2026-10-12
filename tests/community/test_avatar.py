@@ -145,6 +145,7 @@ def make_service(
     provider: AvatarProvider | None = None,
     timeout_seconds: float = 0.1,
     metrics_reader: FakeBodyMetricsReader | None = None,
+    development_mock: bool = False,
 ) -> tuple[
     AvatarService, FakeAvatarRepository, FakePrivateStorage, FakeBodyMetricsReader
 ]:
@@ -158,12 +159,32 @@ def make_service(
         reader,
         manual_metrics_writer=reader,
         provider_timeout_seconds=timeout_seconds,
+        development_mock=development_mock,
     )
     return service, repository, storage, reader
 
 
 def create_request() -> CreateAvatarRequest:
     return CreateAvatarRequest(style=BodyAvatarStyle.CINEMATIC_3D)
+
+
+def test_development_fixture_disclosed_and_cannot_enter_public_identity() -> None:
+    async def scenario() -> None:
+        service, repository, _, _ = make_service(development_mock=True)
+        created = await service.create("user-1", create_request())
+        assert created.development_mock is True
+        assert repository.items[created.id].measurement_snapshot["development_mock"] is True
+        await service.approve("user-1", created.id)
+        with pytest.raises(AppError) as error:
+            await service.set_public_use("user-1", created.id, enabled=True)
+        assert error.value.code == "avatar_mock_not_public"
+        # Legacy or externally tampered flags never bypass the reader's public gate.
+        repository.items[created.id].is_public = True
+        assert await service.get_community_identity("user-1", created.id) is None
+        assert await service.get_community_identities([("user-1", created.id)]) == {}
+        assert (await service.list_owned("user-1")).items[0].development_mock is True
+
+    asyncio.run(scenario())
 
 
 def test_confirmed_metrics_generate_private_result_without_storing_raw_values() -> None:
@@ -199,6 +220,7 @@ def test_measurement_status_shares_availability_not_measurement_values() -> None
         serialized = status.model_dump(mode="json")
 
         assert serialized == {
+            "generation_enabled": True,
             "available": True,
             "source": "inbody",
             "recorded_at": "2026-08-24T09:30:00Z",
@@ -235,6 +257,7 @@ def test_manual_measurements_become_the_confirmed_shape_source() -> None:
         assert status.body_fat_available is True
         serialized = status.model_dump(mode="json")
         assert set(serialized) == {
+            "generation_enabled",
             "available",
             "source",
             "recorded_at",
@@ -552,7 +575,7 @@ def test_private_source_photo_is_owner_scoped_and_never_exposed() -> None:
             source_photo_repository=source_repository,
         )
         source = await service.save_source_photo(
-            "owner", b"\x89PNG\r\n\x1a\nsource", "image/png"
+            "owner", b"\x89PNG\r\n\x1a\nsource", "image/png", processing_consent=True
         )
 
         with pytest.raises(AppError) as cross_user:
@@ -597,7 +620,7 @@ def test_source_photo_repository_failure_removes_private_upload() -> None:
 
         with pytest.raises(AppError) as error:
             await service.save_source_photo(
-                "owner", b"\x89PNG\r\n\x1a\nsource", "image/png"
+                "owner", b"\x89PNG\r\n\x1a\nsource", "image/png", processing_consent=True
             )
 
         assert error.value.code == "avatar_source_upload_failed"
@@ -605,6 +628,29 @@ def test_source_photo_repository_failure_removes_private_upload() -> None:
         assert storage.deleted == ["private/avatar-1"]
         assert not storage.items
 
+    asyncio.run(scenario())
+
+
+def test_photo_processing_requires_explicit_consent_before_any_storage() -> None:
+    async def scenario():
+        service, _, storage, _ = make_service()
+        with pytest.raises(AppError) as error:
+            await service.save_source_photo("owner", b"photo", "image/png")
+        assert error.value.code == "photo_consent_required"
+        assert not storage.items
+    asyncio.run(scenario())
+
+
+def test_avatar_private_provenance_is_immutable_and_public_view_hides_raw_metrics() -> None:
+    async def scenario():
+        service, repository, _, _ = make_service()
+        avatar = await service.create("owner", create_request())
+        record = repository.items[avatar.id]
+        assert record.measurement_snapshot["weight_kg"] == CONFIRMED_METRICS.weight_kg
+        assert record.measurement_snapshot["version"] == 1
+        assert avatar.measurement_snapshot["source"] == "inbody"
+        assert "weight_kg" not in avatar.measurement_snapshot
+        assert avatar.illustration_only
     asyncio.run(scenario())
 
 

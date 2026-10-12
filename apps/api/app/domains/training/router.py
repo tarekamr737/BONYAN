@@ -26,6 +26,7 @@ from app.domains.training.schemas import (
     CoachMessageRequest,
     CoachMessageResponse,
     CoachMessageView,
+    ExerciseCatalogStatus,
     ExerciseMediaAccessResponse,
     ExerciseSearchItem,
     ExerciseSearchResponse,
@@ -47,9 +48,26 @@ from app.integrations.musclewiki.media import MuscleWikiMediaRelay, MuscleWikiMe
 router = APIRouter(prefix="/training", tags=["training"])
 
 
+@router.get("/catalog", response_model=ExerciseCatalogStatus)
+async def catalog_status(
+    current_user: CurrentUserDep,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ExerciseCatalogStatus:
+    return ExerciseCatalogStatus(
+        available=settings.exercise_provider != "exercisedb"
+        or settings.api_env in {"development", "test"}
+        or settings.exercise_catalog_license_approved,
+        source_name="AscendAPI" if settings.exercise_provider == "exercisedb" else "MuscleWiki",
+    )
+
+
 def get_exercise_provider(settings: Settings) -> ExerciseProvider:
     if settings.exercise_provider == "exercisedb":
-        return ExerciseDbClient(base_url=settings.exercisedb_base_url)
+        return ExerciseDbClient(
+            base_url=settings.exercisedb_base_url,
+            enabled=settings.api_env in {"development", "test"}
+            or settings.exercise_catalog_license_approved,
+        )
     return MuscleWikiClient(settings=settings)
 
 
@@ -161,12 +179,15 @@ async def search_exercises(
     current_user: CurrentUserDep,
     service: TrainingServiceDep,
     query: Annotated[str | None, Query(min_length=1, max_length=80)] = None,
+    body_part: Annotated[str | None, Query(min_length=1, max_length=40)] = None,
     page: Annotated[int, Query(ge=1, le=20)] = 1,
     page_size: Annotated[int, Query(ge=1, le=40)] = 20,
 ) -> ExerciseSearchResponse:
     del current_user
     result = await service.search_exercises(
-        ExerciseSearchFilters(query=query), page=page, page_size=page_size
+        ExerciseSearchFilters(query=query, body_parts=(body_part,) if body_part else ()),
+        page=page,
+        page_size=page_size,
     )
     return ExerciseSearchResponse(
         items=[
@@ -176,6 +197,11 @@ async def search_exercises(
                 muscles=list(item.muscles),
                 equipment=list(item.equipment),
                 difficulty=item.difficulty,
+                instructions=list(item.instructions),
+                translated_name=item.metadata.get("name_ar"),
+                translated_instructions=[item.metadata["instructions_ar"]]
+                if item.metadata.get("instructions_ar")
+                else [],
             )
             for item in result.items
         ],
@@ -183,6 +209,28 @@ async def search_exercises(
         page_size=result.page_size,
         total=result.total,
         next_page=result.next_page,
+    )
+
+
+@router.get("/exercises/{exercise_id}", response_model=ExerciseSearchItem)
+async def exercise_details(
+    exercise_id: str,
+    current_user: CurrentUserDep,
+    service: TrainingServiceDep,
+) -> ExerciseSearchItem:
+    del current_user
+    item = await service.get_exercise_details(exercise_id)
+    return ExerciseSearchItem(
+        id=item.id,
+        name=item.name,
+        muscles=list(item.muscles),
+        equipment=list(item.equipment),
+        difficulty=item.difficulty,
+        instructions=list(item.instructions),
+        translated_name=item.metadata.get("name_ar"),
+        translated_instructions=[item.metadata["instructions_ar"]]
+        if item.metadata.get("instructions_ar")
+        else [],
     )
 
 
@@ -241,7 +289,11 @@ async def substitute_exercise(
     current_user: CurrentUserDep,
     service: TrainingServiceDep,
 ) -> WorkoutPlan:
-    return await service.substitute(user_id=current_user.id, request=request)
+    raise AppError(
+        "substitution_approval_required",
+        "Preview and approve a versioned session proposal first.",
+        409,
+    )
 
 
 @router.post("/substitutions/preview", response_model=WorkoutPlan)
@@ -265,7 +317,12 @@ async def get_exercise_media_access(
     )
     if access is None:
         raise AppError("exercise_media_unavailable", "Exercise media is unavailable.", 404)
-    return ExerciseMediaAccessResponse(url=access.url, expires_at=access.expires_at)
+    return ExerciseMediaAccessResponse(
+        url=access.url,
+        expires_at=access.expires_at,
+        media_type=access.media_type,
+        source_name=access.source_name,
+    )
 
 
 @router.get("/media", include_in_schema=False)
@@ -299,27 +356,31 @@ async def coach_message(
     profile = await profile_repository.get(current_user.id)
     nutrition = NutritionRepository(session)
     start, end, _ = local_day_bounds(profile.timezone if profile else "UTC")
-    foods = await nutrition.list_food_between(
-        owner_id=current_user.id, start=start, end=end
-    )
+    foods = await nutrition.list_food_between(owner_id=current_user.id, start=start, end=end)
     repository = TrainingRepository(session)
     history = await repository.list_coach_messages(owner_id=current_user.id, limit=12)
+    from app.domains.training.substitution_repository import SubstitutionRepository
+    from app.domains.training.substitution_service import SessionSubstitutionService
+
+    recent_sessions = await service.list_recent_sessions(user_id=current_user.id, limit=20)
+    active_session = next((item for item in recent_sessions if item.status == "active"), None)
     user_context = {
+        "locale": profile.preferred_language if profile else "en",
         "goal": profile.training_goal if profile else None,
         "experience": profile.experience_level if profile else None,
         "available_training_days": profile.available_training_days if profile else None,
         "available_equipment": profile.available_equipment if profile else [],
+        "active_session": active_session.model_dump(mode="json") if active_session else None,
         "has_training_limitations": (
             bool((profile.coaching or {}).get("limitations")) if profile else False
         ),
+        "training_limitations": (profile.coaching or {}).get("limitations") if profile else None,
         "today_nutrition": {
             "meals_logged": len(foods),
             "calories": sum(item.calories for item in foods),
             "protein_g": round(sum(float(item.protein_g) for item in foods), 1),
         },
-        "recent_conversation": [
-            {"role": item.role, "content": item.content} for item in history
-        ],
+        "recent_conversation": [{"role": item.role, "content": item.content} for item in history],
     }
     coach = CoachService(
         llm_provider=get_llm_provider(settings),
@@ -327,6 +388,9 @@ async def coach_message(
             service,
             profile_repository=profile_repository,
             inbody_provider=inbody_provider,
+            substitution_service=SessionSubstitutionService(
+                service, SubstitutionRepository(session)
+            ),
         ),
     )
     response = await coach.respond(

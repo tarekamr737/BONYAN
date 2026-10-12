@@ -1,12 +1,17 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentUserDep
 from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
+from app.core.errors import AppError
+from app.domains.game.repository import GameRepository
 from app.domains.nutrition.image_validation import MAX_FOOD_IMAGE_BYTES, validate_food_image
+from app.domains.nutrition.models import FoodLogRecord
 from app.domains.nutrition.repository import NutritionRepository
 from app.domains.nutrition.schemas import (
     AnalyzeFoodRequest,
@@ -21,6 +26,24 @@ from app.domains.users.repository import SqlAlchemyProfileRepository
 from app.integrations.llm.production import ProductionLLMProvider
 
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
+
+
+@router.delete("/logs/{food_id}", status_code=204)
+async def delete_food(
+    food_id: UUID,
+    current_user: CurrentUserDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    record = await session.scalar(
+        select(FoodLogRecord)
+        .where(FoodLogRecord.id == food_id, FoodLogRecord.owner_id == current_user.id)
+        .with_for_update()
+    )
+    if record is None:
+        raise AppError("food_not_found", "Meal not found.", 404)
+    await GameRepository(session).revoke(current_user.id, f"nutrition:{food_id}")
+    await session.delete(record)
+    await session.commit()
 
 
 def _provider(settings: Settings):
@@ -54,11 +77,23 @@ async def _profile_timezone(session: AsyncSession, user_id: str) -> str:
     return profile.timezone if profile else "UTC"
 
 
+async def _profile_locale(session: AsyncSession, user_id: str) -> str:
+    profile = await SqlAlchemyProfileRepository(session).get(user_id)
+    return profile.preferred_language if profile else "en"
+
+
 @router.post("/analyze", response_model=FoodLogView, status_code=status.HTTP_201_CREATED)
 async def analyze_food(
-    request: AnalyzeFoodRequest, current_user: CurrentUserDep, service: ServiceDep
+    request: AnalyzeFoodRequest,
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> FoodLogView:
-    return await service.analyze_and_log(user_id=current_user.id, request=request)
+    return await service.analyze_and_log(
+        user_id=current_user.id,
+        request=request,
+        locale=await _profile_locale(session, current_user.id),
+    )
 
 
 @router.get("/today", response_model=DailyDashboard)
@@ -76,9 +111,16 @@ async def get_today(
 
 @router.post("/preview", response_model=FoodPreview)
 async def preview_food(
-    request: AnalyzeFoodRequest, current_user: CurrentUserDep, service: ServiceDep
+    request: AnalyzeFoodRequest,
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> FoodPreview:
-    analysis = await service.preview(user_id=current_user.id, request=request)
+    analysis = await service.preview(
+        user_id=current_user.id,
+        request=request,
+        locale=await _profile_locale(session, current_user.id),
+    )
     return FoodPreview(**analysis.model_dump())
 
 
@@ -87,6 +129,7 @@ async def preview_food_image(
     current_user: CurrentUserDep,
     service: ServiceDep,
     photo: Annotated[UploadFile, File()],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
     meal_type: Annotated[MealType, Form()] = MealType.SNACK,
     description: Annotated[str, Form(max_length=1000)] = "",
 ) -> FoodPreview:
@@ -98,6 +141,7 @@ async def preview_food_image(
         image=image.content,
         media_type=image.media_type,
         description=description,
+        locale=await _profile_locale(session, current_user.id),
     )
     return FoodPreview(**analysis.model_dump())
 

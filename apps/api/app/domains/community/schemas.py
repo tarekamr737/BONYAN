@@ -46,6 +46,7 @@ class ReportPostRequest(BaseModel):
 
 
 class PostAuthorView(BaseModel):
+    user_id: str | None = None
     display_name: str
     avatar_url: str | None
 

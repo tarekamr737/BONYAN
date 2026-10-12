@@ -1,8 +1,9 @@
+import { phrase } from "../../../core/i18n/copy";
 import { DirectionalText as Text , LanguageDirection } from "../../../core/components/DirectionalText";
 import { coachingCopy } from "../coachingCopy";
 import { useEffect, useRef, type ComponentProps, type PropsWithChildren, type ReactNode } from "react";
 import Feather from "@expo/vector-icons/Feather";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassBackdrop, GlassSurface } from "../../../core/components/GlassSurface";
@@ -27,12 +28,12 @@ export const ui = StyleSheet.create({
   track: { height: 4, borderRadius: 2, backgroundColor: colors.line, overflow: "hidden" },
 });
 
-export function CoachingPage({ children, arabic = false, footer, step, onScrollViewRef }: PropsWithChildren<{arabic?: boolean; footer?: ReactNode; step?: string; onScrollViewRef?: (scroll: ScrollView | null) => void}>) {
+export function CoachingPage({ children, arabic = false, footer, step, onScrollViewRef, contentStyle }: PropsWithChildren<{arabic?: boolean; footer?: ReactNode; step?: string; onScrollViewRef?: (scroll: ScrollView | null) => void; contentStyle?: StyleProp<ViewStyle>}>) {
   const scroll = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   useEffect(() => {scroll.current?.scrollTo({y: 0, animated: false});}, [step]);
   return <LanguageDirection.Provider value={arabic}><SafeAreaView edges={["top", "left", "right"]} style={ui.page}><GlassBackdrop /><KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-    <ScrollView ref={node => {scroll.current = node; onScrollViewRef?.(node);}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}>{children}</ScrollView>
+    <ScrollView ref={node => {scroll.current = node; onScrollViewRef?.(node);}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[ui.content, contentStyle]}>{children}</ScrollView>
     {footer ? <View style={{borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 24, paddingTop: 12, paddingBottom: Math.max(12, insets.bottom)}}><View style={{width: "100%", maxWidth: 612, alignSelf: "center", gap: 8}}>{footer}</View></View> : null}
   </KeyboardAvoidingView></SafeAreaView></LanguageDirection.Provider>;
 }
@@ -64,22 +65,22 @@ export function StepReveal({step, children}: PropsWithChildren<{step: string}>) 
   return <Animated.View style={[ui.stack, animatedStyle]}>{children}</Animated.View>;
 }
 
-export function ProgressMeter({value, label}: {value: number; label: string}) {
+export function ProgressMeter({value, label, color = colors.bronze}: {value: number; label: string; color?: string}) {
   const fill = useSharedValue(0);
   useEffect(() => {
     fill.set(withTiming(value, { duration: 220, easing: Easing.bezier(0.23, 1, 0.32, 1), reduceMotion: ReduceMotion.System }));
   }, [fill, value]);
   const animatedStyle = useAnimatedStyle(() => ({ width: `${Math.max(0, Math.min(100, fill.get()))}%` as `${number}%` }));
   return <View accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{min: 0, max: 100, now: value}} style={ui.track}>
-    <Animated.View style={[{height: 4, backgroundColor: colors.bronze}, animatedStyle]} />
+    <Animated.View style={[{height: 4, backgroundColor: color}, animatedStyle]} />
   </View>;
 }
 
 export function ScoreCard({score, arabic = false}: {score: CoachingScore; arabic?: boolean}) {
-  return <GlassCard><View style={ui.row}><Text style={[ui.heading, {flex: 1}]}>{arabic ? "التقدم نحو أهدافك" : "Your target progress"}</Text><Text style={[ui.title, {color: colors.bronze}]}>{score.value === null ? "—" : `${score.value}/100`}</Text></View>
-    <Text style={ui.small}>{arabic ? "مؤشر إرشادي حسب أهدافك الشخصية، وليس تقييمًا طبيًا أو معيار قبول عسكري." : "A coaching indicator against your personal targets. Not a medical assessment or military admission standard."}</Text>
+  return <GlassCard><View style={ui.row}><Text style={[ui.heading, {flex: 1}]}>{phrase("copy_177a85c23c9f", arabic)}</Text><Text style={[ui.title, {color: colors.bronze}]}>{score.value === null ? "—" : `${score.value}/100`}</Text></View>
+    <Text style={ui.small}>{phrase("copy_a716c623b63c", arabic)}</Text>
     {score.dimensions.map(d => <View key={d.key} style={{gap: 8}}><View style={ui.row}><Text style={[ui.text, {flex: 1}]}>{coachingCopy(dimensionLabel[d.key] ?? d.key, arabic)}</Text><Text style={ui.text}>{d.value}%</Text></View><ProgressMeter value={d.value} label={coachingCopy(dimensionLabel[d.key] ?? d.key, arabic)} /><Text style={ui.small}>{coachingCopy(d.basis, arabic)}</Text></View>)}
-    <Text style={ui.small}>{score.coverage}% {arabic ? "من عناصر التقييم متاحة" : "of score inputs available"}. {score.missing.map(k => coachingCopy(dimensionLabel[k] ?? k, arabic)).join(" · ")}</Text>
+    <Text style={ui.small}>{score.coverage}% {phrase("copy_cd596f6f06a5", arabic)}. {score.missing.map(k => coachingCopy(dimensionLabel[k] ?? k, arabic)).join(" · ")}</Text>
     {score.strongest ? <Text style={ui.text}>{coachingCopy("Strongest", arabic)}: {coachingCopy(dimensionLabel[score.strongest] ?? "", arabic)}. {coachingCopy("Next focus", arabic)}: {coachingCopy(dimensionLabel[score.improve ?? ""] ?? "", arabic)}.</Text> : null}
     <Text style={ui.text}>{coachingCopy(score.recommendation, arabic)}</Text>
   </GlassCard>;

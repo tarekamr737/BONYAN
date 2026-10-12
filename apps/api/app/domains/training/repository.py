@@ -46,9 +46,9 @@ class TrainingRepository:
 
     async def get_plan(self, *, owner_id: str, plan_id: UUID) -> WorkoutPlanRecord | None:
         result = await self.session.execute(
-            select(WorkoutPlanRecord).where(
-                WorkoutPlanRecord.owner_id == owner_id, WorkoutPlanRecord.id == plan_id
-            ).with_for_update()
+            select(WorkoutPlanRecord)
+            .where(WorkoutPlanRecord.owner_id == owner_id, WorkoutPlanRecord.id == plan_id)
+            .with_for_update()
         )
         return result.scalar_one_or_none()
 
@@ -67,12 +67,14 @@ class TrainingRepository:
         self, *, owner_id: str, plan_id: UUID, day_key: str
     ) -> WorkoutSessionRecord:
         existing = await self.session.execute(
-            select(WorkoutSessionRecord).where(
+            select(WorkoutSessionRecord)
+            .where(
                 WorkoutSessionRecord.owner_id == owner_id,
                 WorkoutSessionRecord.plan_id == plan_id,
                 WorkoutSessionRecord.day_key == day_key,
                 WorkoutSessionRecord.status == WorkoutSessionStatus.ACTIVE,
-            ).order_by(WorkoutSessionRecord.started_at.desc())
+            )
+            .order_by(WorkoutSessionRecord.started_at.desc())
         )
         active = existing.scalars().first()
         if active is not None:
@@ -91,9 +93,9 @@ class TrainingRepository:
 
     async def get_session(self, *, owner_id: str, session_id: UUID) -> WorkoutSessionRecord | None:
         result = await self.session.execute(
-            select(WorkoutSessionRecord).where(
-                WorkoutSessionRecord.owner_id == owner_id, WorkoutSessionRecord.id == session_id
-            ).with_for_update()
+            select(WorkoutSessionRecord)
+            .where(WorkoutSessionRecord.owner_id == owner_id, WorkoutSessionRecord.id == session_id)
+            .with_for_update()
         )
         return result.scalar_one_or_none()
 

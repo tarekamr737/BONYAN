@@ -68,11 +68,13 @@ export function updateInBodyReview(
   scanId: string,
   measurements: InBodyMeasurement[],
   scanDate: string | null,
+  provenance?: {device_label: string | null; expected_version: number},
 ): Promise<InBodyScan> {
   return apiRequest<InBodyScan>(`/api/v1/inbody/scans/${scanId}/review`, {
     body: {
       measurements,
       scan_date: scanDate,
+      ...provenance,
     },
     method: "PATCH",
   });
