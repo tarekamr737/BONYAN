@@ -23,7 +23,7 @@ export function ManualWorkoutScreen() {
   const {t, locale} = useLocale();
   const [prescriptions, setPrescriptions] = useState<Record<string, {sets: number; reps: number; rest: number}>>({});
   const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
-  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const {rtl: arabic} = useLocale();
   const [search, setSearch] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [selected, setSelected] = useState<ExerciseSearchItem[]>([]);

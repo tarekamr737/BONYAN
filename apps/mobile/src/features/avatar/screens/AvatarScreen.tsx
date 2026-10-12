@@ -1,6 +1,7 @@
 import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import * as ImagePicker from "expo-image-picker";
+import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import { useContext, useMemo, useState } from "react";
 import {
@@ -32,6 +33,9 @@ import type {
   LocalAvatarSourcePhoto,
 } from "../types";
 import { avatarRenewalStatus } from "../renewal";
+import {useQuery} from "@tanstack/react-query";
+import {getGameOverview} from "../../game/api";
+import {formatNumber, type MessageKey} from "../../../core/i18n/messages";
 
 type AvatarScreenProps = {
   onBack: () => void;
@@ -39,7 +43,8 @@ type AvatarScreenProps = {
 
 export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const arabic = useContext(LanguageDirection);
-  const {t} = useLocale();
+  const {t, locale} = useLocale();
+  const game = useQuery({queryKey: ["game", "overview"], queryFn: getGameOverview});
   const [photoConsent, setPhotoConsent] = useState(false);
   const [presentation, setPresentation] = useState<AvatarPresentation>("men");
   const avatarsQuery = useAvatars();
@@ -187,16 +192,11 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           <View style={styles.headerBalance} />
         </View>
 
-        <View style={styles.privacyPanel}>
-          <View style={styles.privateBadge}>
-            <Text style={styles.privateBadgeText}>{phrase("copy_f06d7f4640d5", arabic)}</Text>
-          </View>
-          <Text style={styles.privacyTitle}>{phrase("copy_99e242286cc3", arabic)}</Text>
-          <Text style={styles.privacyCopy}>
-            {phrase("copy_6fad82754d1b", arabic)}
-          </Text>
-          <PrivacyTimeline arabic={arabic} />
+        <View accessibilityLabel={t("characterProgress")} style={{gap: 8, paddingVertical: 8, flexDirection: arabic ? "row-reverse" : "row", alignItems: "center"}}><View style={{flex: 1, gap: 4}}>
+          {game.data ? <><Text style={[styles.privacyCopy, {marginBottom: 0}]}>{t("level")} {formatNumber(game.data.level, locale)} · {formatNumber(game.data.xp, locale)} {t("xp")}</Text><Text style={[styles.privacyCopy, {marginBottom: 0}]}>{game.data.badges.length ? game.data.badges.map(badge => t(badge as MessageKey)).join(" · ") : t("noBadges")}</Text></> : game.isError ? <AvatarButton tone="secondary" onPress={() => void game.refetch()}>{t("retry")}</AvatarButton> : <Text style={styles.privacyCopy}>{t("loading")}</Text>}
+          </View><Pressable accessibilityRole="button" onPress={() => router.push("/missions")} style={{minHeight: 48, justifyContent: "center", paddingHorizontal: 8}}><Text style={styles.retryLabel}>{t("weeklyMission")}</Text></Pressable>
         </View>
+        <View style={styles.privateBadge}><Text style={styles.privateBadgeText}>{phrase("copy_f06d7f4640d5", arabic)}</Text></View>
 
         {!activeAvatar && avatarsQuery.isPending ? (
           <View accessibilityLabel={phrase("copy_b3ecef7bdba7", arabic)} style={styles.queryStatePanel}>
@@ -239,6 +239,10 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           />
         ) : (
           <View style={styles.creationSection}>
+            <View style={{alignItems: "center", justifyContent: "center", gap: 12, padding: 16, minHeight: 180, borderRadius: 24, backgroundColor: colors.surface}}>
+              <Feather name="user" size={56} color={colors.mutedLight} />
+              <Text style={[styles.previewCopy, {textAlign: "center"}]}>{t("avatarSetup")}</Text>
+            </View>
             {createNewVersion ? <AvatarButton onPress={() => setCreateNewVersion(false)} tone="secondary">{phrase("copy_36d676949b08", arabic)}</AvatarButton> : null}
             <View style={styles.selectorSection}>
               <Text style={styles.selectorEyebrow}>{phrase("copy_110a4294c421", arabic)}</Text>
@@ -276,7 +280,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
               </Text>
               {sourcePhoto ? (
                 <Image
-                  accessibilityLabel="Selected private avatar source photo"
+                  accessibilityLabel={t("selectedSourcePhoto")}
                   resizeMode="cover"
                   source={{ uri: sourcePhoto.uri }}
                   style={styles.sourcePhotoPreview}
@@ -309,8 +313,20 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           </View>
         )}
 
+        <View style={styles.privacyPanel}>
+          <View style={styles.privateBadge}>
+            <Text style={styles.privateBadgeText}>{phrase("copy_f06d7f4640d5", arabic)}</Text>
+          </View>
+          <Text style={styles.privacyTitle}>{phrase("copy_99e242286cc3", arabic)}</Text>
+          <Text style={styles.privacyCopy}>
+            {phrase("copy_6fad82754d1b", arabic)}
+          </Text>
+          <PrivacyTimeline arabic={arabic} />
+        </View>
+
         {(avatarsQuery.data?.items.length ?? 0) > 1 ? <View style={{gap: 12}}><Text style={styles.heading}>{t("avatarHistory")}</Text>{avatarsQuery.data?.items.map(version => <AvatarButton key={version.id} tone="secondary" onPress={() => {setCreateNewVersion(false); setActiveAvatar(version);}}>{formatDate(version.created_at, arabic)} · {avatarStateTitle(version, arabic)}</AvatarButton>)}</View> : null}
         <AvatarButton tone="secondary" onPress={() => router.push("/inbody/progress")}>{t("bodyProfile")}</AvatarButton>
+        <Text style={styles.previewCopy}>{t("characterEvidence")}</Text>
         <AvatarButton tone="secondary" onPress={() => router.push("/progress-score")}>{t("progressScore")}</AvatarButton>
         <AvatarButton tone="secondary" onPress={() => router.push("/privacy")}>{t("privacySettings")}</AvatarButton>
         {measurementQuery.data?.generation_enabled === false ? <Text style={styles.previewCopy}>{t("avatar_generation_disabled")}</Text> : null}
@@ -578,7 +594,7 @@ function AvatarReview({
           </View>
           <Switch
             accessibilityLabel={phrase("copy_ea1d514b8dfd", arabic)}
-            disabled={pending}
+            disabled={pending || avatar.development_mock}
             onValueChange={(enabled) => {
               mutations.resetErrors();
               mutations.communityUseMutation.mutate(
@@ -684,9 +700,9 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.canvas, flex: 1 },
   content: {
     alignSelf: "center",
-    gap: spacing.lg,
+    gap: spacing.md,
     maxWidth: 620,
-    padding: spacing.lg,
+    padding: spacing.md,
     paddingBottom: spacing.xxl,
     width: "100%",
   },

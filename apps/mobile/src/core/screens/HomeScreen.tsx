@@ -1,3 +1,5 @@
+import {visibleProgressValue} from "../../features/game/progress";
+import {exerciseCount, workoutDayLabel} from "../i18n/fitness";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -40,15 +42,15 @@ export function HomeScreen() {
   const workoutMission = game.data?.missions.find(item => item.category === "workout");
   const row = [styles.row, rtl && styles.reverse];
   const ready = !sessions.isPending && !sessions.isError && !plan.isPending && !plan.isError;
-  return <CoachingPage arabic={rtl} onScrollViewRef={setHomeScroller}>
-    <View style={[styles.header, rtl && styles.reverse]}><BrandMark/><View style={styles.row}>
+  return <CoachingPage arabic={rtl} onScrollViewRef={setHomeScroller} contentStyle={{padding: 16, paddingBottom: 48, gap: 16}}>
+    <View style={[styles.header, rtl && styles.reverse]}><BrandMark size={48}/><View style={styles.row}>
       <NotificationBell arabic={rtl} count={state.requiresActionCount} onPress={() => router.push("/notifications")}/>
       <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={t("profile")} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} photoUpdatedAt={profile.data?.profile_photo_updated_at} onPress={() => router.push("/profile")} size={50}/></View>
     </View></View>
-    <View style={styles.stack}><Text style={ui.small}>{t("greeting")}{profile.data?.display_name ? `, ${profile.data.display_name}` : ""}</Text><Text accessibilityRole="header" style={ui.title}>{t("today")}</Text><Text style={ui.text}>{t("todaySubtitle")}</Text></View>
-    <View ref={planRef} onLayout={event => registerTarget("today-plan", planRef.current, event.nativeEvent.layout.y)}><SurfaceCard style={styles.stack}>
+    <View style={{gap: 8}}><Text style={ui.small}>{t("greeting")}{profile.data?.display_name ? `, ${profile.data.display_name}` : ""}</Text><Text accessibilityRole="header" style={ui.title}>{t("today")}</Text><Text style={ui.text}>{t("todaySubtitle")}</Text></View>
+    <View ref={planRef} onLayout={event => registerTarget("today-plan", planRef.current, event.nativeEvent.layout.y)}><SurfaceCard style={{gap: 12, padding: 16}}>
       <Text style={styles.eyebrow}>{t("nextMove")}</Text>
-      {next.day ? <View style={row}><ExerciseMedia exerciseId={next.day.prescriptions[0]?.exercise_id ?? ""} name={next.day.prescriptions[0]?.name ?? t("train")} arabic={rtl} compact/><View style={styles.flex}><Text style={ui.heading}>{t("train")} · {formatNumber(next.day.order + 1, locale)}</Text><Text style={ui.small}>{formatNumber(next.day.prescriptions.length, locale)} {t("exercises")} · {formatNumber(next.day.estimated_minutes, locale)} {t("minutes")}</Text></View></View> : <Text style={ui.text}>{t("noReadyWorkout")}</Text>}
+      {next.day ? <View style={row}><ExerciseMedia exerciseId={next.day.prescriptions[0]?.exercise_id ?? ""} name={next.day.prescriptions[0]?.name ?? t("train")} arabic={rtl} compact/><View style={styles.flex}><Text style={ui.heading}>{workoutDayLabel(next.day.name, rtl)}</Text><Text style={ui.small}>{exerciseCount(next.day.prescriptions.length, locale)} · {formatNumber(next.day.estimated_minutes, locale)} {t("minutes")}</Text></View></View> : <Text style={ui.text}>{t("noReadyWorkout")}</Text>}
       {!ready && !sessions.isError && !plan.isError ? <ActivityIndicator color={colors.bronze}/> : null}
       {sessions.isError || plan.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void Promise.all([sessions.refetch(), plan.refetch()])}/> : <AppButton disabled={!ready} loading={start.isPending} label={t(next.active ? "resumeWorkout" : next.day ? "startWorkout" : "prepareWorkout")} onPress={() => next.active ? router.push({pathname: "/training/day", params: {sessionId: next.active.id, dayKey: next.active.day_key}}) : next.day ? start.mutate() : router.push("/training")}/>}
       {start.error ? <Text accessibilityRole="alert" style={ui.error}>{start.error.message}</Text> : null}
@@ -56,7 +58,7 @@ export function HomeScreen() {
     <SurfaceCard style={styles.stack}><View style={row}><Text style={[ui.heading, styles.flex]}>{t("yourProgress")}</Text>{game.data ? <Text style={ui.small}>{t("level")} {formatNumber(game.data.level, locale)}</Text> : null}</View>
       {game.isPending ? <ActivityIndicator color={colors.bronze}/> : null}
       {game.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void game.refetch()}/> : null}
-      {game.data ? <><View style={row}><View style={styles.flex}><Text style={ui.small}>{t("progressScore")}</Text><Text style={styles.score}>{game.data.progress_score.value === null ? "—" : formatNumber(game.data.progress_score.value, locale)}<Text style={ui.small}> / {formatNumber(100, locale)}</Text></Text></View><View style={styles.flex}><Text style={ui.small}>{t("xp")}</Text><Text style={styles.score}>{formatNumber(game.data.xp, locale)}</Text></View></View>
+      {game.data ? <><View style={row}><View style={styles.flex}><Text style={ui.small}>{t("progressScore")}</Text><Text style={styles.score}>{visibleProgressValue(game.data.progress_score) === null ? "—" : formatNumber(visibleProgressValue(game.data.progress_score)!, locale)}<Text style={ui.small}> / {formatNumber(100, locale)}</Text></Text></View><View style={styles.flex}><Text style={ui.small}>{t("xp")}</Text><Text style={styles.score}>{formatNumber(game.data.xp, locale)}</Text></View></View>
       <ProgressMeter label={t("xp")} value={game.data.xp % 100}/><Text style={ui.small}>{delta === null ? t("noProgressTrend") : `${t("progressTrend")}: ${delta > 0 ? "+" : ""}${formatNumber(delta, locale)}`}</Text>
       {!game.data.progress_score.ranked ? <Text style={ui.small}>{t("insufficientCoverage")}</Text> : null}<AppButton label={t("progressScore")} variant="secondary" onPress={() => router.push("/progress-score")}/></> : null}
     </SurfaceCard>

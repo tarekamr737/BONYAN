@@ -13,8 +13,8 @@ import { DirectionalText as Text } from "../components/DirectionalText";
 
 export function NotificationsScreen() {
   const state = useAppNotifications();
-  const pending = state.profile.isPending || state.assessment.isPending || state.plan.isPending || state.avatars.isPending;
-  const hasError = state.profile.isError || state.assessment.isError || state.plan.isError || state.avatars.isError;
+  const pending = state.profile.isPending || state.assessment.isPending || state.plan.isPending || state.avatars.isPending || state.friends.isPending || state.challenges.isPending;
+  const hasError = state.profile.isError || state.assessment.isError || state.plan.isError || state.avatars.isError || state.friends.isError || state.challenges.isError;
   return (
     <CoachingPage arabic={state.arabic}>
       <View style={{ alignItems: "center", flexDirection: "row", gap: 12, justifyContent: "space-between" }}>

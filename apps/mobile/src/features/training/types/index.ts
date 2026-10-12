@@ -25,6 +25,8 @@ export type ExercisePrescription = {
 };
 
 export type ExerciseMediaAccess = {
+  media_type?: string | null;
+  source_name?: string | null;
   url: string;
   expires_at: string | null;
 };

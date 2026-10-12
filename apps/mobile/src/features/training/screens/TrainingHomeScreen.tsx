@@ -1,3 +1,6 @@
+import {useLocale} from "../../../core/i18n/LocaleProvider";
+import {getExerciseCatalog, generateWorkoutPlan, getCurrentWorkoutPlan, getWorkoutSessions, startWorkoutSession } from "../api/trainingApi";
+import {planLabel, weeklyDays, workoutDayLabel as dayName} from "../../../core/i18n/fitness";
 import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { getMyProfile } from "../../auth/api/profileApi";
@@ -13,24 +16,12 @@ import { ApiError } from "../../../core/api/errors";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { MotionReveal } from "../../../core/components/MotionReveal";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
-import { generateWorkoutPlan, getCurrentWorkoutPlan, getWorkoutSessions, startWorkoutSession } from "../api/trainingApi";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { planGenerationError, planNeedsRefresh, planRefreshMessage } from "../planIntegrity";
 
-function formatLabel(value: string): string { return value.replaceAll("_", " "); }
-const arabicLabels: Record<string, string> = {
-  strength: "قوة",
-  hypertrophy: "بناء عضلات",
-  fat_loss: "خسارة دهون",
-  general_fitness: "لياقة عامة",
-  beginner: "مبتدئ",
-  intermediate: "متوسط",
-  advanced: "متقدم",
-};
-function planLabel(value: string, arabic: boolean): string { return arabic ? (arabicLabels[value.toLowerCase()] ?? formatLabel(value)) : formatLabel(value); }
-function weeklyDays(value: number, arabic: boolean): string { if (!arabic) return `${value} days/wk`; return value === 1 ? "يوم واحد أسبوعيًا" : value === 2 ? "يومين أسبوعيًا" : `${value} أيام أسبوعيًا`; }
-function dayName(value: string, arabic: boolean): string { return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value; }
 export function TrainingHomeScreen() {
+  const {t} = useLocale();
+  const catalog = useQuery({queryKey: ["training", "catalog"], queryFn: getExerciseCatalog, staleTime: 300_000});
   const generating = useRef(false);
   const [planJustPrepared, setPlanJustPrepared] = useState(false);
   const [selectedDayKey, setSelectedDayKey] = useState<string>();
@@ -47,7 +38,7 @@ export function TrainingHomeScreen() {
   const needsRefresh = planNeedsRefresh(plan);
   const days = plan?.days.slice().sort((a, b) => a.order - b.order) ?? [];
   const selectedDay = days.find(day => day.key === selectedDayKey) ?? days[0];
-  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const {rtl: arabic} = useLocale();
   const hasLimitations = Boolean(profile.data?.coaching?.limitations?.trim());
   const completedSessions = sessions.data?.filter(item => item.status === "completed") ?? [];
   const totalVolume = completedSessions.reduce((sum, item) => sum + Number(item.summary.volume_kg ?? 0), 0);
@@ -101,11 +92,12 @@ export function TrainingHomeScreen() {
 
         {needsRefresh ? <SurfaceCard>
           <Text accessibilityRole="alert" style={styles.stateCopy}>{planRefreshMessage(arabic)}</Text>
-          <Pressable accessibilityRole="button" disabled={hasLimitations || generateMutation.isPending || !profile.data} style={styles.primaryAction} onPress={() => { if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => { generating.current = false; }); }}>
+          <Pressable accessibilityRole="button" disabled={catalog.data?.available === false || hasLimitations || generateMutation.isPending || !profile.data} style={styles.primaryAction} onPress={() => { if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => { generating.current = false; }); }}>
             <Text style={styles.primaryActionText}>{generateMutation.isPending ? (phrase("copy_31ef84bf1419", arabic)) : (phrase("copy_4102dae6574d", arabic))}</Text>
           </Pressable>
         </SurfaceCard> : null}
 
+        {catalog.data?.available === false ? <SurfaceCard><Text style={styles.stateCopy}>{t("catalogLicenseRequired")}</Text></SurfaceCard> : null}
         {generateMutation.isError ? <SurfaceCard><Text accessibilityRole="alert" style={styles.errorText}>{planGenerationError(generateMutation.error instanceof ApiError ? generateMutation.error.code : undefined, arabic)}</Text></SurfaceCard> : null}
 
         {planQuery.isPending ? (
@@ -136,7 +128,7 @@ export function TrainingHomeScreen() {
             </Text>
             <Pressable
               accessibilityRole="button"
-              disabled={hasLimitations || generateMutation.isPending || !profile.data}
+              disabled={catalog.data?.available === false || hasLimitations || generateMutation.isPending || !profile.data}
               onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
               style={[styles.primaryAction, (hasLimitations || generateMutation.isPending) && styles.disabledAction]}
             >
@@ -190,7 +182,7 @@ export function TrainingHomeScreen() {
               </View>
               <Pressable
                 accessibilityRole="button"
-                disabled={hasLimitations || needsRefresh || startMutation.isPending}
+                disabled={catalog.data?.available === false || hasLimitations || needsRefresh || startMutation.isPending}
                 onPress={() => startMutation.mutate()}
                 style={[styles.primaryAction, (hasLimitations || needsRefresh || startMutation.isPending) && styles.disabledAction]}
               >
@@ -245,7 +237,7 @@ export function TrainingHomeScreen() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            disabled={hasLimitations || generateMutation.isPending || !profile.data}
+            disabled={catalog.data?.available === false || hasLimitations || generateMutation.isPending || !profile.data}
             onPress={() => {if (generating.current) return; generating.current = true; void generateMutation.mutateAsync().catch(() => {}).finally(() => {generating.current = false;}); }}
             style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
           >

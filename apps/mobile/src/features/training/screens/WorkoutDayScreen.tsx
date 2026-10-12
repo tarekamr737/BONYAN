@@ -1,3 +1,5 @@
+import {exerciseCount, workoutDayLabel as displayDayName,weightFromKg, weightToKg} from "../../../core/i18n/fitness";
+import {formatNumber} from "../../../core/i18n/messages";
 import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +23,6 @@ import { WorkoutRecovery } from "../components/WorkoutRecovery";
 import { SessionSubstitutionPanel } from "../components/SessionSubstitutionPanel";
 import {ExerciseDetails} from "../components/ExerciseDetails";
 import {useLocale} from "../../../core/i18n/LocaleProvider";
-import {weightFromKg, weightToKg} from "../../../core/i18n/fitness";
 import {getMyProfile} from "../../auth/api/profileApi";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { SetStepper } from "../components/SetStepper";
@@ -34,14 +35,11 @@ function paramValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function displayDayName(value: string | undefined, arabic: boolean): string {
-  if (!value) return phrase("copy_3c088a2a4e7a", arabic);
-  return arabic && value.toLowerCase() === "custom workout" ? "تمرين مخصص" : value;
-}
+
 
 export function WorkoutDayScreen() {
   const arabic = useContext(LanguageDirection);
-  const {t} = useLocale();
+  const {t, locale} = useLocale();
   const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
   const imperial = profile.data?.preferred_units === "imperial";
   const [reviewCompletion, setReviewCompletion] = useState(false);
@@ -124,7 +122,7 @@ export function WorkoutDayScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <TrainingHeader
           title={displayDayName(day?.name, arabic)}
-          subtitle={day ? (phraseTemplate("copy_3a39ee812744", arabic, (arabic) ? [day.prescriptions.length] : [day.prescriptions.length])) : ""}
+          subtitle={day ? exerciseCount(day.prescriptions.length, locale) : ""}
         />
 
         {sessionId && !session && savedSession.isPending ? (
@@ -167,12 +165,10 @@ export function WorkoutDayScreen() {
         {day && active && (!sessionId || session) ? (
           <>
             <SurfaceCard>
-              <Text style={styles.activeName}>{active.name}</Text><Text style={styles.detail}>{activeIndex + 1} / {day.prescriptions.length}</Text>
+              <Text style={styles.activeName}>{active.name}</Text><Text style={styles.detail}>{formatNumber(activeIndex + 1, locale)} / {formatNumber(day.prescriptions.length, locale)}</Text>
               <Text style={styles.detail}>
-                {phraseTemplate("copy_5db7d8c8f370", arabic, (arabic) ? [active.sets, active.reps_min, active.reps_max, Math.round(active.rest_seconds / 60)] : [active.sets, active.reps_min, active.reps_max, Math.round(active.rest_seconds / 60)])}
+                {formatNumber(active.sets, locale)} {t("sets")} × {formatNumber(active.reps_min, locale)}–{formatNumber(active.reps_max, locale)} {t("reps")} · {t("rest")}: {formatNumber(active.rest_seconds, locale)} {t("seconds")}
               </Text>
-              <ExerciseMedia exerciseId={active.exercise_id} name={active.name} arabic={arabic}/>
-              <ExerciseDetails exerciseId={active.exercise_id}/>
               <WorkoutRecovery session={session} exercise={active} index={activeIndex}/>
               <View style={styles.stepperRow}>
                 <SetStepper arabic={arabic} label={phrase("copy_85ba154f815e", arabic)} max={50} min={0} onChange={setReps} step={1} value={reps} />
@@ -210,6 +206,8 @@ export function WorkoutDayScreen() {
                   </Text>
                 </Pressable>
               )}
+              <ExerciseMedia exerciseId={active.exercise_id} name={active.name} arabic={arabic}/>
+              <ExerciseDetails exerciseId={active.exercise_id} collapsible/>
               {startMutation.isError || logMutation.isError ? (
                 <Text style={styles.errorText}>{phrase("copy_3c8a982a67e3", arabic)}</Text>
               ) : null}

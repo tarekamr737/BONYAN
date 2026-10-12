@@ -45,6 +45,10 @@ export function getExerciseMediaAccess(exerciseId: string): Promise<ExerciseMedi
   );
 }
 
+export function getExerciseCatalog(): Promise<{available: boolean; source_name: string}> {
+  return apiRequest("/api/v1/training/catalog");
+}
+
 export function generateWorkoutPlan(request: GeneratePlanRequest): Promise<WorkoutPlan> {
   return apiRequest<WorkoutPlan>("/api/v1/training/plans", {
     body: request,

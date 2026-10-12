@@ -28,7 +28,7 @@ function TaskbarItem({item, path}: {item: NavItem; path: string}) {
   const {registerTarget} = useHomeTour();
   const tourTarget = ({"/training": "training-tab", "/nutrition": "nutrition-tab", "/training/coach": "coach-tab", "/community": "community-tab"} as Record<string, HomeTourTarget>)[item.href];
   return <Pressable ref={ref} onLayout={() => {if (tourTarget) registerTarget(tourTarget, ref.current);}} accessibilityRole="button" accessibilityState={{selected: item.active}} onPress={() => {if (path !== item.href) router.navigate(item.href as never);}} style={({pressed}) => [styles.item, item.active && styles.active, pressed && styles.pressed]}>
-    <Feather name={item.icon} size={20} color={item.active ? colors.canvas : colors.mutedLight} />
+    <View style={item.href === "/avatar" ? styles.avatarIcon : undefined}><Feather name={item.icon} size={item.href === "/avatar" ? 24 : 20} color={item.active ? colors.canvas : item.href === "/avatar" ? colors.bronze : colors.mutedLight} /></View>
     <Text numberOfLines={1} style={[styles.label, item.active && styles.activeLabel]}>{item.label}</Text>
   </Pressable>;
 }
@@ -36,6 +36,7 @@ function TaskbarItem({item, path}: {item: NavItem; path: string}) {
 const styles = StyleSheet.create({
   active: { backgroundColor: colors.bronze },
   activeLabel: { color: colors.canvas },
+  avatarIcon: {borderWidth: 1, borderColor: colors.bronzeBorder, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 3},
   item: { alignItems: "center", borderRadius: 13, flex: 1, gap: 3, justifyContent: "center", minHeight: 54, paddingHorizontal: 2 },
   items: { alignSelf: "center", flexDirection: "row", gap: 4, maxWidth: 660, width: "100%" },
   label: { color: colors.mutedLight, fontFamily: fonts.bodySemiBold, fontSize: 9, textAlign: "center" },

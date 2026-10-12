@@ -1,10 +1,14 @@
 import { phrase, phraseTemplate } from "../i18n/copy";
+import {translate} from "../i18n/messages";
+import type {Challenge, Friend} from "../../features/game/api";
 import type { AssessmentOverview, UserProfile } from "../../features/auth/types";
 import type { AvatarListView, AvatarState, AvatarView } from "../../features/avatar/types";
 import type { WorkoutPlan } from "../../features/training/types";
 import { avatarRenewalStatus } from "../../features/avatar/renewal";
 
 export type AppNotificationKind =
+  | "friend_invitation"
+  | "challenge_invitation"
   | "avatar_build"
   | "avatar_failed"
   | "avatar_processing"
@@ -19,7 +23,7 @@ export type AppNotificationKind =
 export type AppNotification = {
   actionLabel: string;
   body: string;
-  href: "/avatar" | "/profile" | "/training";
+  href: "/avatar" | "/profile" | "/training" | "/challenges";
   icon: "activity" | "award" | "check-circle" | "clock" | "user" | "user-check";
   id: AppNotificationKind;
   requiresAction: boolean;
@@ -32,6 +36,8 @@ type NotificationInputs = {
   avatars?: AvatarListView;
   plan?: WorkoutPlan | null;
   profile: UserProfile;
+  friends?: Friend[];
+  challenges?: Challenge[];
 };
 
 function avatarNotification(avatar: AvatarView | undefined, arabic: boolean, latestMeasurementsAt: string | null): AppNotification {
@@ -104,8 +110,21 @@ export function buildAppNotifications({
   avatars,
   plan,
   profile,
+  friends,
+  challenges,
 }: NotificationInputs): AppNotification[] {
   const items: AppNotification[] = [];
+  const locale = arabic ? "ar-EG" : "en";
+  if (friends?.some(item => item.incoming && item.status === "pending")) items.push({
+    id: "friend_invitation", title: translate("friendNotification", locale),
+    body: translate("invitationHelp", locale), actionLabel: translate("reviewInvitations", locale),
+    href: "/challenges", icon: "user-check", requiresAction: true,
+  });
+  if (challenges?.some(item => item.incoming && item.status === "invited")) items.push({
+    id: "challenge_invitation", title: translate("challengeNotification", locale),
+    body: translate("invitationHelp", locale), actionLabel: translate("reviewInvitations", locale),
+    href: "/challenges", icon: "award", requiresAction: true,
+  });
   if (assessment && assessment.completion < 100) {
     items.push({
       actionLabel: phrase("copy_553c5df7b503", arabic),

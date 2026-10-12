@@ -1,3 +1,4 @@
+import {useLocale} from "../../../core/i18n/LocaleProvider";
 import { phrase } from "../../../core/i18n/copy";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import type { UserProfile } from "../types";
 import { GlassCard, ui } from "./CoachingUI";
 
 export function ProfilePhotoEditor({ profile }: { profile: UserProfile }) {
-  const arabic = profile.preferred_language.startsWith("ar");
+  const {rtl: arabic} = useLocale();
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<{ message: string; tone: "error" | "success" } | null>(null);
   const upload = useMutation({

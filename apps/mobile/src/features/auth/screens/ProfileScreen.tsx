@@ -25,7 +25,7 @@ import {getModerationRole} from "../../community/ModerationScreen";
 
 
 export function ProfileScreen() {
-  const {t} = useLocale();
+  const {t, rtl} = useLocale();
   const [editing, setEditing] = useState(false);
   const { signOut } = useAuthSession();
   const [showWebDeletionConfirmation, setShowWebDeletionConfirmation] = useState(false);
@@ -33,7 +33,7 @@ export function ProfileScreen() {
   const {replayTour: resetHomeTour} = useHomeTour();
   const profile = useQuery({ queryFn: getMyProfile, queryKey: ["profile", "me"] });
   const moderation = useQuery({queryKey: ["community", "moderation-role"], queryFn: getModerationRole});
-  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const arabic = rtl;
   const deletion = useMutation({
     mutationFn: deleteMyAccount,
     onSuccess: async () => {
@@ -106,12 +106,12 @@ export function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>{coachingCopy("PROFILE & PREFERENCES", profile.data.preferred_language.startsWith("ar"))}</Text>
+          <Text style={styles.eyebrow}>{coachingCopy("PROFILE & PREFERENCES", arabic)}</Text>
           <Text accessibilityRole="header" style={styles.title}>
-            {coachingCopy("Your training story", profile.data.preferred_language.startsWith("ar"))}
+            {coachingCopy("Your training story", arabic)}
           </Text>
           <Text style={styles.copy}>
-            {coachingCopy("Your goal, assessments and progress, connected in one place.", profile.data.preferred_language.startsWith("ar"))}
+            {coachingCopy("Your goal, assessments and progress, connected in one place.", arabic)}
           </Text>
         </View>
         <AppButton label={t("privacySettings")} onPress={() => router.push("/privacy")} />
@@ -124,9 +124,9 @@ export function ProfileScreen() {
         </View>
         <View style={styles.sessionActions}>
           <AppButton label={phrase("copy_49f2d3b93452", arabic)} loading={replayTour.isPending} onPress={() => replayTour.mutate()} variant="secondary" />
-          <AppButton label={coachingCopy("Back to BONYAN", profile.data.preferred_language.startsWith("ar"))} onPress={() => router.canGoBack() ? router.back() : router.replace("/")} variant="secondary" />
+          <AppButton label={coachingCopy("Back to BONYAN", arabic)} onPress={() => router.canGoBack() ? router.back() : router.replace("/")} variant="secondary" />
           <AppButton
-            label={coachingCopy("Sign out", profile.data.preferred_language.startsWith("ar"))}
+            label={coachingCopy("Sign out", arabic)}
             onPress={() => {
               queryClient.clear();
               void signOut();

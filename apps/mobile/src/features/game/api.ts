@@ -10,7 +10,7 @@ export function checkIn(kind: "recovery" | "checkin"): Promise<GameOverview> {re
 export type ActivityEvent = {id: string; kind: string; local_day: string; version: string; eligible: boolean; created_at: string};
 export function getActivity(before?: string): Promise<{items: ActivityEvent[]; next_cursor: string | null}> {return apiRequest(`/api/v1/game/activity${before ? `?before=${encodeURIComponent(before)}` : ""}`);}
 export type LeagueMode = "weekly" | "friends" | "all_time";
-export type LeagueEntry = {rank: number | null; display_name: string; avatar_url: string | null; points: number; is_me: boolean; progress_score: number | null; unranked_reason: string | null};
+export type LeagueEntry = {rank: number | null; display_name: string; avatar_url: string | null; points: number; is_me: boolean; progress_score: number | null; unranked_reason: string | null; badges?: string[]};
 export type LeagueView = {mode: LeagueMode; opted_in: boolean; week_end: string; season: GameOverview["season"]; personal_rank: number | null; participants: LeagueEntry[]};
 export function getLeague(mode: LeagueMode): Promise<LeagueView> {return apiRequest(`/api/v1/game/league?mode=${mode}`);}
 export function setLeagueParticipation(enabled: boolean): Promise<LeagueView> {return apiRequest("/api/v1/game/league/participation", {method: "PUT", body: {enabled}});}

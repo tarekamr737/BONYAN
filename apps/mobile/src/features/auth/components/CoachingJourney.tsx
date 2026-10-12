@@ -1,4 +1,5 @@
 import { phraseTemplate , phrase } from "../../../core/i18n/copy";
+import { normalizeNumerals } from "../../../core/i18n/messages";
 import { useLocale } from "../../../core/i18n/LocaleProvider";
 import Feather from "@expo/vector-icons/Feather";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
@@ -34,7 +35,7 @@ const equipmentIcons: Record<string, ComponentProps<typeof Feather>["name"]> = {
 };
 
 function normalizeDateInput(value: string): string | null {
-  const match = value.trim().match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  const match = normalizeNumerals(value.trim()).match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
   if (!match) return null;
   const [, year, month, day] = match;
   if (!year || !month || !day) return null;

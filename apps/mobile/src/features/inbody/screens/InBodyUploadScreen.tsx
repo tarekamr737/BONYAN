@@ -1,3 +1,4 @@
+import {useLocale} from "../../../core/i18n/LocaleProvider";
 import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -21,7 +22,7 @@ type Props = {
 
 export function InBodyUploadScreen({ selectedFiles, onPickFile, onUploaded }: Props) {
   const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
-  const arabic = profile.data?.preferred_language.startsWith("ar") ?? false;
+  const {rtl: arabic} = useLocale();
   const uploadMutation = useMutation({
     mutationFn: async (files: LocalReportFile[]) => {
       const prepared = await prepareReportUpload(files);

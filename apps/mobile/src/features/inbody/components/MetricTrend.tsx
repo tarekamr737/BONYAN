@@ -3,6 +3,8 @@ import { StyleSheet, View } from "react-native";
 
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import type { InBodyMetricKey, InBodyScan } from "../types";
+import {useLocale} from "../../../core/i18n/LocaleProvider";
+import {formatNumber} from "../../../core/i18n/messages";
 
 type Props = {
   label: string;
@@ -15,7 +17,8 @@ function getMetricValue(scan: InBodyScan, metric: InBodyMetricKey): number | nul
 }
 
 export function MetricTrend({ label, metric, scans }: Props) {
-  const values = scans
+  const {t, locale} = useLocale();
+  const values = [...scans].sort((a, b) => Date.parse(a.confirmed_at ?? a.created_at) - Date.parse(b.confirmed_at ?? b.created_at))
     .map((scan) => getMetricValue(scan, metric))
     .filter((value): value is number => value !== null);
 
@@ -32,9 +35,9 @@ export function MetricTrend({ label, metric, scans }: Props) {
     <View style={styles.panel}>
       <View style={styles.header}>
         <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>{latest.toFixed(1)}</Text>
+        <Text style={styles.value}>{formatNumber(latest, locale, {maximumFractionDigits: 1})}</Text>
       </View>
-      <View style={styles.bars} accessibilityLabel={`${label} trend chart`}>
+      <View style={styles.bars} accessibilityLabel={`${label} · ${t("recordedTrend")}`}>
         {values.map((value, index) => (
           <View
             key={`${metric}-${index}`}

@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import { ApiError, parseApiErrorPayload } from "./errors";
+import {recordServerTime} from "./serverClock";
 import { resolveApiBaseUrl } from "./baseUrl";
 import { clearSession, getAccessToken } from "../auth/session";
 import { localizedError } from "../i18n/messages";
@@ -61,6 +62,7 @@ export async function apiRequest<T>(
   const response = await fetch(`${getApiBaseUrl()}${normalizePath(path)}`, {
     ...requestOptions, body, headers, signal: controller.signal,
   });
+  recordServerTime(response.headers.get("Date"));
 
   if (!response.ok) {
     const details = parseApiErrorPayload(await readPayload(response));

@@ -1,14 +1,14 @@
-import { router } from "expo-router";
 import type { PropsWithChildren } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DirectionalText as Text } from "../../core/components/DirectionalText";
 import { useLocale } from "../../core/i18n/LocaleProvider";
+import { goBackOr } from "../../core/navigation/safeNavigation";
 import { colors, fonts, radii, spacing } from "../../core/theme/tokens";
 
 export function GamePage({title, children}: PropsWithChildren<{title: string}>) {
   const {t} = useLocale();
-  return <SafeAreaView style={gameStyles.page}><ScrollView contentContainerStyle={gameStyles.content}><Action label={t("cancel")} onPress={() => router.back()}/><Text accessibilityRole="header" style={gameStyles.title}>{title}</Text>{children}</ScrollView></SafeAreaView>;
+  return <SafeAreaView style={gameStyles.page}><ScrollView contentContainerStyle={gameStyles.content}><Action label={t("back")} onPress={() => goBackOr("/")}/><Text accessibilityRole="header" style={gameStyles.title}>{title}</Text>{children}</ScrollView></SafeAreaView>;
 }
 export function Action({label, onPress, disabled = false, selected = false}: {label: string; onPress: () => void; disabled?: boolean; selected?: boolean}) {
   return <Pressable accessibilityRole="button" accessibilityState={{disabled, selected}} disabled={disabled} onPress={onPress} style={[gameStyles.button, selected && gameStyles.selected, disabled && {opacity: 0.5}]}><Text style={gameStyles.label}>{label}</Text></Pressable>;

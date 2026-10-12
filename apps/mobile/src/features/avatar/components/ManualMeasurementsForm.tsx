@@ -1,4 +1,6 @@
 import { phrase, phraseTemplate } from "../../../core/i18n/copy";
+import {parseLocalizedNumber} from "../../../core/i18n/messages";
+import {measurementUnit} from "../../../core/i18n/measurements";
 import { DirectionalText as Text } from "../../../core/components/DirectionalText";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
@@ -29,9 +31,7 @@ const fieldDefinitions: {
 ];
 
 function parseValue(value: string): number | null {
-  const normalized = value.trim().replace(",", ".");
-  if (!normalized) return null;
-  const parsed = Number(normalized);
+  const parsed = parseLocalizedNumber(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -129,7 +129,7 @@ export function ManualMeasurementsForm({ arabic = false, onCancel, onSaved }: Ma
             <Text style={styles.label}>{fieldLabel(field.key, arabic)}</Text>
             <View style={styles.inputShell}>
               <TextInput
-                accessibilityLabel={phraseTemplate("copy_33e2826483c8", arabic, (arabic) ? [fieldLabel(field.key, true), field.suffix] : [field.label, field.suffix])}
+                accessibilityLabel={phraseTemplate("copy_33e2826483c8", arabic, (arabic) ? [fieldLabel(field.key, true), measurementUnit(field.suffix, arabic ? "ar-EG" : "en")] : [field.label, measurementUnit(field.suffix, arabic ? "ar-EG" : "en")])}
                 inputMode="decimal"
                 keyboardType="decimal-pad"
                 onChangeText={(value) => updateValue(field.key, value)}
@@ -139,7 +139,7 @@ export function ManualMeasurementsForm({ arabic = false, onCancel, onSaved }: Ma
                 style={[styles.input, arabic && styles.inputArabic]}
                 value={values[field.key]}
               />
-              <Text style={styles.suffix}>{field.suffix}</Text>
+              <Text style={styles.suffix}>{measurementUnit(field.suffix, arabic ? "ar-EG" : "en")}</Text>
             </View>
           </View>
         ))}

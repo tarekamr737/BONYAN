@@ -56,6 +56,15 @@ const avatar: AvatarView = {
 };
 
 describe("app notifications", () => {
+  it.each([false, true])("shows only actionable incoming invitations without private names, Arabic=%s", arabic => {
+    const friends = [{id: "f", display_name: "PRIVATE NAME", status: "pending", incoming: true}];
+    const challenges = [{id: "c", category: "workout", status: "invited", incoming: true, target_points: 40, my_points: 0, friend_points: 0, starts_at: "2026-10-12", ends_at: "2026-10-19"}];
+    const items = buildAppNotifications({arabic, profile, friends, challenges});
+    expect(items.map(item => item.id)).toEqual(["friend_invitation", "challenge_invitation"]);
+    expect(JSON.stringify(items)).not.toContain("PRIVATE NAME");
+    expect(items.every(item => /[\u0600-\u06ff]/.test(item.title) === arabic)).toBe(true);
+    expect(buildAppNotifications({arabic, profile, friends: friends.map(item => ({...item, incoming: false})), challenges: challenges.map(item => ({...item, status: "active"}))})).toEqual([]);
+  });
   it("prioritizes real actions from profile, plan and avatar state", () => {
     const items = buildAppNotifications({ arabic: false, assessment, avatars: { items: [avatar] }, plan: null, profile });
     expect(items.slice(0, 3).map((item) => item.id)).toEqual(["profile_completion", "plan_missing", "avatar_review"]);

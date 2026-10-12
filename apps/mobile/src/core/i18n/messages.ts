@@ -1,4 +1,27 @@
 export const messages = {
+  profileNameRequired: ["Enter the name you want BONYAN to use.", "اكتب الاسم اللي تحب BONYAN يناديك بيه."],
+  profileNameLength: ["Display name must be 120 characters or fewer.", "الاسم لازم يكون ١٢٠ حرف أو أقل."],
+  profileEquipmentRequired: ["Choose at least one equipment option. Select bodyweight if you train without equipment.", "اختار أداة واحدة على الأقل. اختار وزن الجسم لو بتتمرّن من غير أدوات."],
+  profileHeightRange: ["Height must be between 80 and 250 cm.", "الطول لازم يكون بين ٨٠ و٢٥٠ سم."],
+  profileBirthDate: ["Enter a valid date of birth in YYYY-MM-DD format.", "اكتب تاريخ ميلاد صحيح بالشكل ده: YYYY-MM-DD."],
+  characterProgress: ["Your character progress", "تطور شخصيتك"],
+  characterEvidence: ["Earned levels and badges reflect your recorded actions. They do not change your measurements or body illustration.", "المستويات والشارات بتعكس الخطوات اللي سجّلتها. مش بتغيّر قياساتك أو صورة جسمك."],
+  recordedTrend: ["Recorded trend", "التطور المسجّل"],
+  mediaSource: ["Exercise data and demonstrations", "بيانات التمارين والصور التوضيحية"],
+  playDemo: ["Play exercise demonstration", "شغّل عرض الحركة"],
+  catalogLicenseRequired: ["New exercise data and demonstrations are unavailable in this build. Your saved workouts and logs remain available.", "التمارين الجديدة والعروض التوضيحية مش متاحة دلوقتي. تمارينك وسجلك المحفوظين لسه موجودين."],
+  back: ["Back", "رجوع"],
+  food_language_mismatch: ["The nutrition summary did not match your language. Please retry.", "ملخص الوجبة مش بلغتك. جرّب التحليل تاني."],
+  estimateUncertainty: ["Nutrition values are estimates. Review portions and values before saving.", "قيم التغذية تقديرية. راجع الكميات والأرقام قبل ما تحفظها."],
+  friendNotification: ["Friend invitation waiting", "في دعوة صداقة مستنياك"],
+  challengeNotification: ["Challenge invitation waiting", "في دعوة تحدّي مستنياك"],
+  invitationHelp: ["Review the invitation before joining; accepting is optional.", "راجع الدعوة قبل ما تشارك؛ القبول اختياري."],
+  reviewInvitations: ["Review invitations", "راجع الدعوات"],
+  latest: ["Latest", "الأحدث"],
+  weekEnds: ["Week ends", "الأسبوع بيخلص"],
+  periodEnded: ["Ended", "خلص"],
+  topThree: ["League leaders", "المتقدمين في الدوري"],
+  selectedSourcePhoto: ["Selected private Avatar source photo", "الصورة الخاصة اللي اخترتها للأفاتار"],
   today: ["Today", "النهارده"], train: ["Train", "التمرين"], avatar: ["Avatar", "شخصيتك"],
   nutrition: ["Nutrition", "الأكل"], community: ["Community", "المجتمع"],
   coach: ["BONYAN Coach", "كوتش BONYAN"], askCoach: ["Ask your Coach", "اسأل الكوتش"],
@@ -119,7 +142,7 @@ let currentLocale: Locale = "en";
 export const getCurrentLocale = () => currentLocale;
 export function setCurrentLocale(locale: Locale) { currentLocale = locale; }
 export function translate(key: MessageKey, locale: Locale = currentLocale): string {
-  return messages[key][locale === "ar-EG" ? 1 : 0];
+  return (messages[key] ?? messages.unknown)[locale === "ar-EG" ? 1 : 0];
 }
 export function localizedError(code: string, locale: Locale = currentLocale): string {
   const key = code in messages ? code as MessageKey : "request_failed";
@@ -138,4 +161,13 @@ export function parseLocalizedNumber(value: string): number {
 }
 export function formatDate(value: string | Date, locale: Locale, timezone: string) {
   return new Intl.DateTimeFormat(locale, {dateStyle: "medium", timeZone: timezone}).format(new Date(value));
+}
+export function remainingDaysLabel(endsAt: string, serverMs: number | null, locale: Locale) {
+  if (serverMs === null || !Number.isFinite(Date.parse(endsAt))) return translate("unknown", locale);
+  const days = Math.max(0, Math.ceil((Date.parse(endsAt) - serverMs) / 86_400_000));
+  if (days === 0) return translate("periodEnded", locale);
+  if (locale === "en") return `${formatNumber(days, locale)} ${days === 1 ? "day" : "days"} left`;
+  if (days === 1) return "فاضل يوم";
+  if (days === 2) return "فاضل يومين";
+  return `فاضل ${formatNumber(days, locale)} ${days <= 10 ? "أيام" : "يوم"}`;
 }

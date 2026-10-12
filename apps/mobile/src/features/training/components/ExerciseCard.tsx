@@ -15,15 +15,15 @@ export function ExerciseCard({exercise, index, active = false, onPress}: Props) 
   const {t, locale, rtl} = useLocale(); const [expanded, setExpanded] = useState(false);
   const prescription = `${formatNumber(exercise.sets, locale)} ${t("sets")} × ${formatNumber(exercise.reps_min, locale)}–${formatNumber(exercise.reps_max, locale)} ${t("reps")}`;
   const content = <SurfaceCard style={[styles.card, active && {borderColor: colors.bronze}]}>
-    <View style={[styles.row, rtl && {flexDirection: "row-reverse"}]}><ExerciseMedia exerciseId={exercise.exercise_id} name={exercise.name} arabic={rtl} compact/><View style={styles.content}>
+    <View style={[styles.row, rtl && {flexDirection: "row-reverse"}]}><ExerciseMedia exerciseId={exercise.exercise_id} name={exercise.name} arabic={rtl} compact/><Pressable disabled={!onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={`${exercise.name}, ${prescription}`} accessibilityState={{selected: active}} onPress={onPress} style={styles.content}>
       <Text style={styles.name}>{formatNumber(index + 1, locale)} · {exercise.name}</Text><Text style={styles.meta}>{prescription}</Text><Text style={styles.meta}>{t("rest")}: {formatNumber(exercise.rest_seconds, locale)} {t("seconds")}</Text>
-    </View></View>
+    </Pressable></View>
     <Text style={styles.meta}>{exercise.muscles.map(value => fitnessLabel(value, locale)).join(" · ")}</Text>
     <Text style={styles.meta}>{exercise.equipment.map(value => fitnessLabel(value, locale, "equipment")).join(" · ")}</Text>
     {exercise.notes && (!rtl || /[\u0600-\u06ff]/u.test(exercise.notes)) ? <Text style={styles.meta}>{exercise.notes}</Text> : null}
     <Pressable accessibilityRole="button" accessibilityState={{expanded}} onPress={event => {event.stopPropagation(); setExpanded(!expanded);}} style={styles.details}><Text style={styles.label}>{t("exerciseDetails")}{expanded ? " −" : " +"}</Text></Pressable>
     {expanded ? <ExerciseDetails exerciseId={exercise.exercise_id}/> : null}
   </SurfaceCard>;
-  return onPress ? <Pressable accessibilityRole="button" accessibilityLabel={`${exercise.name}, ${prescription}`} accessibilityState={{selected: active}} onPress={onPress}>{content}</Pressable> : content;
+  return content;
 }
 const styles = StyleSheet.create({card: {gap: spacing.sm}, row: {alignItems: "center", flexDirection: "row", gap: spacing.sm}, content: {flex: 1, minWidth: 0, gap: spacing.xs}, name: {color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 16, lineHeight: 22}, meta: {color: colors.mutedLight, fontFamily: fonts.body, fontSize: 13, lineHeight: 20}, details: {minHeight: 50, justifyContent: "center"}, label: {color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 14}});

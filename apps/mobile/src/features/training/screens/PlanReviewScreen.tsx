@@ -1,3 +1,4 @@
+import {workoutDayLabel} from "../../../core/i18n/fitness";
 import { phrase } from "../../../core/i18n/copy";
 import { View } from "react-native";
 import type { WorkoutDay } from "../types";
@@ -41,5 +42,5 @@ export function PlanReviewScreen() {
 }
 
 function ViewDay({day, arabic}: {day: WorkoutDay; arabic: boolean}) {
-  return <View style={ui.stack}><Text style={ui.heading}>{day.name}</Text>{day.prescriptions.map((exercise, index) => <ExerciseCard key={`${exercise.exercise_id}-${index}`} exercise={exercise} index={index} arabic={arabic} />)}</View>;
+  return <View style={ui.stack}><Text style={ui.heading}>{workoutDayLabel(day.name, arabic)}</Text>{day.prescriptions.map((exercise, index) => <ExerciseCard key={`${exercise.exercise_id}-${index}`} exercise={exercise} index={index} arabic={arabic} />)}</View>;
 }

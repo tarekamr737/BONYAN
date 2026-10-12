@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type PropsWithChildren } from "react";
 import { LanguageDirection } from "../components/DirectionalText";
 import { normalizeLocale, setCurrentLocale, translate, type Locale, type MessageKey } from "./messages";
 
@@ -15,8 +15,16 @@ type LocaleContextValue = { locale: Locale; rtl: boolean; setLocale: (value: Loc
 const Context = createContext<LocaleContextValue | null>(null);
 export function LocaleProvider({children}: PropsWithChildren) {
   const [locale, update] = useState<Locale>("en");
-  useEffect(() => { let active = true; void read().then(value => { if (active && value) { const next = normalizeLocale(value); setCurrentLocale(next); update(next); } }).catch(() => {}); return () => { active = false; }; }, []);
-  const setLocale = useCallback(async (value: Locale) => { await write(value); setCurrentLocale(value); update(value); }, []);
+  const chosen = useRef(false);
+  const pendingWrite = useRef(Promise.resolve());
+  useEffect(() => { let active = true; void read().then(value => { if (active && value && !chosen.current) { const next = normalizeLocale(value); setCurrentLocale(next); update(next); } }).catch(() => {}); return () => { active = false; }; }, []);
+  const setLocale = useCallback(async (value: Locale) => {
+    chosen.current = true;
+    setCurrentLocale(value); update(value);
+    const operation = pendingWrite.current.catch(() => {}).then(() => write(value));
+    pendingWrite.current = operation;
+    await operation;
+  }, []);
   return <Context.Provider value={{locale, rtl: locale === "ar-EG", setLocale, t: key => translate(key, locale)}}><LanguageDirection.Provider value={locale === "ar-EG"}>{children}</LanguageDirection.Provider></Context.Provider>;
 }
 export function useLocale() { const value = useContext(Context); if (!value) throw new Error("LocaleProvider required"); return value; }

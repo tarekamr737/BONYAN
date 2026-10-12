@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 import {nextWorkout, progressChange} from "../src/core/screens/todayState";
 import type {WorkoutPlan, WorkoutSession} from "../src/features/training/types";
 import type {ProgressHistory, ProgressScore} from "../src/features/game/api";
+import {visibleProgressValue} from "../src/features/game/progress";
 
 const days = [{key: "a", order: 0}, {key: "b", order: 1}] as WorkoutPlan["days"];
 const plan = {id: "new", status: "active", days: [...days].reverse()} as WorkoutPlan;
@@ -20,7 +21,9 @@ describe("Today authoritative workout state", () => {
   });
 });
 it("does not invent a progress trend from unknown or incomparable evidence", () => {
-  const score = {value: 75, coverage: 80, version: "v1", dimensions: {training: 80}} as unknown as ProgressScore;
+  const score = {value: 75, ranked: true, coverage: 80, version: "v1", dimensions: {training: 80}} as unknown as ProgressScore;
+  expect(visibleProgressValue({...score, ranked: false, coverage: 35})).toBeNull();
+  expect(progressChange({...score, ranked: false}, [])).toBeNull();
   const history = [{result: {...score, value: 60, coverage: 60}}, {result: {...score, version: "v0", value: 50}}] as ProgressHistory[];
   expect(progressChange(score, history)).toBeNull();
   expect(progressChange({...score, value: null}, history)).toBeNull();

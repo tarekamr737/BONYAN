@@ -3,7 +3,7 @@ import { DirectionalText as Text , LanguageDirection } from "../../../core/compo
 import { coachingCopy } from "../coachingCopy";
 import { useEffect, useRef, type ComponentProps, type PropsWithChildren, type ReactNode } from "react";
 import Feather from "@expo/vector-icons/Feather";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassBackdrop, GlassSurface } from "../../../core/components/GlassSurface";
@@ -28,12 +28,12 @@ export const ui = StyleSheet.create({
   track: { height: 4, borderRadius: 2, backgroundColor: colors.line, overflow: "hidden" },
 });
 
-export function CoachingPage({ children, arabic = false, footer, step, onScrollViewRef }: PropsWithChildren<{arabic?: boolean; footer?: ReactNode; step?: string; onScrollViewRef?: (scroll: ScrollView | null) => void}>) {
+export function CoachingPage({ children, arabic = false, footer, step, onScrollViewRef, contentStyle }: PropsWithChildren<{arabic?: boolean; footer?: ReactNode; step?: string; onScrollViewRef?: (scroll: ScrollView | null) => void; contentStyle?: StyleProp<ViewStyle>}>) {
   const scroll = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   useEffect(() => {scroll.current?.scrollTo({y: 0, animated: false});}, [step]);
   return <LanguageDirection.Provider value={arabic}><SafeAreaView edges={["top", "left", "right"]} style={ui.page}><GlassBackdrop /><KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-    <ScrollView ref={node => {scroll.current = node; onScrollViewRef?.(node);}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={ui.content}>{children}</ScrollView>
+    <ScrollView ref={node => {scroll.current = node; onScrollViewRef?.(node);}} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={[ui.content, contentStyle]}>{children}</ScrollView>
     {footer ? <View style={{borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: 24, paddingTop: 12, paddingBottom: Math.max(12, insets.bottom)}}><View style={{width: "100%", maxWidth: 612, alignSelf: "center", gap: 8}}>{footer}</View></View> : null}
   </KeyboardAvoidingView></SafeAreaView></LanguageDirection.Provider>;
 }

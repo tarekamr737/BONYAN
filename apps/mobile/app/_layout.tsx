@@ -69,7 +69,7 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { setLocale, t } = useLocale();
+  const { setLocale, t, rtl } = useLocale();
   const { isAuthenticated, isRestoring } = useAuthSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -125,7 +125,7 @@ function RootNavigator() {
   if (profile.data.onboarding_completed && (inAuthGroup || inOnboardingGroup)) {
     return <Redirect href="/" />;
   }
-  const arabic = profile.data.preferred_language.startsWith("ar");
+  const arabic = rtl;
   return <LanguageDirection.Provider value={arabic}><HomeTourProvider arabic={arabic} profile={profile.data}><View style={{flex: 1}}><View style={{flex: 1}}><AppStack /></View>{profile.data.onboarding_completed ? <><CoachShortcut /><AppTaskbar arabic={arabic} /></> : null}</View></HomeTourProvider></LanguageDirection.Provider>;
 }
 
