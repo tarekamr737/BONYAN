@@ -11,10 +11,11 @@ import httpx
 import jwt
 import pytest
 from PIL import Image
+from pydantic import SecretStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.database import get_db_session
 from app.core.providers.contracts import LLMResponse, LLMToolCall
 from app.core.providers.mocks import MockLLMProvider
@@ -125,15 +126,21 @@ def test_authenticated_measurement_workout_coach_game_and_privacy_journey(
 async def _journey(locale, monkeypatch, tmp_path):
     engine = create_async_engine(os.environ["BONYAN_V2_TEST_DATABASE_URL"])
     factory = async_sessionmaker(engine, expire_on_commit=False)
-    settings = get_settings().model_copy(
-        update={
-            "api_env": "test",
-            "chat_provider": "mock",
-            "avatar_provider": "mock",
-            "avatar_model": "TBD",
-            "avatar_generation_enabled": True,
-            "email_provider": "console",
-        }
+    # CI and fresh clones must not need an owner's .env or real signing/provider keys.
+    settings = Settings(
+        _env_file=None,
+        api_env="test",
+        database_url=SecretStr(os.environ["BONYAN_V2_TEST_DATABASE_URL"]),
+        auth_jwt_secret=SecretStr("synthetic-test-key-" + "x" * 40),
+        chat_provider="mock",
+        chat_model="TBD",
+        avatar_provider="mock",
+        avatar_model="TBD",
+        avatar_generation_enabled=True,
+        email_provider="console",
+        email_console_code=SecretStr("000000"),
+        private_storage_root=tmp_path,
+        api_public_url="http://test",
     )
     storage = LocalPrivateObjectStorage(tmp_path)
     coach = JourneyCoach()

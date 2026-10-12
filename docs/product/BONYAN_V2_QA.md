@@ -1,5 +1,9 @@
 # BONYAN V2 QA — 12 October 2026
 
+## Shared baseline publication
+
+The owner authorized publication and merge through [PR #16](https://github.com/tarekamr737/BONYAN/pull/16), retaining protected `main` checks. Merge preflight repeated the configured regression: 329 API passed, 18 skipped; 107 mobile passed, lint/typecheck/routes passed. Feature history secret scanning, private credential/source-file checks and inspection of the synthetic screenshot evidence passed. The initial PR database journey step exposed dependence on a local signing key; its settings now supply an explicit synthetic key and isolated storage without loading `.env`. Required CI must pass on the final PR head before merge. The [team handoff](../release/v2-development-baseline.md) records post-merge branch guidance and remaining production gates.
+
 ## Approved private owner trial
 
 The owner explicitly approved one OCR upload to Mistral and one image-generation attempt to OpenRouter/Meta Muse Image using their local report/photos, and requested a separate private local account. Trial onboarding choices were authorized sample preferences. Real files, extracted/reviewed values, credentials, signed URLs, generated images and screenshots remain in ignored local storage; none are committed here or shared in League.
