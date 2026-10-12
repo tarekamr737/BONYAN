@@ -7,7 +7,9 @@ Implement the integrated, private, evidence-aware fitness platform in Egyptian A
 confirmed InBody measurements and consented photos inform a private illustrative Avatar;
 real workouts and sustainable nutrition/recovery earn capped server-authoritative XP and missions.
 Progress is goal-relative, never attractiveness or a medical grade. Five destinations: Today, Train,
-Avatar, Nutrition, Community. Coach edits require preview, explicit scope, approval and atomic commit.
+Avatar, Nutrition, League. The user's 12 October correction makes the concept's League the primary
+social destination; the chronological community feed remains accessible inside it. Coach edits
+require preview, explicit scope, approval and atomic commit.
 
 Preserve Human Foundry tokens, ownership/security, useful services, existing data and additive migrations.
 No fake user metrics, ornamental glow or neon. Voice and partner redemption are disabled until genuine

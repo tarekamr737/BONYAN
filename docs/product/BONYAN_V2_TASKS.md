@@ -9,6 +9,20 @@
 - [x] F: Today hierarchy and existing auth/onboarding/nutrition/community/profile/notification flows.
 - [x] G: Available locale/security/concurrency/E2E checks, additive migration validation, visual QA and documentation. External checks are listed separately below.
 
+## Concept alignment correction — 12 October
+
+- [x] Replace the old social tab with League, preserve feed/deep links and highlight related routes.
+- [x] Match the concept hierarchy on Today, Avatar, League and Coach; use real state and honest missing-data illustrations.
+- [x] Show animated exercise demonstrations on initial manual browsing, muscle filters, selection, review and existing plan cards; preserve capped selections across pages.
+- [x] Improve Arabic typography with bundled Cairo and remove fixed-action competition in the manual builder.
+- [x] Validate the changes with native Android visual/interaction QA, authenticated catalog-filter tests, full API/mobile regression, lint/TypeScript and release exports.
+
+The correction run passed 328 API tests (17 external skips), 98 mobile tests, lint/TypeScript and
+Android/iOS/web exports. Manual QA selected Cable Crossover, showed its animation in search and
+review, and created only a draft; the current plan and active workout stayed intact. Arabic QA
+uses the same authoritative game/catalog state and dedicated Cairo typography. Latest captures
+and precise platform limits are recorded in BONYAN_V2_QA.md. Earlier entries below remain history.
+
 ## Check log
 
 Baseline: lint/TypeScript passed; 69 mobile tests and 294 API tests passed, 18 opt-in tests skipped. Android main-baseline boot and API health/readiness verified before V2.

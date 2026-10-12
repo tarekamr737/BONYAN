@@ -162,6 +162,11 @@ allowed as decoration.
 **Display Font:** Space Grotesk (with the native sans-serif fallback)
 **Body Font:** Manrope (with the native sans-serif fallback)
 
+Egyptian Arabic uses bundled Cairo Regular/Semibold/Bold through the shared directional text and
+input components, with zero Arabic letter spacing. English retains Space Grotesk and Manrope.
+The [Expo Cairo package](https://github.com/expo/google-fonts/blob/main/font-packages/cairo/README.md)
+provides the font assets; no runtime font-service requests are needed.
+
 **Character:** Space Grotesk gives BONYAN a compact, engineered silhouette. Manrope stays warm and
 highly legible for private data, instructions, forms, and actions.
 
@@ -273,10 +278,21 @@ states use Direct Coral for the message and a standard secondary retry button.
 
 V2 supersedes the legacy Home hierarchy below: Today prioritizes the next workout, distinct Progress
 Score and XP/Level, private Avatar, missions and league position. The shell is Today / Train / Avatar /
-Nutrition / Community. Coach is contextual, not a sixth tab. Avatar has provenance and illustration
+Nutrition / League. The League is the social landing screen; its community-feed action preserves
+existing chronological posts and publication/privacy controls. Coach is contextual, not a sixth tab. Avatar has provenance and illustration
 disclosure; reference humans and statistics must never appear as actual user data. Arabic mirrors layouts.
 
-The central Home hierarchy is Header / Daily Score / primary actions / Current Avatar to Next Avatar / recent progress. Talk to Bunyan is the earned bronze action; Analyze Food and Start Workout are secondary task controls. Daily Score comes from authenticated meals and workout sessions and is recalculated by the backend.
+Today follows the supplied concept: compact official brand/header, next-workout demonstration and
+bronze Start/Resume action, coverage-aware score ring beside XP, a private Avatar strip, paired
+mission/league links and Coach encouragement. Daily habits score remains distinct and secondary.
+League follows the season banner, real 2/1/3 podium, remaining members, mission rows and reward
+wallet hierarchy. Empty podiums are explicitly unranked placeholders, never fabricated people.
+Avatar uses the private illustration beside a score/provenance/XP rail, with approval and source
+privacy controls below. Coach uses the shared header and actual exercise media in session choices.
+Manual building starts with authenticated catalog browsing, muscle-group filters, large movement
+demonstrations, explicit add/remove controls and a persistent review action. Search results are
+bounded to twelve per page; selected prescriptions survive filtering/paging. Its Coach dock is
+hidden to preserve room for demonstrations and prevent competing fixed actions on small phones.
 
 Food analysis, manual workout search, AI workout generation, session logging, profile history, InBody, avatar, notifications, and the coach use the existing authenticated API client. Food entries and training state are persisted per owner. The compatibility component named GlassSurface now renders the normative opaque Forged Surface with a Quiet Steel edge; it contains no blur, gradient, translucency, or shadow. Motion stays short, state-driven, and honors system reduced-motion settings.
 

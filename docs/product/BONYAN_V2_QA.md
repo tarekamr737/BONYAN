@@ -2,12 +2,42 @@
 
 Branch: `feat/bonyan-v2-game-fitness`, based on `5f5e767` (approved PR #15 development baseline). The implementation follows the supplied master prompt and four-screen concept, with 25 supporting references extracted and existing components reused. This report records local verification; it does not approve a production release.
 
+## Latest concept alignment correction
+
+The user's 12 October correction makes League the fifth destination. This update replaces the
+text-heavy League and stacked Home layout with the primary concept hierarchy, adds the private
+Avatar score/provenance rail, standardizes Coach/Train headers and bundles Cairo for Egyptian Arabic.
+Manual building opens an authenticated twelve-item catalog page immediately, with body-group filters,
+correct animated movement previews, independent selection controls and retained selection across pages.
+Plan review, saved plans and Coach session choices also show the same provider-sourced demonstrations.
+
+Native QA used 360×640 Android: Chest filtering returned chest movements, Cable Crossover and
+bodyweight demonstrations loaded, add/remove controls updated selection, and review showed the
+chosen animation in a draft without activating it. The existing active plan/session was preserved.
+
+The correction's implementation commits are `bad6abd` (concept/League surfaces) and `ab61081`
+(visual catalog). Their staged patches passed redacted secret scans. An opted-out League shows
+its privacy notice and join action before the empty podium; no participation is enabled automatically.
+The browser automation connection timed out during this correction run, so its updated interactive
+web QA is not claimed; web export passed. The earlier web captures below record the initial V2 pass.
+
+| Corrected screen | English Android | Egyptian Arabic Android |
+|---|---|---|
+| Today | [Capture](screenshots/v2-alignment-today-en.png) | [Capture](screenshots/v2-alignment-today-ar.png) |
+| League | [Capture](screenshots/v2-alignment-league-en.png) | [Capture](screenshots/v2-alignment-league-ar.png) |
+| Private Avatar | [Capture](screenshots/v2-alignment-avatar-en.png) | [Capture](screenshots/v2-alignment-avatar-ar.png) |
+| Visual exercise picker | [Capture](screenshots/v2-alignment-manual-en.png) | [Capture](screenshots/v2-alignment-manual-ar.png) |
+
+[Manual plan review demonstration](screenshots/v2-alignment-review-en.png) shows the selected
+movement in the draft. Arabic selection updated the localized review count to `١`; the same
+catalog media rendered on the right in RTL. No paid Coach/Avatar/OCR calls were made for this correction.
+
 ## Automated and runtime checks
 
 | Check | Actual result |
 |---|---|
-| Full API regression, isolated PostgreSQL V2 checks and public ExerciseDB live check | **327 passed, 17 skipped**; one upstream Starlette/httpx deprecation warning |
-| Mobile tests | **92 passed**, 24 test files |
+| Full API regression, isolated PostgreSQL V2 checks and public ExerciseDB live check | **328 passed, 17 skipped**; one upstream Starlette/httpx deprecation warning |
+| Mobile tests | **98 passed**, 25 test files |
 | Mobile ESLint and TypeScript; API Ruff | Passed |
 | Mobile route generation | Passed |
 | Android, iOS and web release exports | Passed; 30 static routes. The export uses a CI placeholder HTTPS URL, not a deployment |
