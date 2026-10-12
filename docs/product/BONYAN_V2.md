@@ -8,7 +8,7 @@ Baseline: `5f5e767`. Branch: `feat/bonyan-v2-game-fitness`.
 | Area | Working baseline to reuse | Required extension |
 |---|---|---|
 | Identity | First-party auth, verified registration, profile/onboarding, secure storage | Persisted typed Egyptian Arabic/English locale, shared RTL and safe error copy |
-| Navigation | Protected Expo Router stacks, taskbar, design tokens | Today / Train / Avatar / Nutrition / Community; contextual Coach and header actions |
+| Navigation | Protected Expo Router stacks, taskbar, design tokens | Today / Train / Avatar / Nutrition / League; contextual Coach and header actions |
 | Training | Shared ExerciseDB catalog/media relay, manual/engine plans, set logging/recovery | Canonical session prescription snapshot, rich shared previews, versioned transactional substitutions |
 | Coach | Provider adapters, authorized context tools, chat history | Locked response locale; read/draft-only tools; explicit preview/approval/scopes |
 | Measurements | OCR review/confirmation, append-only assessment history | Confirmed-source provenance and consented private Avatar revisions |

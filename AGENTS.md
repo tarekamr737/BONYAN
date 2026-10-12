@@ -7,6 +7,13 @@ V2 vertical slices on `feat/bonyan-v2-game-fitness`, preserving existing work an
 security/architecture/quality rules. Canonical decisions and active checkboxes:
 `docs/product/BONYAN_V2.md` and `docs/product/BONYAN_V2_TASKS.md`.
 
+## Shared baseline after the V2 merge
+Once this implementation PR is merged, V2 is the shared development baseline.
+Start each subsequent task on its own short-lived feature branch from current
+`origin/main`; do not keep implementing on the merged V2 branch. This supersedes
+the fixed branch below for post-merge tasks. Follow `CONTRIBUTING.md` for shared
+file ownership and `docs/release/v2-development-baseline.md` for the handoff.
+
 ## Engineering Principles
 
 All implementation must follow:

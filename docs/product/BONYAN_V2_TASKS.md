@@ -75,5 +75,5 @@ G approved interaction: synthetic local league opt-in passed in both locales, ex
 - [ ] Physical iPhone/native iOS validation and native MP4 playback with an approved source fixture.
 - [ ] Approved Avatar/OCR fixtures and provider quality benchmarks; enable the production Avatar flag only after review.
 - [ ] Commercial exercise-media/dataset rights for production/staging before enabling the license flag.
-- [ ] Full existing opt-in provider/staging/local-experience suites (17 skips remain; see QA report).
+- [ ] Full existing opt-in provider/staging/local-experience suites (18 skips in the latest configured regression; see QA report).
 - [ ] Verified partner integrations before enabling voice/redemption, plus existing production email-domain setup.
