@@ -8,14 +8,14 @@ const privacySteps = [
   ["Source", "Private photo and confirmed measurements"],
   ["Shape", "Skinny, Slim, Normal, Fit, Strong or Full"],
   ["Review", "Your avatar stays private until approval"],
-  ["Community", "Off until you enable it"],
+  ["League", "Off until you enable it"],
 ] as const;
 
 const privacyStepsArabic = [
   ["المصدر", "صورة خاصة وقياسات مؤكدة"],
   ["الشكل", "تقدير حسب قياسات جسمك الحالية"],
   ["المراجعة", "صورتك تفضل خاصة لحد ما تعتمدها"],
-  ["المجتمع", "مقفولة لحد ما تفعّلها بنفسك"],
+  ["الدوري", "مقفولة لحد ما تفعّلها بنفسك"],
 ] as const;
 
 export function PrivacyTimeline({ arabic = false }: { arabic?: boolean }) {

@@ -41,7 +41,7 @@ export function LeagueScreen() {
       <Text style={styles.small}>{t("weekEnds")}: {formatDate(league.data.week_end + "T12:00:00Z", locale, "UTC")} · {t("seasonEnds")}: {formatDate(league.data.season.ends_at + "T12:00:00Z", locale, "UTC")}</Text>
     </> : null}
     {participation.error ? <Text accessibilityRole="alert" style={styles.copy}>{participation.error.message}</Text> : null}
-    <View style={row}><View style={{flex: 1}}><Action label={t("inviteFriends")} onPress={() => router.push("/challenges")}/></View><View style={{flex: 1}}><Action label={t("communityFeed")} onPress={() => router.push("/community")}/></View></View>
+    <Action label={t("inviteFriends")} onPress={() => router.push("/challenges")}/>
     <Action label={t("privacySettings")} onPress={() => router.push("/privacy")}/>
   </CoachingPage>;
 }

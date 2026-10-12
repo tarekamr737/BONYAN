@@ -9,5 +9,5 @@ export function navigationTabs(path: string, locale: Locale) {
   ] as const;
 }
 export function showContextualCoach(path: string) {
-  return path === "/" || path.startsWith("/avatar") || (path.startsWith("/training") && !["/training/coach", "/training/day", "/training/manual"].includes(path));
+  return ["/", "/profile", "/league", "/challenges", "/rewards", "/missions"].includes(path) || path.startsWith("/nutrition") || path.startsWith("/avatar") || (path.startsWith("/training") && !["/training/coach", "/training/day", "/training/manual"].includes(path));
 }

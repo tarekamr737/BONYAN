@@ -5,10 +5,17 @@ import { coachingCopy } from "../coachingCopy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppButton, ScreenState } from "../../../core/components";
+import {FeatureHeader} from "../../../core/components/FeatureHeader";
+import {InfoSheet} from "../../../core/components/InfoSheet";
+import {ProfileAvatar} from "../../../core/components/ProfileAvatar";
+import {getGameOverview} from "../../game/api";
+import {planLabel} from "../../../core/i18n/fitness";
+import {formatNumber, normalizeLocale} from "../../../core/i18n/messages";
+import type {ProfileUpdate} from "../types";
 import { useAuthSession } from "../../../core/auth/session";
 import { colors, fonts, spacing } from "../../../core/theme/tokens";
 import { useLocale } from "../../../core/i18n/LocaleProvider";
@@ -25,7 +32,11 @@ import {getModerationRole} from "../../community/ModerationScreen";
 
 
 export function ProfileScreen() {
-  const {t, rtl} = useLocale();
+  const {t, rtl, locale, setLocale} = useLocale();
+  const [showInfo, setShowInfo] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const game = useQuery({queryKey: ["game", "overview"], queryFn: getGameOverview});
   const [editing, setEditing] = useState(false);
   const { signOut } = useAuthSession();
   const [showWebDeletionConfirmation, setShowWebDeletionConfirmation] = useState(false);
@@ -40,6 +51,13 @@ export function ProfileScreen() {
       queryClient.clear();
       await signOut();
       router.replace("/(auth)/sign-in");
+    },
+  });
+  const preferences = useMutation({
+    mutationFn: (update: ProfileUpdate) => updateMyProfile(update),
+    onSuccess: async (updated, variables) => {
+      queryClient.setQueryData(["profile", "me"], updated);
+      if (variables.preferred_language) await setLocale(normalizeLocale(updated.preferred_language));
     },
   });
   const replayTour = useMutation({
@@ -105,25 +123,35 @@ export function ProfileScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>{coachingCopy("PROFILE & PREFERENCES", arabic)}</Text>
-          <Text accessibilityRole="header" style={styles.title}>
-            {coachingCopy("Your training story", arabic)}
-          </Text>
-          <Text style={styles.copy}>
-            {coachingCopy("Your goal, assessments and progress, connected in one place.", arabic)}
-          </Text>
+        <FeatureHeader title={t("profile")} showProfile={false} onBack={() => router.canGoBack() ? router.back() : router.replace("/")} onInfo={() => setShowInfo(true)}/>
+        <View style={[styles.identity, rtl && {flexDirection: "row-reverse"}]}>
+          <ProfileAvatar displayName={profile.data.display_name} hasPhoto={profile.data.has_profile_photo} photoUpdatedAt={profile.data.profile_photo_updated_at} size={72} onPress={() => setShowPhoto(!showPhoto)} accessibilityLabel={t("editProfilePhoto")}/>
+          <View style={{flex: 1, gap: 4}}><Text style={styles.name}>{profile.data.display_name ?? t("profile")}</Text><Text style={styles.copy}>{profile.data.training_goal ? planLabel(profile.data.training_goal, rtl) : t("editTrainingProfile")}</Text>{game.data ? <Text style={styles.level}>{t("level")} {formatNumber(game.data.level, locale)} · {formatNumber(game.data.xp, locale)} {t("xp")}</Text> : null}</View>
         </View>
-        <AppButton label={t("privacySettings")} onPress={() => router.push("/privacy")} />
-        {moderation.data?.can_moderate ? <AppButton label={t("moderation")} onPress={() => router.push("/moderation")}/> : null}
-        <AppButton label={t("weeklyMission")} onPress={() => router.push("/missions")} />
-        <AppButton label={t("progressScore")} onPress={() => router.push("/progress-score")} />
-        <View style={styles.profileContent}>
-          <ProfilePhotoEditor profile={profile.data} />
-          <ProfileOverview profile={profile.data} onEdit={() => setEditing(true)} />
+        <AppButton variant="green" label={t("editTrainingProfile")} onPress={() => setEditing(true)}/>
+        <AppButton variant="secondary" label={t("editProfilePhoto")} onPress={() => setShowPhoto(!showPhoto)} accessibilityState={{expanded: showPhoto}}/>
+        {showPhoto ? <ProfilePhotoEditor profile={profile.data}/> : null}
+        <View style={styles.preferenceGroup}>
+          <Text style={styles.groupTitle}>{t("preferencesTitle")}</Text>
+          <Text style={styles.copy}>{t("languagePreference")}</Text>
+          <View style={[styles.choices, rtl && {flexDirection: "row-reverse"}]}>{(["en", "ar-EG"] as const).map(option => <Pressable key={option} accessibilityRole="radio" accessibilityState={{selected: locale === option, disabled: preferences.isPending}} disabled={preferences.isPending} onPress={() => preferences.mutate({preferred_language: option})} style={[styles.choice, locale === option && styles.choiceSelected]}><Text style={styles.choiceText}>{option === "en" ? "English" : "العربية"}</Text></Pressable>)}</View>
+          <Text style={styles.copy}>{t("unitsPreference")}</Text>
+          <View style={[styles.choices, rtl && {flexDirection: "row-reverse"}]}>{(["metric", "imperial"] as const).map(option => <Pressable key={option} accessibilityRole="radio" accessibilityState={{selected: profile.data?.preferred_units === option, disabled: preferences.isPending}} disabled={preferences.isPending} onPress={() => preferences.mutate({preferred_units: option})} style={[styles.choice, profile.data?.preferred_units === option && styles.choiceSelected]}><Text style={styles.choiceText}>{t(option === "metric" ? "kilogram" : "pound")}</Text></Pressable>)}</View>
+          {preferences.isError ? <Text accessibilityRole="alert" style={styles.dangerError}>{t("request_failed")}</Text> : null}
         </View>
+        <View style={styles.links}>
+          <AppButton variant="secondary" label={t("privacySettings")} onPress={() => router.push("/privacy")}/>
+          <AppButton variant="secondary" label={t("assessmentHistory")} onPress={() => setShowInfo(true)}/>
+          <AppButton variant="secondary" label={t("leagueTab")} onPress={() => router.push("/league")}/>
+          {moderation.data?.can_moderate ? <AppButton variant="secondary" label={t("moderation")} onPress={() => router.push("/moderation")}/> : null}
+        </View>
+        <InfoSheet visible={showInfo} title={t("assessmentHistory")} onClose={() => setShowInfo(false)}>
+          <ProfileOverview profile={profile.data} onEdit={() => {setShowInfo(false); setEditing(true);}}/>
+          <AppButton variant="secondary" label={t("progressScore")} onPress={() => {setShowInfo(false); router.push("/progress-score");}}/>
+          <AppButton variant="secondary" label={t("weeklyMission")} onPress={() => {setShowInfo(false); router.push("/missions");}}/>
+          <AppButton label={phrase("copy_49f2d3b93452", arabic)} loading={replayTour.isPending} onPress={() => {setShowInfo(false); replayTour.mutate();}} variant="secondary"/>
+        </InfoSheet>
         <View style={styles.sessionActions}>
-          <AppButton label={phrase("copy_49f2d3b93452", arabic)} loading={replayTour.isPending} onPress={() => replayTour.mutate()} variant="secondary" />
           <AppButton label={coachingCopy("Back to BONYAN", arabic)} onPress={() => router.canGoBack() ? router.back() : router.replace("/")} variant="secondary" />
           <AppButton
             label={coachingCopy("Sign out", arabic)}
@@ -134,7 +162,8 @@ export function ProfileScreen() {
             variant="secondary"
           />
         </View>
-        <View style={styles.dangerZone}>
+        <AppButton variant="secondary" label={t("manageAccount")} onPress={() => setShowAccount(!showAccount)} accessibilityState={{expanded: showAccount}}/>
+        {showAccount ? <View style={styles.dangerZone}>
           <Text accessibilityRole="header" style={styles.dangerTitle}>
             {phrase("copy_6cbb38874eb1", arabic)}
           </Text>
@@ -179,13 +208,24 @@ export function ProfileScreen() {
               </View>
             </View>
           ) : null}
-        </View>
+        </View> : null}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  identity: {flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 8},
+  name: {color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 24},
+  level: {color: colors.green, fontFamily: fonts.bodySemiBold, fontSize: 13},
+  preferenceGroup: {padding: 16, gap: 10, backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.line},
+  groupTitle: {color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 18},
+  choices: {flexDirection: "row", gap: 10},
+  choice: {flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: colors.line},
+  choiceSelected: {backgroundColor: colors.greenSoft, borderColor: colors.greenBorder},
+  choiceText: {color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14},
+  links: {gap: 10},
+
   safeArea: {
     backgroundColor: colors.canvas,
     flex: 1,
@@ -194,7 +234,8 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 660,
     alignSelf: "center",
-    padding: spacing.lg,
+    gap: spacing.md,
+    padding: spacing.md,
     paddingBottom: spacing.xxl,
   },
   header: {
@@ -222,7 +263,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 23,
-    marginTop: spacing.md,
   },
   sessionActions: {
     gap: spacing.sm,

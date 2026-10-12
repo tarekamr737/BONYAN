@@ -4,7 +4,7 @@ import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -25,8 +25,9 @@ import {ExerciseDetails} from "../components/ExerciseDetails";
 import {useLocale} from "../../../core/i18n/LocaleProvider";
 import {getMyProfile} from "../../auth/api/profileApi";
 import { ExerciseCard } from "../components/ExerciseCard";
-import { SetStepper } from "../components/SetStepper";
-import { TrainingHeader } from "../components/TrainingHeader";
+import {NumberWheel} from "../components/NumberWheel";
+import Feather from "@expo/vector-icons/Feather";
+import {InfoSheet} from "../../../core/components/InfoSheet";
 import { selectWorkoutDay } from "../selectWorkoutDay";
 import { planNeedsRefresh, planRefreshMessage } from "../planIntegrity";
 import type { WorkoutSession } from "../types";
@@ -42,6 +43,7 @@ export function WorkoutDayScreen() {
   const {t, locale} = useLocale();
   const profile = useQuery({queryKey: ["profile", "me"], queryFn: getMyProfile});
   const imperial = profile.data?.preferred_units === "imperial";
+  const [showInfo, setShowInfo] = useState(false);
   const [reviewCompletion, setReviewCompletion] = useState(false);
   const queryClient = useQueryClient();
   const params = useLocalSearchParams();
@@ -49,6 +51,9 @@ export function WorkoutDayScreen() {
   const sessionId = paramValue(params.sessionId);
   const [activeIndex, setActiveIndex] = useState(0);
   const [reps, setReps] = useState(10);
+  const [repsBusy, setRepsBusy] = useState(false);
+  const [weightBusy, setWeightBusy] = useState(false);
+  const actionLock = useRef(false);
   const [weight, setWeight] = useState(0);
   const [localSession, setSession] = useState<WorkoutSession | null>(null);
   const savedSession = useQuery({queryKey: ["training", "session", sessionId], enabled: Boolean(sessionId), queryFn: () => getWorkoutSession(sessionId!)});
@@ -83,6 +88,7 @@ export function WorkoutDayScreen() {
       setSession(startedSession);
       router.setParams({ dayKey: startedSession.day_key, sessionId: startedSession.id });
     },
+    onSettled: () => {actionLock.current = false;},
   });
 
   const logMutation = useMutation({
@@ -99,6 +105,7 @@ export function WorkoutDayScreen() {
       });
     },
     onSuccess: setSession,
+    onSettled: () => {actionLock.current = false;},
   });
 
   const completeMutation = useMutation({
@@ -120,10 +127,11 @@ export function WorkoutDayScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <TrainingHeader
-          title={displayDayName(day?.name, arabic)}
-          subtitle={day ? exerciseCount(day.prescriptions.length, locale) : ""}
-        />
+        <View style={[styles.header, arabic && {flexDirection: "row-reverse"}]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("back")} style={styles.headerAction} onPress={() => router.canGoBack() ? router.back() : router.replace("/training")}><Feather name={arabic ? "arrow-right" : "arrow-left"} color={colors.bronze} size={22}/></Pressable>
+          <View style={{flex: 1}}><Text accessibilityRole="header" style={styles.headerTitle}>{displayDayName(day?.name, arabic)}</Text><Text style={[styles.detail, {marginTop: 0, fontSize: 11}]}>{day ? exerciseCount(day.prescriptions.length, locale) : ""}</Text></View>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("screenDetails")} style={styles.headerAction} onPress={() => setShowInfo(true)}><Feather name="info" color={colors.green} size={22}/></Pressable>
+        </View>
 
         {sessionId && !session && savedSession.isPending ? (
           <SurfaceCard>
@@ -164,50 +172,18 @@ export function WorkoutDayScreen() {
         {sessionId && savedSession.isError ? <SurfaceCard><Text style={styles.errorText}>{phrase("copy_282999cf84e4", arabic)}</Text><Pressable accessibilityRole="button" onPress={() => void savedSession.refetch()} style={styles.completeButton}><Text style={styles.completeButtonText}>{phrase("copy_bb30cda7c34e", arabic)}</Text></Pressable></SurfaceCard> : null}
         {day && active && (!sessionId || session) ? (
           <>
-            <SurfaceCard>
+            <SurfaceCard style={{padding: 16}}>
               <Text style={styles.activeName}>{active.name}</Text><Text style={styles.detail}>{formatNumber(activeIndex + 1, locale)} / {formatNumber(day.prescriptions.length, locale)}</Text>
+              <ExerciseMedia exerciseId={active.exercise_id} name={active.name} arabic={arabic} height={140}/>
               <Text style={styles.detail}>
                 {formatNumber(active.sets, locale)} {t("sets")} × {formatNumber(active.reps_min, locale)}–{formatNumber(active.reps_max, locale)} {t("reps")} · {t("rest")}: {formatNumber(active.rest_seconds, locale)} {t("seconds")}
               </Text>
-              <WorkoutRecovery session={session} exercise={active} index={activeIndex}/>
-              <View style={styles.stepperRow}>
-                <SetStepper arabic={arabic} label={phrase("copy_85ba154f815e", arabic)} max={50} min={0} onChange={setReps} step={1} value={reps} />
-                <SetStepper
-                  arabic={arabic}
-                  label={`${t("weight")} (${t(imperial ? "pound" : "kilogram")})`}
-                  max={imperial ? 660 : 300}
-                  min={0}
-                  onChange={value => setWeight(weightToKg(value, imperial))}
-                  step={imperial ? 5 : 2.5}
-                  value={Math.round(weightFromKg(weight, imperial) * 10) / 10}
-                />
+              <View style={[styles.stepperRow, arabic && {flexDirection: "row-reverse"}]}>
+                <NumberWheel key={"reps-" + activeIndex} label={t("reps")} min={0} max={50} step={1} value={reps} onChange={setReps} onBusyChange={setRepsBusy} disabled={sessionComplete || logMutation.isPending || completeMutation.isPending}/>
+                <NumberWheel key={"weight-" + activeIndex + imperial} label={t("weight") + " (" + t(imperial ? "pound" : "kilogram") + ")"} min={0} max={imperial ? 660 : 300} step={imperial ? 5 : 2.5} value={Math.round(weightFromKg(weight, imperial) * 10000) / 10000} onChange={value => setWeight(weightToKg(value, imperial))} onBusyChange={setWeightBusy} disabled={sessionComplete || logMutation.isPending || completeMutation.isPending}/>
               </View>
-              {!session ? (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={needsRefresh || startMutation.isPending}
-                  onPress={() => startMutation.mutate()}
-                  style={[styles.logButton, (needsRefresh || startMutation.isPending) && styles.disabledAction]}
-                >
-                  <Text style={styles.logButtonText}>{startMutation.isPending ? (phrase("copy_0d3f000d39a0", arabic)) : (phrase("copy_51cc7ab66cf6", arabic))}</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={placeholderExercise || completeMutation.isPending || logMutation.isPending || sessionComplete || nextSetNumber > active.sets}
-                  onPress={() => logMutation.mutate()}
-                  style={[
-                    styles.logButton,
-                    (placeholderExercise || logMutation.isPending || sessionComplete || nextSetNumber > active.sets) && styles.disabledAction,
-                  ]}
-                >
-                  <Text style={styles.logButtonText}>
-                    {nextSetNumber > active.sets ? (phrase("copy_e3b75f09ab2d", arabic)) : (phraseTemplate("copy_4f263cd01d68", arabic, (arabic) ? [nextSetNumber] : [nextSetNumber]))}
-                  </Text>
-                </Pressable>
-              )}
-              <ExerciseMedia exerciseId={active.exercise_id} name={active.name} arabic={arabic}/>
-              <ExerciseDetails exerciseId={active.exercise_id} collapsible/>
+              <Text style={[styles.detail, {fontSize: 11, marginTop: 0}]}>{t("swipeToChoose")}</Text>
+              <WorkoutRecovery session={session} exercise={active} index={activeIndex} showHistory={false}/>
               {startMutation.isError || logMutation.isError ? (
                 <Text style={styles.errorText}>{phrase("copy_3c8a982a67e3", arabic)}</Text>
               ) : null}
@@ -215,6 +191,9 @@ export function WorkoutDayScreen() {
 
             {activeIndex < day.prescriptions.length - 1 ? <Pressable accessibilityRole="button" disabled={logMutation.isPending || completeMutation.isPending} style={styles.completeButton} onPress={() => { setActiveIndex(index => index + 1); }}><Text style={styles.completeButtonText}>{phrase("copy_2b5f2b340a3f", arabic)}</Text></Pressable> : null}
             {sessionComplete ? <SurfaceCard><Text style={styles.stateTitle}>{phrase("copy_373f1549859f", arabic)}</Text><Text style={styles.detail}>{session.logged_sets.length} {phrase("copy_a91f53f9767a", arabic)}</Text><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => router.replace("/training")}><Text style={styles.completeButtonText}>{phrase("copy_4fbb7fee1e9e", arabic)}</Text></Pressable></SurfaceCard> : null}
+            <InfoSheet visible={showInfo} title={t("screenDetails")} onClose={() => setShowInfo(false)}>
+            <ExerciseDetails exerciseId={active.exercise_id}/>
+            <WorkoutRecovery session={session} exercise={active} index={activeIndex}/>
             {session && !sessionComplete && completedSets < active.sets ? <SessionSubstitutionPanel key={`${session.id}-${activeIndex}`} session={session} index={activeIndex} onCommitted={setSession}/> : null}
             <View style={styles.list}>
               {day.prescriptions.map((exercise, index) => (
@@ -224,11 +203,12 @@ export function WorkoutDayScreen() {
                   active={index === activeIndex}
                   exercise={exercise}
                   index={index}
-                  onPress={() => {if (logMutation.isPending || completeMutation.isPending) return; setActiveIndex(index);}}
+                  onPress={() => {if (logMutation.isPending || completeMutation.isPending) return; setActiveIndex(index); setShowInfo(false);}}
                 />
               ))}
             </View>
 
+            </InfoSheet>
             {reviewCompletion && !sessionComplete ? <SurfaceCard><Text style={styles.stateTitle}>{t("completionReview")}</Text><Text style={styles.detail}>{t("completionHelp")}</Text><Pressable accessibilityRole="button" disabled={completeMutation.isPending || logMutation.isPending} style={styles.completeButton} onPress={() => completeMutation.mutate()}><Text style={styles.completeButtonText}>{t("confirmCompletion")}</Text></Pressable><Pressable accessibilityRole="button" style={styles.completeButton} onPress={() => setReviewCompletion(false)}><Text style={styles.completeButtonText}>{t("cancel")}</Text></Pressable></SurfaceCard> : null}
             <Pressable
               accessibilityRole="button"
@@ -244,16 +224,47 @@ export function WorkoutDayScreen() {
           </>
         ) : null}
       </ScrollView>
+      {day && active && (!sessionId || session) && !sessionComplete ? <View style={styles.footer}>
+              {!session ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={needsRefresh || startMutation.isPending || repsBusy || weightBusy}
+                  onPress={() => {if (actionLock.current) return; actionLock.current = true; startMutation.mutate();}}
+                  style={[styles.logButton, (needsRefresh || startMutation.isPending) && styles.disabledAction]}
+                >
+                  <Text style={styles.logButtonText}>{startMutation.isPending ? (phrase("copy_0d3f000d39a0", arabic)) : (phrase("copy_51cc7ab66cf6", arabic))}</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={repsBusy || weightBusy || placeholderExercise || completeMutation.isPending || logMutation.isPending || sessionComplete || nextSetNumber > active.sets}
+                  onPress={() => {if (actionLock.current) return; actionLock.current = true; logMutation.mutate();}}
+                  style={[
+                    styles.logButton,
+                    (repsBusy || weightBusy || placeholderExercise || completeMutation.isPending || logMutation.isPending || sessionComplete || nextSetNumber > active.sets) && styles.disabledAction,
+                  ]}
+                >
+                  <Text style={styles.logButtonText}>
+                    {nextSetNumber > active.sets ? (phrase("copy_e3b75f09ab2d", arabic)) : (phraseTemplate("copy_4f263cd01d68", arabic, (arabic) ? [nextSetNumber] : [nextSetNumber]))}
+                  </Text>
+                </Pressable>
+              )}
+
+      </View> : null}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {flexDirection: "row", alignItems: "center", gap: 8},
+  headerAction: {width: 48, height: 48, alignItems: "center", justifyContent: "center"},
+  headerTitle: {fontFamily: fonts.displaySemiBold, fontSize: 17, lineHeight: 23, color: colors.text, textAlign: "center"},
+  footer: {paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.canvas},
   activeName: {
     color: colors.text,
     fontFamily: fonts.displaySemiBold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 28,
     marginTop: spacing.xs,
     textAlign: "center",
   },
@@ -275,16 +286,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: spacing.md,
     maxWidth: 660,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     width: "100%",
   },
   detail: {
     color: colors.mutedLight,
     fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 22,
-    marginTop: spacing.sm,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: spacing.xs,
     textAlign: "center",
   },
   disabledAction: {
@@ -312,10 +323,9 @@ const styles = StyleSheet.create({
   },
   logButton: {
     alignItems: "center",
-    backgroundColor: colors.bronze,
+    backgroundColor: colors.green,
     borderRadius: radii.control,
     justifyContent: "center",
-    marginTop: spacing.lg,
     minHeight: 58,
   },
   logButtonText: {
@@ -343,10 +353,9 @@ const styles = StyleSheet.create({
   stepperRow: {
     alignSelf: "center",
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: spacing.md,
     justifyContent: "center",
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
     width: "100%",
   },
   videoFrame: {

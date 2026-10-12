@@ -65,14 +65,14 @@ export function StepReveal({step, children}: PropsWithChildren<{step: string}>) 
   return <Animated.View style={[ui.stack, animatedStyle]}>{children}</Animated.View>;
 }
 
-export function ProgressMeter({value, label}: {value: number; label: string}) {
+export function ProgressMeter({value, label, color = colors.bronze}: {value: number; label: string; color?: string}) {
   const fill = useSharedValue(0);
   useEffect(() => {
     fill.set(withTiming(value, { duration: 220, easing: Easing.bezier(0.23, 1, 0.32, 1), reduceMotion: ReduceMotion.System }));
   }, [fill, value]);
   const animatedStyle = useAnimatedStyle(() => ({ width: `${Math.max(0, Math.min(100, fill.get()))}%` as `${number}%` }));
   return <View accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{min: 0, max: 100, now: value}} style={ui.track}>
-    <Animated.View style={[{height: 4, backgroundColor: colors.bronze}, animatedStyle]} />
+    <Animated.View style={[{height: 4, backgroundColor: color}, animatedStyle]} />
   </View>;
 }
 

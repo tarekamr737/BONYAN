@@ -22,6 +22,7 @@ import { AvatarBuildProgress } from "../components/AvatarBuildProgress";
 import { ManualMeasurementsForm } from "../components/ManualMeasurementsForm";
 import { PrivacyTimeline } from "../components/PrivacyTimeline";
 import { PrivateAvatarHero } from "../components/PrivateAvatarHero";
+import {InfoSheet} from "../../../core/components/InfoSheet";
 import { FeatureHeader } from "../../../core/components/FeatureHeader";
 import type { GameOverview } from "../../game/api";
 import {
@@ -46,6 +47,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const arabic = useContext(LanguageDirection);
   const {t} = useLocale();
   const game = useQuery({queryKey: ["game", "overview"], queryFn: getGameOverview});
+  const [showInfo, setShowInfo] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
   const [presentation, setPresentation] = useState<AvatarPresentation>("men");
   const avatarsQuery = useAvatars();
@@ -108,6 +111,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
             },
             onSuccess: (avatar) => {
               setActiveAvatar(avatar);
+              setShowSetup(false);
               setCreateNewVersion(false);
               setBuildStage(null);
             },
@@ -177,7 +181,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <FeatureHeader title={t("myAvatar")} subtitle={t("buildCharacter")} onBack={onBack}/>
+        <FeatureHeader title={t("myAvatar")} onBack={onBack} onInfo={() => setShowInfo(true)}/>
         {game.isError ? <AvatarButton tone="secondary" onPress={() => void game.refetch()}>{t("retry")}</AvatarButton> : null}
 
         <View style={styles.privateBadge}><Text style={styles.privateBadgeText}>{phrase("copy_f06d7f4640d5", arabic)}</Text></View>
@@ -214,7 +218,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
             } : undefined}
             pending={pending}
             setActiveAvatar={setActiveAvatar}
-            onCreateNew={() => { setSourcePhoto(null); setCreateNewVersion(true); }}
+            onCreateNew={() => { setSourcePhoto(null); setCreateNewVersion(true); setShowSetup(true); }}
             onUpdateMeasurements={() => router.push("/profile")}
             latestMeasurementsAt={measurementQuery.data?.recorded_at ?? null}
             sourcePhoto={sourcePhoto}
@@ -225,6 +229,8 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
         ) : (
           <View style={styles.creationSection}>
             <PrivateAvatarHero game={game.data} recordedAt={measurementQuery.data?.recorded_at}/>
+            {!showSetup ? <AvatarButton onPress={() => setShowSetup(true)}>{t("setupPrivateAvatar")}</AvatarButton> : null}
+            {showSetup ? <>
             {createNewVersion ? <AvatarButton onPress={() => setCreateNewVersion(false)} tone="secondary">{phrase("copy_36d676949b08", arabic)}</AvatarButton> : null}
             <View style={styles.selectorSection}>
               <Text style={styles.selectorEyebrow}>{phrase("copy_110a4294c421", arabic)}</Text>
@@ -292,25 +298,28 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
             </AvatarButton>
             <Pressable accessibilityRole="checkbox" accessibilityState={{checked: photoConsent}} onPress={() => setPhotoConsent(!photoConsent)} style={{minHeight: 50, paddingVertical: 12}}><Text style={styles.explainerCopy}>{photoConsent ? "✓ " : "☐ "}{t("photoConsent")}</Text></Pressable>
             <Text style={styles.explainerCopy}>{t("illustration")}</Text>
+            </> : null}
           </View>
         )}
 
+        <InfoSheet visible={showInfo} title={t("screenDetails")} onClose={() => setShowInfo(false)}>
         <View style={styles.privacyPanel}>
           <View style={styles.privateBadge}>
             <Text style={styles.privateBadgeText}>{phrase("copy_f06d7f4640d5", arabic)}</Text>
           </View>
           <Text style={styles.privacyTitle}>{phrase("copy_99e242286cc3", arabic)}</Text>
           <Text style={styles.privacyCopy}>
-            {phrase("copy_6fad82754d1b", arabic)}
+            {t("leagueAvatarPrivacy")}
           </Text>
           <PrivacyTimeline arabic={arabic} />
         </View>
 
-        {(avatarsQuery.data?.items.length ?? 0) > 1 ? <View style={{gap: 12}}><Text style={styles.heading}>{t("avatarHistory")}</Text>{avatarsQuery.data?.items.map(version => <AvatarButton key={version.id} tone="secondary" onPress={() => {setCreateNewVersion(false); setActiveAvatar(version);}}>{formatDate(version.created_at, arabic)} · {avatarStateTitle(version, arabic)}</AvatarButton>)}</View> : null}
+        {(avatarsQuery.data?.items.length ?? 0) > 1 ? <View style={{gap: 12}}><Text style={styles.heading}>{t("avatarHistory")}</Text>{avatarsQuery.data?.items.map(version => <AvatarButton key={version.id} tone="secondary" onPress={() => {setCreateNewVersion(false); setActiveAvatar(version); setShowInfo(false); setShowSetup(false);}}>{formatDate(version.created_at, arabic)} · {avatarStateTitle(version, arabic)}</AvatarButton>)}</View> : null}
         <AvatarButton tone="secondary" onPress={() => router.push("/inbody/progress")}>{t("bodyProfile")}</AvatarButton>
         <Text style={styles.previewCopy}>{t("characterEvidence")}</Text>
         <AvatarButton tone="secondary" onPress={() => router.push("/progress-score")}>{t("progressScore")}</AvatarButton>
         <AvatarButton tone="secondary" onPress={() => router.push("/privacy")}>{t("privacySettings")}</AvatarButton>
+        </InfoSheet>
         {measurementQuery.data?.generation_enabled === false ? <Text style={styles.previewCopy}>{t("avatar_generation_disabled")}</Text> : null}
         {mutationError ? (
           <View accessibilityRole="alert" style={styles.errorPanel}>
@@ -566,13 +575,13 @@ function AvatarReview({
       {avatar.approved ? (
         <View style={styles.communityControl}>
           <View style={styles.communityCopy}>
-            <Text style={styles.communityTitle}>{phrase("copy_81534fa73988", arabic)}</Text>
+            <Text style={styles.communityTitle}>{t("leagueAvatarVisibility")}</Text>
             <Text style={styles.communityDetail}>
-              {phrase("copy_855e3a065a0c", arabic)}
+              {t("leagueAvatarPrivacy")}
             </Text>
           </View>
           <Switch
-            accessibilityLabel={phrase("copy_ea1d514b8dfd", arabic)}
+            accessibilityLabel={t("leagueAvatarVisibility")}
             disabled={pending || avatar.development_mock}
             onValueChange={(enabled) => {
               mutations.resetErrors();

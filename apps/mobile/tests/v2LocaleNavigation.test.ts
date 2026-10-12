@@ -19,6 +19,7 @@ describe("V2 locale and navigation contracts", () => {
       expect(tabs.filter(tab => tab.active)).toHaveLength(1);
     }
   });
+  it("keeps the Coach panel on overview screens", () => {for (const path of ["/", "/profile", "/league", "/nutrition", "/missions", "/rewards", "/challenges"]) expect(showContextualCoach(path)).toBe(true);});
   it("does not overlap workout logging or Coach", () => { expect(showContextualCoach("/training/day")).toBe(false); expect(showContextualCoach("/training/coach")).toBe(false); expect(showContextualCoach("/avatar")).toBe(true); });
   it("preserves space for exercise previews and the manual builder's review action", () => {
     expect(showContextualCoach("/training/manual")).toBe(false);

@@ -11,7 +11,7 @@ import { colors, fonts, radii, spacing } from "../theme/tokens";
 type AppButtonProps = Omit<PressableProps, "children" | "style"> & {
   label: string;
   loading?: boolean;
-  variant?: "danger" | "primary" | "secondary";
+  variant?: "danger" | "primary" | "secondary" | "green";
 };
 
 export function AppButton({
@@ -32,7 +32,7 @@ export function AppButton({
       disabled={unavailable}
       style={({ pressed }) => [
         styles.base,
-        variant === "primary"
+        variant === "green" ? styles.green : variant === "primary"
           ? styles.primary
           : variant === "danger"
             ? styles.danger
@@ -43,13 +43,13 @@ export function AppButton({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "primary" ? colors.canvas : variant === "danger" ? colors.error : colors.bronze}
+          color={(variant === "primary" || variant === "green") ? colors.canvas : variant === "danger" ? colors.error : colors.bronze}
           size="small"
         />
       ) : (
         <Text
           style={
-            variant === "primary"
+            (variant === "primary" || variant === "green")
               ? styles.primaryLabel
               : variant === "danger"
                 ? styles.dangerLabel
@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
+  green: {backgroundColor: colors.green},
   primary: {
     backgroundColor: colors.bronze,
   },
