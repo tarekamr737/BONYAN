@@ -22,7 +22,7 @@ Baseline: `5f5e767`. Branch: `feat/bonyan-v2-game-fitness`.
 - Keep the modular monolith, authenticated `/api/v1`, existing media/provider adapters and additive migrations.
 - The supplied four-screen concept owns hierarchy; repository tokens own colors/type. Reference images are never user data or licensed exercise media.
 - The user's 12 October visual correction replaces the old Community tab destination with League.
-  The feed remains inside League. Today, private Avatar, League and Coach use the concept's compact
+  The latest revision removes feed/publication UI; legacy routes redirect to League and stored data stays protected. Green complements bronze, Home uses one persistent Coach panel, logging uses swipe/exact selectors, and Avatar/Profile keep optional details behind info controls. Today, private Avatar, League and Coach use the concept's compact
   headers and connected hierarchy; catalog demonstrations are visible before exercise selection.
 - Locale is `en` or `ar-EG`; legacy `ar` normalizes to `ar-EG`. Unknown API errors get localized safe copy.
 - Session prescription is captured at start. Approved substitutions replace only unlogged remaining sets; original logged-set attribution remains immutable. Session/plan/equipment approvals are distinct and owner-scoped.

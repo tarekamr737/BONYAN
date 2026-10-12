@@ -12,7 +12,9 @@ colors:
   measured-bronze: "#C8A86B"
   bronze-ember: "#2B251A"
   aged-bronze-edge: "#4B402B"
-  progress-mint: "#6FCF97"
+  progress-green: "#6FCF97"
+  green-surface: "#17261E"
+  green-edge: "#345A43"
   direct-coral: "#EB5757"
 typography:
   display:
@@ -129,14 +131,14 @@ inactive surface.
 
 ### Primary
 
-- **Measured Bronze:** The sole primary accent for actions, selected controls, compact section labels,
+- **Measured Bronze:** The established brand accent for actions, selected controls, compact section labels,
   and progress emphasis.
 - **Bronze Ember:** The low-contrast selected or informative surface behind bronze content.
 - **Aged Bronze Edge:** The quiet outline for secondary actions and bronze-tinted states.
 
 ### Secondary
 
-- **Progress Mint:** Successful, ready, or completed status only. Never use it as a second brand accent.
+- **Progress Green:** The user-approved second accent for Start/Resume, logging, XP, numeric selections and helpful detail controls. Pair with its quiet green surface/edge; retain bronze branding.
 - **Direct Coral:** Validation, destructive actions, and recoverable failure messages only.
 
 ### Neutral
@@ -154,8 +156,7 @@ inactive surface.
 **The Bronze Is Earned Rule.** Bronze marks the next meaningful action, current selection, or measured
 progress. If everything is bronze, nothing is actionable.
 
-**The Semantic Color Rule.** Mint means success and coral means error or danger. Neither color is
-allowed as decoration.
+**The Action Color Rule.** Green supports training/progress actions and bronze retains brand/navigation emphasis. Coral means error or danger. Color never supplies the only state cue.
 
 ## 3. Typography
 
@@ -278,17 +279,17 @@ states use Direct Coral for the message and a standard secondary retry button.
 
 V2 supersedes the legacy Home hierarchy below: Today prioritizes the next workout, distinct Progress
 Score and XP/Level, private Avatar, missions and league position. The shell is Today / Train / Avatar /
-Nutrition / League. The League is the social landing screen; its community-feed action preserves
-existing chronological posts and publication/privacy controls. Coach is contextual, not a sixth tab. Avatar has provenance and illustration
+Nutrition / League. League is the only social landing screen. Feed and publication routes redirect to
+League; historical data retains its access/privacy/export/deletion protections. Coach is contextual, not a sixth tab. Avatar has provenance and illustration
 disclosure; reference humans and statistics must never appear as actual user data. Arabic mirrors layouts.
 
 Today follows the supplied concept: compact official brand/header, next-workout demonstration and
-bronze Start/Resume action, coverage-aware score ring beside XP, a private Avatar strip, paired
-mission/league links and Coach encouragement. Daily habits score remains distinct and secondary.
+green Start/Resume action, coverage-aware score ring beside XP, a private Avatar strip, paired
+mission/league links. The persistent Coach panel supplies Coach access; there is no duplicate Home card. Daily habits score remains distinct and secondary.
 League follows the season banner, real 2/1/3 podium, remaining members, mission rows and reward
 wallet hierarchy. Empty podiums are explicitly unranked placeholders, never fabricated people.
 Avatar uses the private illustration beside a score/provenance/XP rail, with approval and source
-privacy controls below. Coach uses the shared header and actual exercise media in session choices.
+privacy controls below. Optional provenance, history and help live in a top info sheet; setup expands only on request. Profile starts with identity, training edit and persisted language/unit controls, with history/account details disclosed on request. Workout logging shows actual demonstrations, swipe wheels and exact numeric entry, with a green fixed action, existing rest recovery and explicit completion review. Coach uses the shared header and actual exercise media in session choices.
 Manual building starts with authenticated catalog browsing, muscle-group filters, large movement
 demonstrations, explicit add/remove controls and a persistent review action. Search results are
 bounded to twelve per page; selected prescriptions survive filtering/paging. Its Coach dock is

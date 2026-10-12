@@ -1,5 +1,17 @@
 # BONYAN V2 tasks
 
+## UI refinement — latest owner revision, 12 October
+
+- [x] Remove the duplicate Home Coach card; retain the contextual panel and extend it to overview screens.
+- [x] Add green action, selected-control and progress accents alongside BONYAN bronze.
+- [x] Replace logging steppers with swipe wheels, exact numeric entry, accessible alternatives and a fixed logging action; preserve canonical kg, recovery and transaction guards.
+- [x] Reduce Avatar setup and metric density; move optional privacy/history/help to the top-right info sheet and preserve explicit consent/release warnings.
+- [x] Retire feed/publication UI and redirect legacy links to League; preserve stored data and privacy APIs.
+- [x] Improve Profile identity, training/photo editing, persisted language/units, optional history and account management; retain deletion confirmation.
+- [x] Run mobile regression, lint, TypeScript, route generation, all-platform exports and bilingual Android interaction QA; record scope in BONYAN_V2_QA.md.
+
+Current mobile result: 104 tests passed in 26 files. This UI revision does not change backend schemas/services or call paid providers. Historical entries below describe earlier iterations; the latest owner revision supersedes their feed and accent decisions.
+
 - [x] Read supplied master prompt/concept; safely extract 25 reference screens; audit baseline.
 - [x] A: Typed persisted locales, shared RTL/error states, five-tab shell and contextual Coach.
 - [x] B: Rich shared exercise media/details, plan/picker/session parity and session recovery.

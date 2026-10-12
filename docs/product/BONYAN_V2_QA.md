@@ -1,5 +1,27 @@
 # BONYAN V2 QA — 12 October 2026
 
+## Latest owner UI revision
+
+Implemented on `feat/bonyan-v2-game-fitness` in the emulator checkout. Home now uses one persistent Coach entry. Green complements bronze for workout actions, XP and numeric selections. Feed/post-creation routes redirect to League; existing stored data and authorization/privacy/export/deletion APIs are retained. Avatar expands setup on request and exposes optional provenance/history/help through a top-right info sheet. Profile starts with identity, training/photo editing and persisted language/weight-unit choices; history and account management are optional.
+
+Workout logging displays the actual authorized movement demonstration above two swipe wheels, with exact typing and accessible plus/minus alternatives. Selection alone never logs a set. A synchronous submission guard prevents duplicate taps, and logging is disabled during wheel movement/editing. The existing server session snapshot, kg storage, rest clock, substitution approval and completion review remain authoritative. Previous performance and exercise/session details are available through the info sheet.
+
+Validation: **104 mobile tests passed in 26 files**, ESLint, TypeScript, route generation and Android/iOS/web release exports passed. API `/health` and `/ready` passed. Backend code/schema did not change, so the previous API regression below is historical and was not rerun for this UI revision. No paid Coach, Avatar or OCR calls were made. Native iOS and revised interactive web verification remain outside this run; successful exports do not establish native iOS interaction quality.
+
+Android QA used 360×640 dp: real exercise GIF playback, reps swiped from 10 to 12, weight from 0 to 5 kg, exact 1.25 kg entry, English/Egyptian Arabic controls and RTL, persisted in-app language changes, and Avatar/Profile detail sheets. The synthetic account retains test activity, including one additional logged set during this QA; it represents software validation, not physical exercise. No real user/body fixture was fabricated. The final emulator display overrides are reset and the app remains open.
+
+| Revised screen | English Android | Egyptian Arabic Android |
+|---|---|---|
+| Today | [Capture](screenshots/v2-refinement-today-en.png) | [Capture](screenshots/v2-refinement-today-ar.png) |
+| Workout swipe logging | [Capture](screenshots/v2-refinement-workout-en.png) | [Capture](screenshots/v2-refinement-workout-ar.png) |
+| Avatar | [Capture](screenshots/v2-refinement-avatar-en.png) | [Capture](screenshots/v2-refinement-avatar-ar.png) |
+| Profile | [Capture](screenshots/v2-refinement-profile-en.png) | [Capture](screenshots/v2-refinement-profile-ar.png) |
+| League | [Capture](screenshots/v2-refinement-league-en.png) | [Capture](screenshots/v2-refinement-league-ar.png) |
+
+Earlier entries below remain the previous implementation/test history.
+
+The tested source revision is `9bed93e`; its staged patch passed a redacted Gitleaks scan. The [exact-entry capture](screenshots/v2-refinement-exact-weight-en.png) records the 1.25 kg selection before the final compact recovery layout. Updated documentation and screenshots receive the same secret-scan checks before committing.
+
 Branch: `feat/bonyan-v2-game-fitness`, based on `5f5e767` (approved PR #15 development baseline). The implementation follows the supplied master prompt and four-screen concept, with 25 supporting references extracted and existing components reused. This report records local verification; it does not approve a production release.
 
 ## Latest concept alignment correction

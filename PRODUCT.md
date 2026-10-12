@@ -8,7 +8,10 @@ confirmed InBody measurements and consented photos inform a private illustrative
 real workouts and sustainable nutrition/recovery earn capped server-authoritative XP and missions.
 Progress is goal-relative, never attractiveness or a medical grade. Five destinations: Today, Train,
 Avatar, Nutrition, League. The user's 12 October correction makes the concept's League the primary
-social destination; the chronological community feed remains accessible inside it. Coach edits
+social destination. The latest user revision retires feed and post-creation screens; legacy links redirect
+to League while stored data remains protected. Green complements bronze as an action/progress accent.
+Today uses the persistent Coach panel; Avatar/Profile expose optional detail sheets and workout logging
+uses swipe selectors with exact entry and canonical kilogram storage. Coach edits
 require preview, explicit scope, approval and atomic commit.
 
 Preserve Human Foundry tokens, ownership/security, useful services, existing data and additive migrations.
