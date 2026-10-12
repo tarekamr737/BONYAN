@@ -1,4 +1,5 @@
 import { parseLocalizedNumber } from "../../../core/i18n/messages";
+import {measurementUnit} from "../../../core/i18n/measurements";
 import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import { router } from "expo-router";
@@ -14,7 +15,7 @@ import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { colors, fonts, radii, spacing } from "../../../core/theme/tokens";
 import { confirmInBodyScan, getInBodyScan, updateInBodyReview } from "../api/inbodyApi";
 import { MeasurementRow, measurementLabel } from "../components/MeasurementRow";
-import { getInBodyReviewState } from "../reviewState";
+import { getInBodyReviewState, recoverableMeasurements } from "../reviewState";
 import type { InBodyMeasurement } from "../types";
 
 type Props = {
@@ -24,7 +25,8 @@ type Props = {
 
 export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
   const arabic = useContext(LanguageDirection);
-  const {t} = useLocale(); const client = useQueryClient();
+  const {t, locale} = useLocale(); const client = useQueryClient();
+  const [manualRecovery, setManualRecovery] = useState(false);
   const [draftDate, setDraftDate] = useState<string | null>(null);
   const [draftDevice, setDraftDevice] = useState<string | null>(null);
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
@@ -32,8 +34,9 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
     queryFn: () => getInBodyScan(scanId),
     queryKey: ["inbody", "scan", scanId],
   });
-  const measurements = data?.result?.measurements ?? [];
+  const measurements = recoverableMeasurements(data?.result?.measurements ?? [], manualRecovery && data?.status === "failed");
   const reviewState = getInBodyReviewState(data);
+  const canReview = Boolean(data && (reviewState === "review" || (reviewState === "failed" && manualRecovery)));
   const date = draftDate ?? data?.result?.scan_date ?? "";
   const device = draftDevice ?? data?.result?.device_label ?? "";
   const provenance = {device_label: device.trim() || null, expected_version: data?.result?.measurement_version ?? 1};
@@ -44,7 +47,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
   });
   const confirmMutation = useMutation({
     mutationFn: async () => {
-      if ((Object.keys(draftValues).length > 0 || draftDate !== null || draftDevice !== null) && data?.result) {
+      if (canReview && (Object.keys(draftValues).length > 0 || draftDate !== null || draftDevice !== null || (manualRecovery && data?.status === "failed"))) {
         const updated = await updateInBodyReview(
           scanId,
           buildEditedMeasurements(measurements, draftValues),
@@ -81,7 +84,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
               <Text style={styles.secondaryButtonText}>{phrase("copy_a1af7493c131", arabic)}</Text>
             </Pressable>
           ) : null}
-          {reviewState === "failed" ? (
+          {reviewState === "failed" && !manualRecovery ? (
             <View style={styles.failedState}>
               <Text accessibilityRole="alert" style={styles.errorText}>
                 {arabic ? "ما قدرناش نعالج التقرير ده." : data?.failure_message ?? "This report could not be processed."}
@@ -89,6 +92,7 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
               <Text style={styles.subtitle}>
                 {phrase("copy_78f26b868ea9", arabic)}
               </Text>
+              <AppButton label={t("manualReportReview")} variant="green" onPress={() => setManualRecovery(true)}/>
               <AppButton label={phrase("copy_6c2a53bb6a8c", arabic)} onPress={() => router.replace("/inbody")} />
               <AppButton label={phrase("copy_8986b24d8720", arabic)} variant="secondary" onPress={() => router.replace("/profile")} />
             </View>
@@ -102,8 +106,9 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
                 <Text style={styles.buttonText}>{phrase("copy_ec60f955dfd5", arabic)}</Text>
               </Pressable>
             </View>
-          ) : reviewState === "review" ? (
+          ) : canReview ? (
             <>
+              {manualRecovery ? <Text style={styles.subtitle}>{t("manualReportHelp")}</Text> : null}
               <Text style={styles.subtitle}>{t("measurementDate")}</Text>
               <TextInput accessibilityLabel={t("measurementDate")} placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} autoCapitalize="none" style={[styles.input, {minHeight: 50, writingDirection: "ltr"}]} value={date} onChangeText={setDraftDate}/>
               <Text style={styles.subtitle}>{t("dateInputHelp")}</Text>
@@ -113,10 +118,10 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
                 <View key={measurement.key} style={styles.editRow}>
                   <MeasurementRow measurement={measurement} />
                   <TextInput
-                    accessibilityLabel={phraseTemplate("copy_43276d5b2c84", arabic, (arabic) ? [measurementLabel(measurement.key, true)] : [measurementLabel(measurement.key, false)])}
+                    accessibilityLabel={phraseTemplate("copy_43276d5b2c84", arabic, [measurementLabel(measurement.key, arabic)]) + (measurement.unit ? " (" + measurementUnit(measurement.unit, locale) + ")" : "")}
                     keyboardType="decimal-pad"
                     onChangeText={(value) => updateValue(measurement.key, value)}
-                    placeholder={phrase("copy_53cdbd5e3c85", arabic)}
+                    placeholder={phrase("copy_53cdbd5e3c85", arabic) + (measurement.unit ? " · " + measurementUnit(measurement.unit, locale) : "")}
                     placeholderTextColor={colors.muted}
                     style={[styles.input, arabic && styles.inputArabic]}
                     value={draftValues[measurement.key] ?? (measurement.value === null ? "" : String(measurement.value))}
@@ -125,9 +130,9 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
               ))}
               <Pressable
                 accessibilityRole="button"
-                disabled={!data?.result || saveMutation.isPending}
+                disabled={!canReview || saveMutation.isPending || confirmMutation.isPending}
                 onPress={() => saveMutation.mutate()}
-                style={[styles.secondaryButton, !data?.result ? styles.disabledButton : undefined]}
+                style={[styles.secondaryButton, !canReview ? styles.disabledButton : undefined]}
               >
                 <Text style={styles.secondaryButtonText}>
                   {saveMutation.isPending ? (phrase("copy_fdb50efd5953", arabic)) : (phrase("copy_828a42113e4f", arabic))}
@@ -140,11 +145,11 @@ export function InBodyReviewScreen({ scanId, onConfirmed }: Props) {
               ) : null}
               <Pressable
                 accessibilityRole="button"
-                disabled={!data?.result || confirmMutation.isPending || saveMutation.isPending}
+                disabled={!canReview || confirmMutation.isPending || saveMutation.isPending}
                 onPress={() => confirmMutation.mutate()}
                 style={[
                   styles.button,
-                  !data?.result || saveMutation.isPending ? styles.disabledButton : undefined,
+                  !canReview || saveMutation.isPending ? styles.disabledButton : undefined,
                 ]}
               >
                 <Text style={styles.buttonText}>

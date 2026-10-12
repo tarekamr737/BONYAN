@@ -1,5 +1,16 @@
 # BONYAN V2 tasks
 
+## Owner real-data trial
+
+- [x] Obtain explicit consent for the actual report/photo destinations and create a separate private local account.
+- [x] Attempt one real OCR upload; record the provider's HTTP 429 and preserve failure visibility without paid retries.
+- [x] Add a direct Avatar-to-report upload action and a native failed-OCR manual-review path; keep canonical units, unknown values and versioned confirmation.
+- [x] Prevent generic muscle mass from being mistaken for skeletal muscle mass; use synthetic regression fixtures.
+- [x] Verify and confirm actual report values through native manual review, then run exactly one approved real Avatar generation.
+- [x] Render the real, unapproved private portrait on Android; verify sharing remains off and keep personal artifacts out of Git.
+- [x] Run API/mobile regression and required checks: 329 API passes with 18 guarded skips; 107 mobile passes; lint/typecheck/routes/all-platform exports passed.
+- [ ] Successful live OCR extraction remains blocked by the configured Mistral account's usage limit. No further OCR call is authorized in this trial.
+
 ## UI refinement — latest owner revision, 12 October
 
 - [x] Remove the duplicate Home Coach card; retain the contextual panel and extend it to overview screens.

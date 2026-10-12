@@ -1,5 +1,18 @@
 # BONYAN V2 QA — 12 October 2026
 
+## Approved private owner trial
+
+The owner explicitly approved one OCR upload to Mistral and one image-generation attempt to OpenRouter/Meta Muse Image using their local report/photos, and requested a separate private local account. Trial onboarding choices were authorized sample preferences. Real files, extracted/reviewed values, credentials, signed URLs, generated images and screenshots remain in ignored local storage; none are committed here or shared in League.
+
+- Mistral OCR returned HTTP 429 (usage limit). The single upload used the adapter's two automatic attempts; no additional upload or manual paid retry was made. **Live OCR did not pass.**
+- Imported images were indexed on the local emulator, but file selection could not be completed reliably. The report was uploaded once through the existing authenticated API. Native review then entered values verified against the actual paper, saved corrections and confirmed the source record. Unreported/ambiguous values stayed unknown. This is human-confirmed report data, not successful OCR extraction.
+- A generic muscle-mass label is no longer mapped to skeletal muscle mass. Regression fixtures use synthetic values and verify explicit skeletal labels separately. Percentage water remains distinct from water volume.
+- Avatar setup now has a direct bilingual report-upload action. Failed scans now expose an explicit manual-review option with unknown starting values and visible canonical units, preserving version checks and deliberate confirmation.
+- Exactly one real OpenRouter/Meta image generation completed as `ready_for_review`, with `development_mock=false`, unapproved and private. Native Android rendered the generated portrait. All sharing permissions stayed off. This single owner case does not establish provider benchmark quality or lift production release gates.
+- Checks after these fixes: **329 API passed, 18 skipped**, **107 mobile passed**, API Ruff/mobile ESLint/TypeScript, routes and Android/iOS/web release exports passed. Paid-provider opt-in suites stayed disabled. Account/report records remained intact after regression. API health/readiness passed.
+
+The original files were unchanged. Private trial credentials/results are under `D:/BONYAN/.tools/private-owner-trial/`; this directory is Git-ignored. The emulator remains signed into that account on Avatar review. Provider billing totals were not retrieved, and no second generation was made.
+
 ## Latest owner UI revision
 
 Implemented on `feat/bonyan-v2-game-fitness` in the emulator checkout. Home now uses one persistent Coach entry. Green complements bronze for workout actions, XP and numeric selections. Feed/post-creation routes redirect to League; existing stored data and authorization/privacy/export/deletion APIs are retained. Avatar expands setup on request and exposes optional provenance/history/help through a top-right info sheet. Profile starts with identity, training/photo editing and persisted language/weight-unit choices; history and account management are optional.

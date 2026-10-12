@@ -1,4 +1,7 @@
 export const messages = {
+  uploadBodyReport: ["Upload body report", "ارفع تقرير قياسات الجسم"],
+  manualReportReview: ["Enter report values manually", "اكتب قياسات التقرير يدويًا"],
+  manualReportHelp: ["OCR is unavailable. Copy only values printed on your report and leave the rest blank. Use the units shown beside each field.", "قراءة التقرير مش متاحة. اكتب القياسات الموجودة في تقريرك بس وسيب الباقي فاضي. استخدم الوحدة الموضّحة جنب كل خانة."],
   screenDetails: ["Details & help", "تفاصيل ومساعدة"],
   swipeToChoose: ["Swipe to choose · tap the number to type", "اسحب عشان تختار · دوس على الرقم عشان تكتبه"],
   invalidSetValue: ["Enter a number within the shown range.", "اكتب رقم في النطاق الموضّح."],

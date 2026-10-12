@@ -46,7 +46,7 @@ _FIELD_PATTERNS = {
         re.I,
     ),
     InBodyMetricKey.SKELETAL_MUSCLE_MASS: re.compile(
-        r"(?:skeletal\s+muscle\s+mass|كتلة\s+العضلات)\s*[:\-]?\s*"
+        r"(?:skeletal\s+muscle\s+mass|كتلة\s+العضلات\s+الهيكلية)\s*[:\-]?\s*"
         r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>kg|lb|lbs|كجم|كغ)",
         re.I,
     ),

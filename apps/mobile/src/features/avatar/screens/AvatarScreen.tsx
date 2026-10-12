@@ -338,6 +338,7 @@ type MeasurementPanelProps = {
 };
 
 function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
+  const {t} = useLocale();
   const [showManualForm, setShowManualForm] = useState(false);
 
   if (query.isPending) {
@@ -378,6 +379,7 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
             <Text style={styles.retryLabel}>{phrase("copy_0884436f7af9", arabic)}</Text>
           </Pressable>
         </View>
+        <AvatarButton tone="secondary" onPress={() => router.push("/inbody")}>{t("uploadBodyReport")}</AvatarButton>
         <ManualMeasurementsForm arabic={arabic} onSaved={() => void query.refetch()} />
       </View>
     );

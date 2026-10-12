@@ -40,20 +40,20 @@ def test_scanned_pdf_missing_fields_remain_null() -> None:
     assert values[InBodyMetricKey.HEIGHT] is None
 
 
-def test_arabic_smart_lab_receipt_maps_without_inventing_water_liters() -> None:
+def test_arabic_generic_receipt_does_not_invent_skeletal_mass_or_water_liters() -> None:
     result = map_mistral_ocr_to_inbody(
         {
             "pages": [
                 {
                     "markdown": """
-                    الطول: 181.7 سم
-                    الوزن: 73.7 كجم
-                    مؤشر كتلة الجسم (BMI): 22.3
-                    نسبة دهون الجسم: 15.1 %
-                    وزن الدهون: 11.1 كجم
-                    دهون منطقة البطن: 6.5
-                    نسبة الماء في الجسم: 62.8 %
-                    كتلة العضلات: 59.4 كجم
+                    الطول: 180 سم
+                    الوزن: 80 كجم
+                    مؤشر كتلة الجسم (BMI): 24.7
+                    نسبة دهون الجسم: 18 %
+                    وزن الدهون: 14.4 كجم
+                    دهون منطقة البطن: 5
+                    نسبة الماء في الجسم: 60 %
+                    كتلة العضلات: 58 كجم
                     """
                 }
             ]
@@ -61,15 +61,29 @@ def test_arabic_smart_lab_receipt_maps_without_inventing_water_liters() -> None:
     )
     measurements = {item.key: item for item in result.measurements}
 
-    assert measurements[InBodyMetricKey.HEIGHT].value == 181.7
+    assert measurements[InBodyMetricKey.HEIGHT].value == 180
     assert measurements[InBodyMetricKey.HEIGHT].unit == "cm"
-    assert measurements[InBodyMetricKey.WEIGHT].value == 73.7
-    assert measurements[InBodyMetricKey.BMI].value == 22.3
-    assert measurements[InBodyMetricKey.BODY_FAT_PERCENTAGE].value == 15.1
-    assert measurements[InBodyMetricKey.BODY_FAT_MASS].value == 11.1
-    assert measurements[InBodyMetricKey.VISCERAL_FAT_LEVEL].value == 6.5
-    assert measurements[InBodyMetricKey.SKELETAL_MUSCLE_MASS].value == 59.4
+    assert measurements[InBodyMetricKey.WEIGHT].value == 80
+    assert measurements[InBodyMetricKey.BMI].value == 24.7
+    assert measurements[InBodyMetricKey.BODY_FAT_PERCENTAGE].value == 18
+    assert measurements[InBodyMetricKey.BODY_FAT_MASS].value == 14.4
+    assert measurements[InBodyMetricKey.VISCERAL_FAT_LEVEL].value == 5
+    assert measurements[InBodyMetricKey.SKELETAL_MUSCLE_MASS].value is None
     assert measurements[InBodyMetricKey.TOTAL_BODY_WATER].value is None
+
+
+def test_explicit_arabic_skeletal_muscle_label_is_supported() -> None:
+    result = map_mistral_ocr_to_inbody(
+        {"pages": [{"text": "كتلة العضلات: 58 كجم\nكتلة العضلات الهيكلية: 35.2 كجم"}]}
+    )
+    values = {item.key: item.value for item in result.measurements}
+    assert values[InBodyMetricKey.SKELETAL_MUSCLE_MASS] == 35.2
+
+
+def test_generic_english_muscle_mass_does_not_become_skeletal_mass() -> None:
+    result = map_mistral_ocr_to_inbody({"pages": [{"text": "Muscle mass: 58 kg"}]})
+    values = {item.key: item.value for item in result.measurements}
+    assert values[InBodyMetricKey.SKELETAL_MUSCLE_MASS] is None
 
 
 def test_markdown_table_separators_do_not_hide_measurements() -> None:

@@ -1,7 +1,7 @@
 import {translate, type Locale} from "./messages";
 const measurements = {
   height: ["Height", "الطول"], weight: ["Weight", "الوزن"],
-  skeletal_muscle_mass: ["Skeletal muscle", "الكتلة العضلية"], body_fat_mass: ["Body fat mass", "كتلة الدهون"],
+  skeletal_muscle_mass: ["Skeletal muscle mass", "كتلة العضلات الهيكلية"], body_fat_mass: ["Body fat mass", "كتلة الدهون"],
   body_fat_percentage: ["Body fat", "نسبة الدهون"], bmi: ["BMI", "مؤشر كتلة الجسم"],
   total_body_water: ["Total body water", "ميّه الجسم"], visceral_fat_level: ["Visceral fat", "الدهون الحشوية"],
   inbody_score: ["InBody score", "نتيجة InBody"],
