@@ -26,7 +26,7 @@ export function AppTaskbar({arabic}: {arabic: boolean}) {
 function TaskbarItem({item, path}: {item: NavItem; path: string}) {
   const ref = useRef<NativeView>(null);
   const {registerTarget} = useHomeTour();
-  const tourTarget = ({"/training": "training-tab", "/nutrition": "nutrition-tab", "/training/coach": "coach-tab", "/community": "community-tab"} as Record<string, HomeTourTarget>)[item.href];
+  const tourTarget = ({"/training": "training-tab", "/nutrition": "nutrition-tab", "/training/coach": "coach-tab", "/league": "community-tab"} as Record<string, HomeTourTarget>)[item.href];
   return <Pressable ref={ref} onLayout={() => {if (tourTarget) registerTarget(tourTarget, ref.current);}} accessibilityRole="button" accessibilityState={{selected: item.active}} onPress={() => {if (path !== item.href) router.navigate(item.href as never);}} style={({pressed}) => [styles.item, item.active && styles.active, pressed && styles.pressed]}>
     <View style={item.href === "/avatar" ? styles.avatarIcon : undefined}><Feather name={item.icon} size={item.href === "/avatar" ? 24 : 20} color={item.active ? colors.canvas : item.href === "/avatar" ? colors.bronze : colors.mutedLight} /></View>
     <Text numberOfLines={1} style={[styles.label, item.active && styles.activeLabel]}>{item.label}</Text>

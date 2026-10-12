@@ -1,25 +1,27 @@
+import Feather from "@expo/vector-icons/Feather";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {Image} from "expo-image";
+import {router} from "expo-router";
+import {useRef} from "react";
+import {ActivityIndicator, Pressable, StyleSheet, View} from "react-native";
+import {CoachingPage, ProgressMeter, ui} from "../../features/auth/components/CoachingUI";
+import {getGameOverview, getLeague, getProgressHistory} from "../../features/game/api";
 import {visibleProgressValue} from "../../features/game/progress";
-import {exerciseCount, workoutDayLabel} from "../i18n/fitness";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Image } from "expo-image";
-import { router } from "expo-router";
-import { useRef } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { CoachingPage, ProgressMeter, ui } from "../../features/auth/components/CoachingUI";
-import { getGameOverview, getLeague, getProgressHistory } from "../../features/game/api";
-import { getDailyDashboard } from "../../features/nutrition/api";
-import { getWorkoutSessions, startWorkoutSession } from "../../features/training/api/trainingApi";
-import { planNeedsRefresh } from "../../features/training/planIntegrity";
-import { ExerciseMedia } from "../../features/training/components/ExerciseMedia";
-import { AppButton, BrandMark, NotificationBell, ProfileAvatar } from "../components";
-import { DirectionalText as Text } from "../components/DirectionalText";
-import { SurfaceCard } from "../components/SurfaceCard";
-import { useLocale } from "../i18n/LocaleProvider";
-import { formatNumber } from "../i18n/messages";
-import { useAppNotifications } from "../notifications/useAppNotifications";
-import { colors, fonts, spacing } from "../theme/tokens";
-import { useHomeTour } from "../tour/HomeTour";
-import { nextWorkout, progressChange } from "./todayState";
+import {getDailyDashboard} from "../../features/nutrition/api";
+import {getWorkoutSessions, startWorkoutSession} from "../../features/training/api/trainingApi";
+import {ExerciseMedia} from "../../features/training/components/ExerciseMedia";
+import {planNeedsRefresh} from "../../features/training/planIntegrity";
+import {AppButton, BrandMark, NotificationBell, ProfileAvatar} from "../components";
+import {DirectionalText as Text} from "../components/DirectionalText";
+import {ProgressRing} from "../components/ProgressRing";
+import {SurfaceCard} from "../components/SurfaceCard";
+import {useLocale} from "../i18n/LocaleProvider";
+import {exerciseCount, fitnessLabel, workoutDayLabel} from "../i18n/fitness";
+import {formatNumber} from "../i18n/messages";
+import {useAppNotifications} from "../notifications/useAppNotifications";
+import {colors, fonts} from "../theme/tokens";
+import {useHomeTour} from "../tour/HomeTour";
+import {nextWorkout, progressChange} from "./todayState";
 
 export function HomeScreen() {
   const {t, locale, rtl} = useLocale();
@@ -38,37 +40,56 @@ export function HomeScreen() {
     router.push({pathname: "/training/day", params: {sessionId: session.id, dayKey: session.day_key}});
   }});
   const avatar = avatars.data?.items.find(item => item.approved) ?? avatars.data?.items[0];
+  const score = game.data ? visibleProgressValue(game.data.progress_score) : null;
   const delta = game.data ? progressChange(game.data.progress_score, history.data ?? []) : null;
-  const workoutMission = game.data?.missions.find(item => item.category === "workout");
+  const mission = game.data?.missions.find(item => item.category === "workout");
   const row = [styles.row, rtl && styles.reverse];
   const ready = !sessions.isPending && !sessions.isError && !plan.isPending && !plan.isError;
-  return <CoachingPage arabic={rtl} onScrollViewRef={setHomeScroller} contentStyle={{padding: 16, paddingBottom: 48, gap: 16}}>
-    <View style={[styles.header, rtl && styles.reverse]}><BrandMark size={48}/><View style={styles.row}>
+  return <CoachingPage arabic={rtl} onScrollViewRef={setHomeScroller} contentStyle={{padding: 16, paddingBottom: 24, gap: 12}}>
+    <View style={[styles.header, rtl && styles.reverse]}><View style={row}><BrandMark size={32}/><Text style={styles.wordmark}>BONYAN</Text></View><View style={row}>
       <NotificationBell arabic={rtl} count={state.requiresActionCount} onPress={() => router.push("/notifications")}/>
-      <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={t("profile")} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} photoUpdatedAt={profile.data?.profile_photo_updated_at} onPress={() => router.push("/profile")} size={50}/></View>
+      <View ref={profileRef} onLayout={() => registerTarget("profile", profileRef.current, 0)}><ProfileAvatar accessibilityLabel={t("profile")} displayName={profile.data?.display_name} hasPhoto={profile.data?.has_profile_photo} photoUpdatedAt={profile.data?.profile_photo_updated_at} onPress={() => router.push("/profile")} size={42}/></View>
     </View></View>
-    <View style={{gap: 8}}><Text style={ui.small}>{t("greeting")}{profile.data?.display_name ? `, ${profile.data.display_name}` : ""}</Text><Text accessibilityRole="header" style={ui.title}>{t("today")}</Text><Text style={ui.text}>{t("todaySubtitle")}</Text></View>
-    <View ref={planRef} onLayout={event => registerTarget("today-plan", planRef.current, event.nativeEvent.layout.y)}><SurfaceCard style={{gap: 12, padding: 16}}>
+    <View style={{gap: 4}}><Text style={styles.small}>{t("greeting")}{profile.data?.display_name ? ", " + profile.data.display_name : ""}</Text><Text accessibilityRole="header" style={styles.title}>{t("today")}</Text><Text style={styles.copy}>{t("buildCharacter")}</Text></View>
+    <View ref={planRef} onLayout={event => registerTarget("today-plan", planRef.current, event.nativeEvent.layout.y)}><SurfaceCard style={styles.card}>
       <Text style={styles.eyebrow}>{t("nextMove")}</Text>
-      {next.day ? <View style={row}><ExerciseMedia exerciseId={next.day.prescriptions[0]?.exercise_id ?? ""} name={next.day.prescriptions[0]?.name ?? t("train")} arabic={rtl} compact/><View style={styles.flex}><Text style={ui.heading}>{workoutDayLabel(next.day.name, rtl)}</Text><Text style={ui.small}>{exerciseCount(next.day.prescriptions.length, locale)} · {formatNumber(next.day.estimated_minutes, locale)} {t("minutes")}</Text></View></View> : <Text style={ui.text}>{t("noReadyWorkout")}</Text>}
+      {next.day ? <View style={row}><View style={styles.flex}><Text style={styles.workout}>{workoutDayLabel(next.day.name, rtl)}</Text><Text style={styles.small}>{next.day.prescriptions[0]?.muscles.map(value => fitnessLabel(value, locale)).join(" · ")}</Text><View style={row}><Feather name="clock" size={13} color={colors.mutedLight}/><Text style={styles.small}>{exerciseCount(next.day.prescriptions.length, locale)} · {formatNumber(next.day.estimated_minutes, locale)} {t("minutes")}</Text></View></View><ExerciseMedia exerciseId={next.day.prescriptions[0]?.exercise_id ?? ""} name={next.day.prescriptions[0]?.name ?? t("train")} arabic={rtl} compact previewSize={94}/></View> : <Text style={styles.copy}>{t("noReadyWorkout")}</Text>}
       {!ready && !sessions.isError && !plan.isError ? <ActivityIndicator color={colors.bronze}/> : null}
       {sessions.isError || plan.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void Promise.all([sessions.refetch(), plan.refetch()])}/> : <AppButton disabled={!ready} loading={start.isPending} label={t(next.active ? "resumeWorkout" : next.day ? "startWorkout" : "prepareWorkout")} onPress={() => next.active ? router.push({pathname: "/training/day", params: {sessionId: next.active.id, dayKey: next.active.day_key}}) : next.day ? start.mutate() : router.push("/training")}/>}
       {start.error ? <Text accessibilityRole="alert" style={ui.error}>{start.error.message}</Text> : null}
     </SurfaceCard></View>
-    <SurfaceCard style={styles.stack}><View style={row}><Text style={[ui.heading, styles.flex]}>{t("yourProgress")}</Text>{game.data ? <Text style={ui.small}>{t("level")} {formatNumber(game.data.level, locale)}</Text> : null}</View>
-      {game.isPending ? <ActivityIndicator color={colors.bronze}/> : null}
-      {game.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void game.refetch()}/> : null}
-      {game.data ? <><View style={row}><View style={styles.flex}><Text style={ui.small}>{t("progressScore")}</Text><Text style={styles.score}>{visibleProgressValue(game.data.progress_score) === null ? "—" : formatNumber(visibleProgressValue(game.data.progress_score)!, locale)}<Text style={ui.small}> / {formatNumber(100, locale)}</Text></Text></View><View style={styles.flex}><Text style={ui.small}>{t("xp")}</Text><Text style={styles.score}>{formatNumber(game.data.xp, locale)}</Text></View></View>
-      <ProgressMeter label={t("xp")} value={game.data.xp % 100}/><Text style={ui.small}>{delta === null ? t("noProgressTrend") : `${t("progressTrend")}: ${delta > 0 ? "+" : ""}${formatNumber(delta, locale)}`}</Text>
-      {!game.data.progress_score.ranked ? <Text style={ui.small}>{t("insufficientCoverage")}</Text> : null}<AppButton label={t("progressScore")} variant="secondary" onPress={() => router.push("/progress-score")}/></> : null}
+    <SurfaceCard style={styles.card}><View style={row}><Text style={[styles.eyebrow, styles.flex]}>{t("yourProgress")}</Text>{game.data ? <Text style={styles.small}>{t("level")} {formatNumber(game.data.level, locale)}</Text> : null}</View>
+      {game.isPending ? <ActivityIndicator color={colors.bronze}/> : game.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void game.refetch()}/> : game.data ? <>
+        <View style={row}><Pressable accessibilityRole="button" accessibilityLabel={t("progressScore")} onPress={() => router.push("/progress-score")} style={[styles.row, styles.flex, rtl && styles.reverse]}><ProgressRing value={score} size={66}/><View style={styles.flex}><Text style={styles.small}>{t("progressScore")}</Text><Text style={styles.value}>{score === null ? "—" : formatNumber(score, locale)}<Text style={styles.small}> / {formatNumber(100, locale)}</Text></Text></View></Pressable><View style={styles.xp}><Text style={styles.small}>{t("xp")}</Text><Text style={styles.value}>{formatNumber(game.data.xp, locale)}</Text><ProgressMeter label={t("nextLevel")} value={Math.min(100, Math.max(0, 100 * (game.data.xp - (game.data.next_level_xp - 100)) / 100))}/><Text style={styles.small}>{formatNumber(game.data.xp, locale)} / {formatNumber(game.data.next_level_xp, locale)}</Text></View></View>
+        <View style={[row, styles.insight]}><Feather name={score === null ? "info" : "trending-up"} size={16} color={score === null ? colors.bronze : colors.positive}/><Text style={[styles.small, styles.flex]}>{score === null ? t("insufficientCoverage") : delta === null ? t("noProgressTrend") : t("progressTrend") + ": " + (delta > 0 ? "+" : "") + formatNumber(delta, locale)}</Text></View>
+      </> : null}
     </SurfaceCard>
-    <SurfaceCard style={styles.stack}><View style={row}>
-      <View style={styles.preview}>{avatar?.preview_url ? <Image source={{uri: avatar.preview_url}} cachePolicy="none" contentFit="contain" style={StyleSheet.absoluteFill}/> : <Text style={styles.score}>◇</Text>}</View><View style={styles.flex}><Text style={ui.heading}>{t("yourAvatar")}</Text><Text style={ui.small}>{t(avatar ? avatar.approved ? "illustration" : "avatarPending" : "avatarSetup")}</Text></View>
-    </View><AppButton label={t("viewAvatar")} variant="secondary" onPress={() => router.push("/avatar")}/></SurfaceCard>
-    <SurfaceCard style={styles.stack}><Text style={ui.heading}>{t("weeklyMission")}</Text>{workoutMission ? <><Text style={ui.text}>{formatNumber(workoutMission.completed, locale)} / {formatNumber(workoutMission.target, locale)} · {t("plannedWorkouts")}</Text><ProgressMeter label={t("plannedWorkouts")} value={100 * workoutMission.completed / workoutMission.target}/></> : null}<AppButton label={t("viewMissions")} variant="secondary" onPress={() => router.push("/missions")}/></SurfaceCard>
-    <SurfaceCard style={styles.stack}><Text style={ui.heading}>{t("league")}</Text>{game.data?.league_opt_in ? <Text style={ui.text}>{t("rank")}: {league.data?.personal_rank == null ? t("unranked") : formatNumber(league.data.personal_rank, locale)}</Text> : <Text style={ui.small}>{t("leaguePrivacy")}</Text>}<AppButton label={t(game.data?.league_opt_in ? "league" : "joinLeague")} variant="secondary" onPress={() => router.push("/league")}/></SurfaceCard>
-    <SurfaceCard style={styles.stack}><Text style={ui.heading}>{t("coach")}</Text><Text style={ui.text}>{t("coachTodayHelp")}</Text><AppButton label={t("askCoach")} onPress={() => router.push("/training/coach")}/></SurfaceCard>
-    <View ref={scoreRef} onLayout={event => registerTarget("daily-score", scoreRef.current, event.nativeEvent.layout.y)} style={styles.stack}><Text style={ui.heading}>{t("dailyScore")}: {daily.data ? `${formatNumber(daily.data.score, locale)} / ${formatNumber(100, locale)}` : "—"}</Text><Text style={ui.small}>{t("dailyScoreHelp")}</Text>{daily.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void daily.refetch()}/> : null}</View>
+    <Pressable accessibilityRole="button" accessibilityLabel={t("viewAvatar")} onPress={() => router.push("/avatar")} style={[styles.avatarStrip, rtl && styles.reverse]}>
+      <View style={styles.avatar}>{avatar?.preview_url ? <Image source={{uri: avatar.preview_url}} cachePolicy="none" contentFit="contain" style={StyleSheet.absoluteFill}/> : <Feather name="user" size={36} color={colors.mutedLight}/>}</View><View style={styles.flex}><Text style={styles.eyebrow}>{t("yourAvatar")}</Text><Text style={styles.small}>{t(avatar ? avatar.approved ? "illustration" : "avatarPending" : "avatarSetup")}</Text></View><Feather name={rtl ? "chevron-left" : "chevron-right"} size={22} color={colors.bronze}/>
+    </Pressable>
+    <View style={[styles.tiles, rtl && styles.reverse]}>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/missions")} style={styles.tile}><Text style={styles.eyebrow}>{t("weeklyMission")}</Text><Text style={styles.value}>{mission ? formatNumber(mission.completed, locale) + " / " + formatNumber(mission.target, locale) : "—"}</Text><Text style={styles.small}>{t("plannedWorkouts")}</Text>{mission ? <ProgressMeter label={t("plannedWorkouts")} value={100 * mission.completed / Math.max(1, mission.target)}/> : null}</Pressable>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/league")} style={styles.tile}><View style={row}><Text style={[styles.eyebrow, styles.flex]}>{t("leagueTab")}</Text><Feather name="award" size={20} color={colors.bronze}/></View><Text style={styles.value}>{league.data?.personal_rank != null ? "#" + formatNumber(league.data.personal_rank, locale) : "—"}</Text><Text style={styles.small}>{t(game.data?.league_opt_in ? "unranked" : "joinLeague")}</Text></Pressable>
+    </View>
+    <Pressable accessibilityRole="button" onPress={() => router.push("/training/coach")} style={[styles.coach, rtl && styles.reverse]}><View style={styles.flex}><Text style={styles.copy}>{t("coachEncouragement")}</Text><Text style={styles.eyebrow}>BONYAN COACH</Text></View><View style={styles.coachIcon}><Feather name="message-circle" color={colors.bronze} size={26}/></View></Pressable>
+    <View ref={scoreRef} onLayout={event => registerTarget("daily-score", scoreRef.current, event.nativeEvent.layout.y)} style={{gap: 4}}><Text style={styles.small}>{t("dailyScore")}: {daily.data ? formatNumber(daily.data.score, locale) + " / " + formatNumber(100, locale) : "—"}</Text><Text style={styles.small}>{t("dailyScoreHelp")}</Text>{daily.isError ? <AppButton label={t("retry")} variant="secondary" onPress={() => void daily.refetch()}/> : null}</View>
   </CoachingPage>;
 }
-const styles = StyleSheet.create({header: {alignItems: "center", flexDirection: "row", justifyContent: "space-between"}, row: {alignItems: "center", flexDirection: "row", gap: spacing.md}, reverse: {flexDirection: "row-reverse"}, stack: {gap: spacing.md}, flex: {flex: 1, gap: spacing.xs, minWidth: 0}, eyebrow: {color: colors.bronze, fontFamily: fonts.bodySemiBold, fontSize: 12}, score: {color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 32}, preview: {width: 84, height: 112, borderRadius: 16, overflow: "hidden", backgroundColor: colors.surfaceRaised, alignItems: "center", justifyContent: "center"}});
+const styles = StyleSheet.create({
+  header: {alignItems: "center", flexDirection: "row", justifyContent: "space-between"},
+  row: {alignItems: "center", flexDirection: "row", gap: 10}, reverse: {flexDirection: "row-reverse"},
+  flex: {flex: 1, minWidth: 0, gap: 4}, wordmark: {color: colors.text, fontFamily: fonts.displayMedium, fontSize: 13, letterSpacing: 3},
+  title: {color: colors.text, fontFamily: fonts.displayBold, fontSize: 28, lineHeight: 36},
+  workout: {color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 21, lineHeight: 28},
+  small: {color: colors.mutedLight, fontFamily: fonts.body, fontSize: 11, lineHeight: 17},
+  copy: {color: colors.mutedLight, fontFamily: fonts.body, fontSize: 13, lineHeight: 20},
+  eyebrow: {color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 11, lineHeight: 16},
+  value: {color: colors.text, fontFamily: fonts.displaySemiBold, fontSize: 28, lineHeight: 36},
+  card: {gap: 12, padding: 16}, xp: {width: 86, gap: 4, borderLeftWidth: 1, borderLeftColor: colors.line, paddingLeft: 12},
+  insight: {borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10},
+  avatarStrip: {flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: colors.line, borderRadius: 16, padding: 12, backgroundColor: colors.surface},
+  avatar: {width: 56, height: 70, borderRadius: 12, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceRaised},
+  tiles: {flexDirection: "row", gap: 12}, tile: {flex: 1, minWidth: 0, gap: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: 16, padding: 12, minHeight: 130},
+  coach: {minHeight: 98, flexDirection: "row", alignItems: "center", gap: 16, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface},
+  coachIcon: {height: 56, width: 56, borderRadius: 28, borderWidth: 1, borderColor: colors.bronze, alignItems: "center", justifyContent: "center"},
+});

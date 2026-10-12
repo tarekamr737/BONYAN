@@ -1,7 +1,6 @@
 import { phrase, phraseTemplate } from "../../../core/i18n/copy";
 import { DirectionalText as Text, LanguageDirection } from "../../../core/components/DirectionalText";
 import * as ImagePicker from "expo-image-picker";
-import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import { useContext, useMemo, useState } from "react";
 import {
@@ -22,6 +21,9 @@ import { AvatarButton } from "../components/AvatarButton";
 import { AvatarBuildProgress } from "../components/AvatarBuildProgress";
 import { ManualMeasurementsForm } from "../components/ManualMeasurementsForm";
 import { PrivacyTimeline } from "../components/PrivacyTimeline";
+import { PrivateAvatarHero } from "../components/PrivateAvatarHero";
+import { FeatureHeader } from "../../../core/components/FeatureHeader";
+import type { GameOverview } from "../../game/api";
 import {
   useAvatarMeasurementStatus,
   useAvatarMutations,
@@ -35,7 +37,6 @@ import type {
 import { avatarRenewalStatus } from "../renewal";
 import {useQuery} from "@tanstack/react-query";
 import {getGameOverview} from "../../game/api";
-import {formatNumber, type MessageKey} from "../../../core/i18n/messages";
 
 type AvatarScreenProps = {
   onBack: () => void;
@@ -43,7 +44,7 @@ type AvatarScreenProps = {
 
 export function AvatarScreen({ onBack }: AvatarScreenProps) {
   const arabic = useContext(LanguageDirection);
-  const {t, locale} = useLocale();
+  const {t} = useLocale();
   const game = useQuery({queryKey: ["game", "overview"], queryFn: getGameOverview});
   const [photoConsent, setPhotoConsent] = useState(false);
   const [presentation, setPresentation] = useState<AvatarPresentation>("men");
@@ -176,26 +177,9 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable
-            accessibilityLabel={phrase("copy_2a52671ad634", arabic)}
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={onBack}
-            style={styles.backButton}
-          >
-            <Text style={styles.backLabel}>{phrase("copy_436170a81a03", arabic)}</Text>
-          </Pressable>
-          <Text accessibilityRole="header" style={styles.heading}>
-            {phrase("copy_c05fd35f7778", arabic)}
-          </Text>
-          <View style={styles.headerBalance} />
-        </View>
+        <FeatureHeader title={t("myAvatar")} subtitle={t("buildCharacter")} onBack={onBack}/>
+        {game.isError ? <AvatarButton tone="secondary" onPress={() => void game.refetch()}>{t("retry")}</AvatarButton> : null}
 
-        <View accessibilityLabel={t("characterProgress")} style={{gap: 8, paddingVertical: 8, flexDirection: arabic ? "row-reverse" : "row", alignItems: "center"}}><View style={{flex: 1, gap: 4}}>
-          {game.data ? <><Text style={[styles.privacyCopy, {marginBottom: 0}]}>{t("level")} {formatNumber(game.data.level, locale)} · {formatNumber(game.data.xp, locale)} {t("xp")}</Text><Text style={[styles.privacyCopy, {marginBottom: 0}]}>{game.data.badges.length ? game.data.badges.map(badge => t(badge as MessageKey)).join(" · ") : t("noBadges")}</Text></> : game.isError ? <AvatarButton tone="secondary" onPress={() => void game.refetch()}>{t("retry")}</AvatarButton> : <Text style={styles.privacyCopy}>{t("loading")}</Text>}
-          </View><Pressable accessibilityRole="button" onPress={() => router.push("/missions")} style={{minHeight: 48, justifyContent: "center", paddingHorizontal: 8}}><Text style={styles.retryLabel}>{t("weeklyMission")}</Text></Pressable>
-        </View>
         <View style={styles.privateBadge}><Text style={styles.privateBadgeText}>{phrase("copy_f06d7f4640d5", arabic)}</Text></View>
 
         {!activeAvatar && avatarsQuery.isPending ? (
@@ -220,6 +204,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           <AvatarBuildProgress arabic={arabic} stage={buildStage} />
         ) : displayedAvatar ? (
           <AvatarReview
+            game={game.data}
             avatar={displayedAvatar}
             confirmDelete={confirmDelete}
             onDeleteSourcePhoto={uploadedSourcePhotoId ? () => {
@@ -239,10 +224,7 @@ export function AvatarScreen({ onBack }: AvatarScreenProps) {
           />
         ) : (
           <View style={styles.creationSection}>
-            <View style={{alignItems: "center", justifyContent: "center", gap: 12, padding: 16, minHeight: 180, borderRadius: 24, backgroundColor: colors.surface}}>
-              <Feather name="user" size={56} color={colors.mutedLight} />
-              <Text style={[styles.previewCopy, {textAlign: "center"}]}>{t("avatarSetup")}</Text>
-            </View>
+            <PrivateAvatarHero game={game.data} recordedAt={measurementQuery.data?.recorded_at}/>
             {createNewVersion ? <AvatarButton onPress={() => setCreateNewVersion(false)} tone="secondary">{phrase("copy_36d676949b08", arabic)}</AvatarButton> : null}
             <View style={styles.selectorSection}>
               <Text style={styles.selectorEyebrow}>{phrase("copy_110a4294c421", arabic)}</Text>
@@ -454,6 +436,7 @@ function MeasurementPanel({ arabic, query }: MeasurementPanelProps) {
 }
 
 type AvatarReviewProps = {
+  game?: GameOverview;
   arabic: boolean;
   avatar: AvatarView;
   confirmDelete: () => void;
@@ -469,6 +452,7 @@ type AvatarReviewProps = {
 };
 
 function AvatarReview({
+  game,
   arabic,
   avatar,
   confirmDelete,
@@ -488,12 +472,7 @@ function AvatarReview({
     <View style={styles.previewSection}>
       {avatar.preview_url ? (
         <View style={styles.portraitReview}>
-          <Image
-            accessibilityLabel={phrase("copy_37df4f84a2f3", arabic)}
-            resizeMode="contain"
-            source={{ uri: avatar.preview_url }}
-            style={styles.generatedPortrait}
-          />
+          <PrivateAvatarHero avatar={avatar} recordedAt={avatar.measurements_recorded_at} game={game}/>
           <Text style={styles.portraitStatus}>
             {avatar.public_in_community ? (phrase("copy_d4927c3c5f42", arabic)) : (phrase("copy_aa392cd97ff1", arabic))}
           </Text>

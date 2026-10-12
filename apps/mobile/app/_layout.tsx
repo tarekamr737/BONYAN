@@ -1,4 +1,7 @@
 import { Manrope_400Regular } from "@expo-google-fonts/manrope/400Regular";
+import { Cairo_400Regular } from "@expo-google-fonts/cairo/400Regular";
+import { Cairo_600SemiBold } from "@expo-google-fonts/cairo/600SemiBold";
+import { Cairo_700Bold } from "@expo-google-fonts/cairo/700Bold";
 import { Manrope_500Medium } from "@expo-google-fonts/manrope/500Medium";
 import { Manrope_600SemiBold } from "@expo-google-fonts/manrope/600SemiBold";
 import { SpaceGrotesk_500Medium } from "@expo-google-fonts/space-grotesk/500Medium";
@@ -35,6 +38,9 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    Cairo_400Regular,
+    Cairo_600SemiBold,
+    Cairo_700Bold,
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,

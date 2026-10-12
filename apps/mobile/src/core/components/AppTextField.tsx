@@ -9,21 +9,22 @@ type AppTextFieldProps = TextInputProps & {
   error?: string;
   hint?: string;
   label: string;
+  hideLabel?: boolean;
 };
 
-export function AppTextField({ error, hint, label, style, ...props }: AppTextFieldProps) {
+export function AppTextField({ error, hint, label, hideLabel = false, style, ...props }: AppTextFieldProps) {
   const helpText = error ?? hint;
   const arabic = useContext(LanguageDirection);
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      {!hideLabel ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         {...props}
         accessibilityLabel={props.accessibilityLabel ?? label}
         accessibilityState={{ disabled: props.editable === false }}
         placeholderTextColor={colors.muted}
-        style={[styles.input, error ? styles.inputError : undefined, style, {textAlign: arabic ? "right" : "left", writingDirection: arabic ? "rtl" : "ltr"}]}
+        style={[styles.input, error ? styles.inputError : undefined, style, {textAlign: arabic ? "right" : "left", writingDirection: arabic ? "rtl" : "ltr", ...(arabic ? {fontFamily: "Cairo_400Regular"} : {})}]}
       />
       {helpText ? (
         <Text accessibilityLiveRegion={error ? "polite" : "none"} style={error ? styles.error : styles.hint}>

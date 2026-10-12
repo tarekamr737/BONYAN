@@ -11,7 +11,8 @@ import { useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { CinematicHero } from "../../../core/components/CinematicHero";
+import { FeatureHeader } from "../../../core/components/FeatureHeader";
+import { AppButton } from "../../../core/components/AppButton";
 import { ApiError } from "../../../core/api/errors";
 import { SurfaceCard } from "../../../core/components/SurfaceCard";
 import { MotionReveal } from "../../../core/components/MotionReveal";
@@ -80,7 +81,8 @@ export function TrainingHomeScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <CinematicHero arabic={arabic} source={require("../../../../assets/heroes/training.jpg")} title={phrase("copy_025e07c3f331", arabic)} subtitle={phrase("copy_e5a5ec3cd07f", arabic)} />
+        <FeatureHeader title={t("train")} subtitle={phrase("copy_e5a5ec3cd07f", arabic)}/>
+        <AppButton variant="secondary" disabled={hasLimitations || catalog.data?.available === false} label={phrase("copy_edf0639cbc1f", arabic)} onPress={() => router.push("/training/manual")}/>
         {hasLimitations ? <SurfaceCard>
           <Text style={styles.stateTitle}>{phrase("copy_ea2ea06dab85", arabic)}</Text>
           <Text style={styles.stateCopy}>{phrase("copy_37df55acee57", arabic)}</Text>
@@ -182,7 +184,7 @@ export function TrainingHomeScreen() {
               </View>
               <Pressable
                 accessibilityRole="button"
-                disabled={catalog.data?.available === false || hasLimitations || needsRefresh || startMutation.isPending}
+                disabled={hasLimitations || needsRefresh || startMutation.isPending}
                 onPress={() => startMutation.mutate()}
                 style={[styles.primaryAction, (hasLimitations || needsRefresh || startMutation.isPending) && styles.disabledAction]}
               >
@@ -220,14 +222,6 @@ export function TrainingHomeScreen() {
 
         <View style={styles.actions}>
           {profile.data?.training_goal === "military_preparation" ? <Pressable accessibilityRole="button" onPress={() => router.push("/profile")} style={styles.secondaryAction}><Text style={styles.secondaryActionText}>{phrase("copy_db4bf00709b8", arabic)}</Text></Pressable> : null}
-          <Pressable
-            accessibilityRole="button"
-            disabled={hasLimitations}
-            onPress={() => router.push("/training/manual")}
-            style={[styles.secondaryAction, hasLimitations && styles.disabledAction]}
-          >
-            <Text style={styles.secondaryActionText}>{phrase("copy_edf0639cbc1f", arabic)}</Text>
-          </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/training/coach")}

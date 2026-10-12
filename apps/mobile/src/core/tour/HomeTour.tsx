@@ -21,7 +21,7 @@ const steps: { target: HomeTourTarget; en: string; ar: string }[] = [
   { target: "training-tab", en: "Your training plan, exercise library and workout history live here.", ar: "هنا خطتك التدريبية ومكتبة التمارين وسجل تدريباتك." },
   { target: "nutrition-tab", en: "Log meals and follow your nutrition targets here.", ar: "سجّل وجباتك وتابع أهداف التغذية من هنا." },
   { target: "coach-tab", en: "Ask BONYAN Coach for guidance based on your plan and progress.", ar: "اسأل كوتش بنيان عن خطتك وتقدمك." },
-  { target: "community-tab", en: "Train with the BONYAN community and follow shared challenges.", ar: "تدرّب مع مجتمع بنيان وتابع التحديات المشتركة." },
+  { target: "community-tab", en: "Earn Mission Points, join your League and challenge friends.", ar: "اكسب نقط المهام، انضم لدوريك واتحدى صحابك." },
   { target: "profile", en: "Your profile stores settings, history and the option to replay this tour.", ar: "ملفك يحفظ الإعدادات والسجل وخيار إعادة الجولة." },
 ];
 
