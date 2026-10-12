@@ -27,8 +27,11 @@ export function undoSessionSubstitution(id: string): Promise<SubstitutionResult>
   return apiRequest(`/api/v1/training/substitution-proposals/${id}/undo`, {method: "POST"});
 }
 
-export function searchExercises(query: string): Promise<ExerciseSearchResponse> {
-  return apiRequest(`/api/v1/training/exercises?query=${encodeURIComponent(query)}&page_size=20`);
+export function searchExercises(query: string, page = 1, bodyPart?: string): Promise<ExerciseSearchResponse> {
+  const params = new URLSearchParams({page: String(page), page_size: "12"});
+  if (query.trim()) params.set("query", query.trim());
+  if (bodyPart) params.set("body_part", bodyPart);
+  return apiRequest(`/api/v1/training/exercises?${params}`);
 }
 
 export function getExerciseDetails(exerciseId: string): Promise<import("../types").ExerciseSearchItem> {

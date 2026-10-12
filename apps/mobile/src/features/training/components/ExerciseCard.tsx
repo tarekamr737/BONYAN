@@ -15,7 +15,7 @@ export function ExerciseCard({exercise, index, active = false, onPress}: Props) 
   const {t, locale, rtl} = useLocale(); const [expanded, setExpanded] = useState(false);
   const prescription = `${formatNumber(exercise.sets, locale)} ${t("sets")} × ${formatNumber(exercise.reps_min, locale)}–${formatNumber(exercise.reps_max, locale)} ${t("reps")}`;
   const content = <SurfaceCard style={[styles.card, active && {borderColor: colors.bronze}]}>
-    <View style={[styles.row, rtl && {flexDirection: "row-reverse"}]}><ExerciseMedia exerciseId={exercise.exercise_id} name={exercise.name} arabic={rtl} compact/><Pressable disabled={!onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={`${exercise.name}, ${prescription}`} accessibilityState={{selected: active}} onPress={onPress} style={styles.content}>
+    <View style={[styles.row, rtl && {flexDirection: "row-reverse"}]}><ExerciseMedia exerciseId={exercise.exercise_id} name={exercise.name} arabic={rtl} compact previewSize={112}/><Pressable disabled={!onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={`${exercise.name}, ${prescription}`} accessibilityState={{selected: active}} onPress={onPress} style={styles.content}>
       <Text style={styles.name}>{formatNumber(index + 1, locale)} · {exercise.name}</Text><Text style={styles.meta}>{prescription}</Text><Text style={styles.meta}>{t("rest")}: {formatNumber(exercise.rest_seconds, locale)} {t("seconds")}</Text>
     </Pressable></View>
     <Text style={styles.meta}>{exercise.muscles.map(value => fitnessLabel(value, locale)).join(" · ")}</Text>

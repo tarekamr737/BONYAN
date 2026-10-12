@@ -179,12 +179,15 @@ async def search_exercises(
     current_user: CurrentUserDep,
     service: TrainingServiceDep,
     query: Annotated[str | None, Query(min_length=1, max_length=80)] = None,
+    body_part: Annotated[str | None, Query(min_length=1, max_length=40)] = None,
     page: Annotated[int, Query(ge=1, le=20)] = 1,
     page_size: Annotated[int, Query(ge=1, le=40)] = 20,
 ) -> ExerciseSearchResponse:
     del current_user
     result = await service.search_exercises(
-        ExerciseSearchFilters(query=query), page=page, page_size=page_size
+        ExerciseSearchFilters(query=query, body_parts=(body_part,) if body_part else ()),
+        page=page,
+        page_size=page_size,
     )
     return ExerciseSearchResponse(
         items=[
